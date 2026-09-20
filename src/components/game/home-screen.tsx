@@ -100,7 +100,7 @@ export function HomeScreen() {
             />
           </dl>
         ) : (
-          <p className="mt-6 text-sm text-subtle">30 curated launch locations · 4 rounds · 45 seconds each</p>
+          <p className="mt-6 text-sm text-subtle">40 locations · 4 rounds · 10 questions each · 45 seconds</p>
         )}
       </section>
       {showSettings && (

@@ -1,5 +1,5 @@
 import { haversineKm, isInsideCountry } from "./geo.ts";
-import { LAUNCH_LOCATIONS } from "./locations.ts";
+import { LAUNCH_LOCATIONS, ROUND4_LOCATIONS } from "./locations.ts";
 import type { GeoLocation } from "./types.ts";
 
 export interface ValidationIssue {
@@ -61,5 +61,23 @@ export function validateLaunchPool(pool: GeoLocation[] = LAUNCH_LOCATIONS): Vali
   const nl = pool.filter((l) => l.country === "NL" && l.enabled).length;
   if (pool.length !== 30) issues.push({ message: `expected 30 launch locations, got ${pool.length}` });
   if (za !== 15 || nl !== 15) issues.push({ message: `expected 15/15 country split, got ZA ${za} NL ${nl}` });
+  return issues;
+}
+
+export function validateRound4Pool(pool: GeoLocation[] = ROUND4_LOCATIONS): ValidationIssue[] {
+  const issues: ValidationIssue[] = [];
+  const ids = new Set<string>();
+  for (const loc of pool) {
+    if (ids.has(loc.id)) issues.push({ id: loc.id, message: "duplicate id" });
+    ids.add(loc.id);
+    issues.push(...validateLocation(loc));
+    if (loc.sceneKind !== "generated-reconstruction") {
+      issues.push({ id: loc.id, message: "round 4 location must be a labelled reconstruction" });
+    }
+  }
+  const za = pool.filter((l) => l.country === "ZA").length;
+  const nl = pool.filter((l) => l.country === "NL").length;
+  if (pool.length !== 10) issues.push({ message: `expected 10 round-4 locations, got ${pool.length}` });
+  if (za !== 5 || nl !== 5) issues.push({ message: `expected 5/5 round-4 split, got ZA ${za} NL ${nl}` });
   return issues;
 }

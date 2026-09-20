@@ -61,3 +61,11 @@ export function RoundPips({ index, total = 4 }: { index: number; total?: number 
     </div>
   );
 }
+
+export function QuestionMark({ current, total = 10 }: { current: number; total?: number }) {
+  return (
+    <p className="text-[10px] uppercase tracking-[0.18em] text-muted" aria-label={`Question ${current} of ${total}`}>
+      Q {current} / {total}
+    </p>
+  );
+}

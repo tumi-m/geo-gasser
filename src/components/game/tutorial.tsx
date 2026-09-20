@@ -5,7 +5,7 @@ const STEPS = [
   {
     n: "01",
     title: "Study the scene",
-    body: "Rounds 1–3 use real geography. Round 4 is a labelled 3D reconstruction.",
+    body: "Rounds 1–3 are 10 real places each (15 South Africa + 15 Netherlands). Round 4 is 10 labelled 3D reconstructions.",
   },
   {
     n: "02",
@@ -24,8 +24,8 @@ const STEPS = [
   },
   {
     n: "05",
-    title: "Four rounds, highest total",
-    body: "Ties break on shorter total distance, then faster total time.",
+    title: "Four rounds, forty questions",
+    body: "Ten questions per round. Highest total wins. Ties break on shorter total distance, then faster total time.",
   },
 ];
 

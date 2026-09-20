@@ -13,6 +13,9 @@ import {
   GROK_BOT_ID,
   GROK_BOT_NAME,
   isRound4,
+  QUESTIONS_PER_ROUND,
+  questionInRound,
+  TOTAL_QUESTIONS,
   loadSettings,
   loadStats,
   randomSeed,
@@ -34,7 +37,7 @@ import { PlayerAvatar } from "./player-avatar";
 import { RevealOverlay } from "./reveal-sequence";
 import { Round4Scene } from "./round4-scene";
 import { SettingsPanel } from "./settings-panel";
-import { RoundPips, TimerRing } from "./timer-ring";
+import { QuestionMark, RoundPips, TimerRing } from "./timer-ring";
 import { FinalResults } from "./final-results";
 import { cn } from "@/lib/utils";
 
@@ -254,15 +257,15 @@ export function MatchApp({
     if (state.phase !== "round_active" && state.phase !== "waiting_for_opponent") return;
     const place = activeLocation(state);
     if (!place) return;
-    const wait = grokThinkMs(place.difficulty, state.seed, state.roundIndex);
+    const wait = grokThinkMs(place.difficulty, state.seed, state.questionIndex);
     const id = window.setTimeout(() => {
-      const guess = grokGuess(place, state.seed, state.roundIndex);
+      const guess = grokGuess(place, state.seed, state.questionIndex);
       const now = Date.now();
       dispatch({ type: "PLACE_PIN", playerId: bot.id, guess, now });
       dispatch({ type: "LOCK", playerId: bot.id, now: now + 1 });
     }, wait);
     return () => window.clearTimeout(id);
-  }, [mode, duelKind, state.phase, state.roundIndex, state.seed, state.players, dispatch]);
+  }, [mode, duelKind, state.phase, state.questionIndex, state.seed, state.players, dispatch]);
 
   const loc = activeLocation(state);
   const env = activeEnvironment(state);
@@ -272,7 +275,7 @@ export function MatchApp({
       : (state.players.find((p) => p.id === selfId) ?? state.players[0]);
   const opponent = state.players.find((p) => p.id !== you?.id);
   const showingReveal = state.phase === "round_reveal" || state.phase === "round_expired" || state.phase === "round_results";
-  const lastRound = state.roundIndex >= 3;
+  const lastRound = state.questionIndex >= TOTAL_QUESTIONS - 1;
   const canGuess =
     Boolean(you) &&
     !you?.locked &&
@@ -346,6 +349,7 @@ export function MatchApp({
       setRemaining(ROUND_DURATION_SEC);
     }
     if (state.phase === "round_active") {
+      setRemaining(ROUND_DURATION_SEC);
       // Phones use the split layout; collapsing there would shrink the map.
       if (!window.matchMedia("(max-width: 640px)").matches) setExpanded(false);
       audio.play("start");
@@ -371,7 +375,7 @@ export function MatchApp({
       setSceneFailed(false);
       setSceneReady(true);
     }
-  }, [loc?.sceneUrl]);
+  }, [loc?.sceneUrl, state.questionIndex]);
 
   useEffect(() => {
     if (state.phase !== "match_complete" && state.phase !== "final_reveal") return;
@@ -555,7 +559,10 @@ export function MatchApp({
     );
   }
 
-  const roundLabel = `Round ${state.roundIndex + 1} of 4${isRound4(state) ? " · reconstruction" : ""}`;
+  const qNum = questionInRound(state.questionIndex) + 1;
+  const roundLabel = isRound4(state)
+    ? `Round 4 of 4 · 3D · Q${qNum}/${QUESTIONS_PER_ROUND}`
+    : `Round ${state.roundIndex + 1} of 4 · Q${qNum}/${QUESTIONS_PER_ROUND}`;
   const urgent = remaining <= 10 && state.phase === "round_active" && !you?.locked;
 
   return (
@@ -575,18 +582,18 @@ export function MatchApp({
           <h1 className="atlas-rise atlas-rise-1 font-display mt-3 text-5xl sm:text-7xl">
             {isRound4(state) ? "Reality remix" : "Locate this"}
           </h1>
-          {isRound4(state) && env && (
-            <p className="atlas-rise atlas-rise-2 mt-4 max-w-sm text-sm text-muted">
-              {env.disclosure} · {env.title} · 1.25× score
-            </p>
-          )}
+          <p className="atlas-rise atlas-rise-2 mt-4 max-w-sm text-sm text-muted">
+            {isRound4(state)
+              ? "10 reconstructions · 1.25× score"
+              : "10 questions this round"}
+          </p>
           <p className="atlas-rise atlas-rise-3 mt-8 text-xs uppercase tracking-[0.2em] text-subtle">Tap or Enter to start</p>
         </div>
       )}
 
       <div className="absolute inset-0">
         {isRound4(state) && env ? (
-          <Round4Scene env={env} reducedMotion={settings.reducedMotion} />
+          <Round4Scene key={env.id} env={env} reducedMotion={settings.reducedMotion} />
         ) : (
           <>
             <div className={cn("absolute inset-0 bg-bg-subtle transition-opacity duration-500", sceneReady ? "opacity-0" : "opacity-100")} />
@@ -628,6 +635,7 @@ export function MatchApp({
             />
           )}
           <RoundPips index={state.roundIndex} />
+          <QuestionMark current={qNum} />
         </div>
         <div className="flex items-center gap-2">
           {isRound4(state) && (

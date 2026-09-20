@@ -194,3 +194,28 @@ describe("two-player lock and local duels", () => {
     assert.equal(s.phase, "round_reveal");
   });
 });
+
+describe("forty-question match", () => {
+  const now = 1_000_000;
+  it("plays ten questions in a round before advancing", () => {
+    let s = reduce(createLobbyState(), {
+      type: "CREATE_SOLO",
+      playerId: "p1",
+      name: "Ada",
+      seed: 3,
+      now,
+    });
+    assert.equal(s.questionIndex, 0);
+    assert.equal(s.locationIds.length, 40);
+    for (let q = 0; q < 10; q++) {
+      if (s.phase === "round_intro") s = reduce(s, { type: "INTRO_DONE", now: now + q * 100 });
+      s = reduce(s, { type: "PLACE_PIN", playerId: "p1", guess: s.truth!, now: now + q * 100 + 1 });
+      s = reduce(s, { type: "LOCK", playerId: "p1", now: now + q * 100 + 2 });
+      s = reduce(s, { type: "CONTINUE", now: now + q * 100 + 3 });
+    }
+    assert.equal(s.roundIndex, 1);
+    assert.equal(s.questionIndex, 10);
+    assert.equal(s.phase, "round_intro");
+    assert.equal(s.roundHistory.length, 10);
+  });
+});

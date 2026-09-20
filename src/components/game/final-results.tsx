@@ -61,33 +61,47 @@ export function FinalResults({
             {delta > 0 && !shared ? ` · ${delta.toLocaleString()} point margin` : ""}
           </p>
         )}
-        <ol className="atlas-rise atlas-rise-3 mt-8 space-y-2">
-          {state.roundHistory.map((r) => {
-            const g = r.guesses[selfId];
-            const loc = getLocation(r.locationId);
+        <ol className="atlas-rise atlas-rise-3 mt-8 space-y-5">
+          {[0, 1, 2, 3].map((round) => {
+            const rows = state.roundHistory.filter((r) => Math.floor(r.index / 10) === round);
+            if (!rows.length) return null;
             return (
-              <li
-                key={r.index}
-                className="flex items-center justify-between gap-3 rounded-[var(--radius-md)] border border-border px-4 py-3 text-sm"
-              >
-                <span className="min-w-0">
-                  <span className="block truncate text-fg">
-                    {loc?.title ?? `Round ${r.index + 1}`}
-                    {r.isRound4 ? " · 3D" : ""}
-                  </span>
-                  <span className="mt-0.5 flex items-center gap-2 text-xs text-muted">
-                    <span
-                      className={cn(
-                        "inline-block size-1.5 rounded-full",
-                        loc?.country === "NL" ? "bg-nl" : "bg-za",
-                      )}
-                    />
-                    {loc?.city ?? (loc?.country === "NL" ? "Netherlands" : "South Africa")}
-                  </span>
-                </span>
-                <span className="shrink-0 tabular">
-                  {g ? `${g.score.roundScore.toLocaleString()} · ${formatDistance(g.score.distanceKm)}` : "—"}
-                </span>
+              <li key={round}>
+                <p className="mb-2 text-[11px] uppercase tracking-[0.2em] text-subtle">
+                  Round {round + 1}
+                  {round === 3 ? " · 3D" : ""}
+                </p>
+                <ol className="space-y-1.5">
+                  {rows.map((r) => {
+                    const g = r.guesses[selfId];
+                    const loc = getLocation(r.locationId);
+                    return (
+                      <div
+                        key={r.index}
+                        className="flex items-center justify-between gap-3 rounded-[var(--radius-md)] border border-border px-3 py-2 text-sm"
+                      >
+                        <span className="min-w-0">
+                          <span className="block truncate text-fg">
+                            {loc?.title ?? `Q${r.index + 1}`}
+                            {r.isRound4 ? " · 3D" : ""}
+                          </span>
+                          <span className="mt-0.5 flex items-center gap-2 text-xs text-muted">
+                            <span
+                              className={cn(
+                                "inline-block size-1.5 rounded-full",
+                                loc?.country === "NL" ? "bg-nl" : "bg-za",
+                              )}
+                            />
+                            {loc?.city ?? (loc?.country === "NL" ? "Netherlands" : "South Africa")}
+                          </span>
+                        </span>
+                        <span className="shrink-0 tabular text-xs sm:text-sm">
+                          {g ? `${g.score.roundScore.toLocaleString()} · ${formatDistance(g.score.distanceKm)}` : "—"}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </ol>
               </li>
             );
           })}

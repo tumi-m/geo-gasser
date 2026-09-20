@@ -1,20 +1,38 @@
 import { ROUND4_ENVIRONMENTS } from "./environments.ts";
-import { enabledLocations } from "./locations.ts";
+import { enabledLocations, ROUND4_LOCATIONS } from "./locations.ts";
 import { mulberry32, shuffle } from "./rng.ts";
 import type { GeoLocation } from "./types.ts";
 
-export const REAL_ROUNDS = 3;
+export const QUESTIONS_PER_ROUND = 10;
+export const TOTAL_ROUNDS = 4;
+export const PHOTO_ROUNDS = 3;
+export const PHOTO_QUESTIONS = PHOTO_ROUNDS * QUESTIONS_PER_ROUND;
+export const ROUND4_QUESTIONS = 10;
+export const TOTAL_QUESTIONS = PHOTO_QUESTIONS + ROUND4_QUESTIONS;
+/** @deprecated use PHOTO_ROUNDS — kept so older imports keep compiling */
+export const REAL_ROUNDS = PHOTO_ROUNDS;
 
 export interface MatchPlan {
   seed: number;
   locationIds: string[];
-  envId: string;
+  envIds: string[];
+}
+
+export function roundOf(questionIndex: number): number {
+  return Math.floor(questionIndex / QUESTIONS_PER_ROUND);
+}
+
+export function questionInRound(questionIndex: number): number {
+  return questionIndex % QUESTIONS_PER_ROUND;
+}
+
+export function isRound4Question(questionIndex: number): boolean {
+  return questionIndex >= PHOTO_QUESTIONS;
 }
 
 /**
- * Pick 3 real-world locations without replacement, mixing countries and
- * avoiding repeated cities / primary tags, then a Round 4 environment whose
- * underlying truth is not already in the first three if possible.
+ * 40 questions: 15 ZA + 15 NL photos dealt 5/5 into rounds 1–3,
+ * then 10 labelled 3D reconstructions (5 ZA + 5 NL) for round 4.
  */
 export function planMatch(seed: number): MatchPlan {
   const rand = mulberry32(seed);
@@ -28,55 +46,36 @@ export function planMatch(seed: number): MatchPlan {
     rand,
   );
 
-  const picked: GeoLocation[] = [];
-  const usedCities = new Set<string>();
-  const usedPrimary = new Set<string>();
-
-  const tryTake = (list: GeoLocation[]) => {
-    const idx = list.findIndex((l) => {
-      const city = (l.city ?? l.id).toLowerCase();
-      const primary = l.tags[0];
-      if (usedCities.has(city)) return false;
-      if (usedPrimary.has(primary) && picked.length < 2) return false;
-      return true;
-    });
-    const item = idx >= 0 ? list.splice(idx, 1)[0] : list.shift();
-    if (!item) return;
-    picked.push(item);
-    usedCities.add((item.city ?? item.id).toLowerCase());
-    if (item.tags[0]) usedPrimary.add(item.tags[0]);
-  };
-
-  const startZa = rand() < 0.5;
-  const order = startZa ? [za, nl, za] : [nl, za, nl];
-  if (rand() > 0.35) {
-    // Occasional same-country closer (still unique city) for variety.
-    order[2] = rand() < 0.5 ? za : nl;
+  const photo: GeoLocation[] = [];
+  for (let r = 0; r < PHOTO_ROUNDS; r++) {
+    const chunk = shuffle([...za.splice(0, 5), ...nl.splice(0, 5)], rand);
+    photo.push(...chunk);
   }
-  for (const list of order) tryTake(list);
-
-  while (picked.length < REAL_ROUNDS) {
+  while (photo.length < PHOTO_QUESTIONS) {
     const rest = shuffle(
-      pool.filter((l) => !picked.some((p) => p.id === l.id)),
+      pool.filter((l) => !photo.some((p) => p.id === l.id)),
       rand,
     );
     if (!rest[0]) break;
-    picked.push(rest[0]);
+    photo.push(rest[0]);
   }
 
-  const usedTruth = new Set(picked.map((p) => p.id));
-  const envs = shuffle([...ROUND4_ENVIRONMENTS], rand);
-  const env = envs.find((e) => !usedTruth.has(e.truthLocationId)) ?? envs[0];
+  const r4 = shuffle([...ROUND4_LOCATIONS], rand).slice(0, ROUND4_QUESTIONS);
+  const envByTruth = new Map(ROUND4_ENVIRONMENTS.map((e) => [e.truthLocationId, e.id]));
+  const envIds = r4.map((l) => envByTruth.get(l.id)).filter((id): id is string => Boolean(id));
 
   return {
     seed,
-    locationIds: picked.slice(0, REAL_ROUNDS).map((l) => l.id),
-    envId: env.id,
+    locationIds: [...photo.slice(0, PHOTO_QUESTIONS).map((l) => l.id), ...r4.map((l) => l.id)],
+    envIds,
   };
 }
 
-export function currentLocationId(plan: MatchPlan, roundIndex: number): string {
-  if (roundIndex < REAL_ROUNDS) return plan.locationIds[roundIndex];
-  const env = ROUND4_ENVIRONMENTS.find((e) => e.id === plan.envId);
-  return env?.truthLocationId ?? plan.locationIds[0];
+export function currentLocationId(plan: Pick<MatchPlan, "locationIds">, questionIndex: number): string {
+  return plan.locationIds[questionIndex] ?? plan.locationIds[0];
+}
+
+export function currentEnvId(plan: Pick<MatchPlan, "envIds">, questionIndex: number): string | undefined {
+  if (!isRound4Question(questionIndex)) return undefined;
+  return plan.envIds[questionIndex - PHOTO_QUESTIONS];
 }

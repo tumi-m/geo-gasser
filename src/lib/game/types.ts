@@ -1,3 +1,16 @@
+export type AtmosphereId =
+  | "cape-dusk"
+  | "amsterdam-neon"
+  | "rotterdam-harbor"
+  | "highveld-storm"
+  | "veld-dawn"
+  | "karoo-night"
+  | "canal-fog"
+  | "dune-gold"
+  | "delta-steel"
+  | "island-light"
+  | "fynbos-wind";
+
 export type CountryCode = "ZA" | "NL";
 export type Difficulty = 1 | 2 | 3 | 4 | 5;
 export type GameMode = "solo" | "duel";
@@ -108,8 +121,10 @@ export interface MatchState {
   hostId: string;
   seed: number;
   roundIndex: number;
+  questionIndex: number;
   locationIds: string[];
   envId: string;
+  envIds: string[];
   roundStartedAtMs?: number;
   players: PlayerState[];
   /** Host-only until reveal. Stripped from public snapshots. */
@@ -130,8 +145,10 @@ export interface PublicSnapshot {
   hostId: string;
   seed: number;
   roundIndex: number;
+  questionIndex: number;
   locationIds: string[];
   envId: string;
+  envIds: string[];
   roundStartedAtMs?: number;
   players: Array<
     Omit<PlayerState, "guess" | "roundScore"> & {
@@ -157,7 +174,7 @@ export interface EnvironmentSpec {
   country: CountryCode;
   truthLocationId: string;
   backdropUrl: string;
-  atmosphere: "cape-dusk" | "amsterdam-neon" | "rotterdam-harbor" | "highveld-storm";
+  atmosphere: AtmosphereId;
   disclosure: string;
 }
 
