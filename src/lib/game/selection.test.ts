@@ -66,4 +66,36 @@ describe("planMatch", () => {
     const others = Array.from({ length: 8 }, (_, i) => planMatch(i + 2).locationIds[0]);
     assert.ok(others.some((id) => id !== first));
   });
+  it("quick match is one round of ten stills with no reconstructions", () => {
+    const plan = planMatch(5, "quick");
+    assert.equal(plan.locationIds.length, 10);
+    assert.equal(new Set(plan.locationIds).size, 10);
+    assert.equal(plan.totalRounds, 1);
+    assert.equal(plan.photoRounds, 1);
+    assert.equal(plan.photoQuestions, 10);
+    assert.deepEqual(counts(plan.locationIds), { ZA: 5, NL: 5, WORLD: 0 });
+    assert.equal(plan.envIds.length, 0);
+    assert.ok(plan.locationIds.every((id) => getLocation(id)));
+  });
+  it("avoids recently played sites when the fresh pool can fill the match", () => {
+    const seen = planMatch(21).locationIds.slice(0, 30);
+    const next = planMatch(22, "standard", undefined, seen);
+    const photos = next.locationIds.slice(0, next.photoQuestions);
+    assert.equal(photos.some((id) => seen.includes(id)), false);
+  });
+  it("falls back to recent sites only when the fresh pool runs out", () => {
+    const pool = planMatch(23).locationIds;
+    const next = planMatch(24, "standard", undefined, pool);
+    assert.equal(next.locationIds.length, 40);
+    assert.equal(new Set(next.locationIds).size, 40);
+  });
+  it("spreads the deal across cities so one place cannot dominate", () => {
+    for (const seed of [1, 3, 7, 11]) {
+      const photos = planMatch(seed)
+        .locationIds.slice(0, PHOTO_QUESTIONS)
+        .map((id) => getLocation(id)!);
+      const capeTown = photos.filter((l) => l.city === "Cape Town").length;
+      assert.ok(capeTown <= 2, `seed ${seed} dealt ${capeTown} Cape Town sites`);
+    }
+  });
 });

@@ -24,7 +24,9 @@ import {
   loadSettings,
   loadStats,
   randomSeed,
+  loadRecentIds,
   recordMatch,
+  rememberRecentIds,
   reduce,
   remainingSeconds,
   ROUND_DURATION_SEC,
@@ -140,6 +142,7 @@ export function MatchApp({
       now: performance.now(),
       difficulty: settings.difficulty,
       matchLength: settings.matchLength, atlas: settings.atlas,
+      avoidLocationIds: loadRecentIds(),
     });
   }, [mode, selfId, name, avatarId, dispatch, settings.difficulty, settings.matchLength, settings.atlas]);
 
@@ -154,6 +157,7 @@ export function MatchApp({
         now: Date.now(),
         difficulty: settings.difficulty,
         matchLength: settings.matchLength, atlas: settings.atlas,
+        avoidLocationIds: loadRecentIds(),
         seats: [
           { id: selfId, name, avatarId },
           { id: GROK_BOT_ID, name: GROK_BOT_NAME, avatarId: "grok", kind: "bot" },
@@ -178,6 +182,7 @@ export function MatchApp({
         now: Date.now(),
         difficulty: settings.difficulty,
         matchLength: settings.matchLength, atlas: settings.atlas,
+        avoidLocationIds: loadRecentIds(),
         seats: [
           { id: selfId, name, avatarId },
           { id: "seat-2", name: guest.name, avatarId: sanitizeAvatar(guest.avatarId) },
@@ -200,6 +205,7 @@ export function MatchApp({
         now: Date.now(),
         difficulty: settings.difficulty,
         matchLength: settings.matchLength, atlas: settings.atlas,
+        avoidLocationIds: loadRecentIds(),
       });
     }
   }, [mode, duelKind, serverMode, isCreator, selfId, name, avatarId, roomCode, dispatch, state.phase]);
@@ -227,6 +233,7 @@ export function MatchApp({
         now: Date.now(),
         difficulty: settings.difficulty,
         matchLength: settings.matchLength, atlas: settings.atlas,
+        avoidLocationIds: loadRecentIds(),
       });
     }, 2500);
     return () => window.clearTimeout(t);
@@ -548,7 +555,11 @@ export function MatchApp({
       countryHits: { ZA: za, NL: nl, WORLD: world },
       fastestAccurateMs: fastest.length ? Math.min(...fastest) : null,
     });
-  }, [state.phase, state.roundHistory, state.winnerIds, state.mode, selfId, you]);
+    // Remember this deck so the next match favours sites you have not seen.
+    rememberRecentIds(
+      state.locationIds.length ? state.locationIds : state.roundHistory.map((r) => r.locationId),
+    );
+  }, [state.phase, state.locationIds, state.roundHistory, state.winnerIds, state.mode, selfId, you]);
 
   const onGuess = (p: LatLng) => {
     if (!canGuess) return;
@@ -705,7 +716,7 @@ export function MatchApp({
             return;
           }
           if (mode === "duel" && duelKind === "online" && !hostRef.current) p2p.send({ t: "rematch", seed });
-          else dispatch({ type: "REMATCH", seed, now: mode === "solo" ? performance.now() : Date.now(), difficulty: settings.difficulty, matchLength: settings.matchLength, atlas: settings.atlas });
+          else dispatch({ type: "REMATCH", seed, now: mode === "solo" ? performance.now() : Date.now(), difficulty: settings.difficulty, matchLength: settings.matchLength, atlas: settings.atlas, avoidLocationIds: loadRecentIds() });
         }}
         onHome={quit}
       />

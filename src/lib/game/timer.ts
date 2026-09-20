@@ -3,7 +3,7 @@ export const TIME_MAX = 10_000;
 export const TIME_AT_ONE_SEC = 1_000;
 
 export type TimeDifficulty = "easy" | "medium" | "hard";
-export type MatchLengthId = "standard" | "extended" | "full";
+export type MatchLengthId = "quick" | "standard" | "extended" | "full";
 
 export const DIFFICULTY_SECONDS: Record<TimeDifficulty, number> = {
   easy: 60,
@@ -15,6 +15,7 @@ export const MATCH_LENGTH: Record<
   MatchLengthId,
   { photoRounds: number; totalRounds: number; photoQuestions: number; totalQuestions: number }
 > = {
+  quick: { photoRounds: 1, totalRounds: 1, photoQuestions: 10, totalQuestions: 10 },
   standard: { photoRounds: 3, totalRounds: 4, photoQuestions: 30, totalQuestions: 40 },
   extended: { photoRounds: 6, totalRounds: 7, photoQuestions: 60, totalQuestions: 70 },
   full: { photoRounds: 9, totalRounds: 10, photoQuestions: 90, totalQuestions: 100 },
@@ -40,5 +41,5 @@ export function isTimeDifficulty(v: unknown): v is TimeDifficulty {
 }
 
 export function isMatchLengthId(v: unknown): v is MatchLengthId {
-  return v === "standard" || v === "extended" || v === "full";
+  return v === "quick" || v === "standard" || v === "extended" || v === "full";
 }

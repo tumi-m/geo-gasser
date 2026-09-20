@@ -29,12 +29,14 @@ export const ROUND4_3D_LIVE = false;
 
 /** Photo-round country mix for the SA × NL atlas. Round 4 appends reconstructions. */
 export const MATCH_QUOTA: Record<MatchLengthId, Record<CountryCode, number>> = {
+  quick: { ZA: 5, NL: 5, WORLD: 0 },
   standard: { ZA: 15, NL: 15, WORLD: 0 },
   extended: { ZA: 25, NL: 25, WORLD: 10 },
   full: { ZA: 35, NL: 35, WORLD: 20 },
 };
 
 export const MIX_QUOTA: Record<MatchLengthId, Record<CountryCode, number>> = {
+  quick: { ZA: 4, NL: 3, WORLD: 3 },
   standard: { ZA: 10, NL: 10, WORLD: 10 },
   extended: { ZA: 20, NL: 20, WORLD: 20 },
   full: { ZA: 30, NL: 30, WORLD: 30 },
@@ -68,27 +70,54 @@ function take(list: GeoLocation[], n: number): GeoLocation[] {
   return list.splice(0, Math.max(0, Math.min(n, list.length)));
 }
 
+/**
+ * Shuffle while round-robining cities (or regions) so one famous city cannot
+ * dominate a round. Deterministic for a given rand.
+ */
+function spread(list: GeoLocation[], rand: () => number): GeoLocation[] {
+  const buckets = new Map<string, GeoLocation[]>();
+  for (const loc of list) {
+    const key = (loc.city ?? loc.region ?? loc.title).trim().toLowerCase() || loc.id;
+    const bucket = buckets.get(key);
+    if (bucket) bucket.push(loc);
+    else buckets.set(key, [loc]);
+  }
+  const groups = shuffle([...buckets.values()], rand).map((group) => shuffle([...group], rand));
+  const out: GeoLocation[] = [];
+  for (let added = true; added; ) {
+    added = false;
+    for (const group of groups) {
+      const next = group.shift();
+      if (next) {
+        out.push(next);
+        added = true;
+      }
+    }
+  }
+  return out;
+}
+
 function dealQuota(
   pool: GeoLocation[],
   quota: Record<CountryCode, number>,
   rand: () => number,
   want: number,
 ): GeoLocation[] {
-  const za = shuffle(
+  const za = spread(
     pool.filter((l) => l.country === "ZA"),
     rand,
   );
-  const nl = shuffle(
+  const nl = spread(
     pool.filter((l) => l.country === "NL"),
     rand,
   );
-  const world = shuffle(
+  const world = spread(
     pool.filter((l) => l.country === "WORLD"),
     rand,
   );
   const picked: GeoLocation[] = [...take(za, quota.ZA), ...take(nl, quota.NL), ...take(world, quota.WORLD)];
   const used = new Set(picked.map((l) => l.id));
-  const rest = shuffle(
+  const rest = spread(
     pool.filter((l) => !used.has(l.id)),
     rand,
   );
@@ -100,11 +129,15 @@ function dealQuota(
  * Deal a match from the selected atlas.
  * SA × NL keeps a balanced 15/15 + 10 reconstructions.
  * Other atlases filter the 149-site pool and shrink the match if the map is smaller.
+ *
+ * `avoidLocationIds` (usually the last match or two) is honoured first; the
+ * deal only falls back to those sites when the fresh pool runs out.
  */
 export function planMatch(
   seed: number,
   matchLength: MatchLengthId = "standard",
   atlas: AtlasSpec = DEFAULT_ATLAS,
+  avoidLocationIds: readonly string[] = [],
 ): MatchPlan {
   const spec = sanitizeAtlas(atlas);
   const cfg = MATCH_LENGTH[matchLength];
@@ -114,17 +147,29 @@ export function planMatch(
     enabledLocations().filter((l) => !reserved.has(l.id)),
     spec,
   );
+  const avoid = new Set(avoidLocationIds);
+  const preferred = photoPool.filter((l) => !avoid.has(l.id));
   const r4Pool = filterByAtlas(ROUND4_LOCATIONS, spec);
   const available = photoPool.length + r4Pool.length;
   const target = Math.max(1, Math.min(cfg.totalQuestions, available || 1));
 
+  const wantPhotos = Math.min(cfg.photoQuestions, photoPool.length);
   let photos: GeoLocation[];
   if (spec.preset === "sa-nl") {
-    photos = dealQuota(photoPool, MATCH_QUOTA[matchLength], rand, Math.min(cfg.photoQuestions, photoPool.length));
+    photos = dealQuota(preferred, MATCH_QUOTA[matchLength], rand, Math.min(wantPhotos, preferred.length));
   } else if (spec.preset === "mix") {
-    photos = dealQuota(photoPool, MIX_QUOTA[matchLength], rand, Math.min(cfg.photoQuestions, photoPool.length));
+    photos = dealQuota(preferred, MIX_QUOTA[matchLength], rand, Math.min(wantPhotos, preferred.length));
   } else {
-    photos = shuffle([...photoPool], rand);
+    photos = spread(preferred, rand).slice(0, wantPhotos);
+  }
+  // Only revisit recently played sites when the fresh pool cannot fill the match.
+  if (photos.length < wantPhotos) {
+    const used = new Set(photos.map((l) => l.id));
+    const rest = spread(
+      photoPool.filter((l) => !used.has(l.id)),
+      rand,
+    );
+    while (photos.length < wantPhotos && rest.length) photos.push(rest.shift()!);
   }
 
   const r4Take = Math.min(r4Pool.length, Math.max(0, target - Math.min(photos.length, cfg.photoQuestions)));

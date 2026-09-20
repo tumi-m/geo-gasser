@@ -248,6 +248,22 @@ describe("two-player lock and local duels", () => {
 });
 
 describe("match options", () => {
+  it("quick solo is a single round of ten with no reconstructions", () => {
+    const s = reduce(createLobbyState(), {
+      type: "CREATE_SOLO",
+      playerId: "p1",
+      name: "Ada",
+      seed: 4,
+      now,
+      matchLength: "quick",
+    });
+    assert.equal(s.totalQuestions, 10);
+    assert.equal(s.totalRounds, 1);
+    assert.equal(s.photoQuestions, 10);
+    assert.equal(s.locationIds.length, 10);
+    assert.equal(s.envIds.length, 0);
+    assert.equal(s.phase, "round_intro");
+  });
   it("hard solo uses a 30 second timer", () => {
     const s = reduce(createLobbyState(), {
       type: "CREATE_SOLO",

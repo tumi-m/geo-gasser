@@ -1,4 +1,5 @@
 import type { AtlasSpec } from "./atlas.ts";
+import type { MatchLengthId, TimeDifficulty } from "./timer.ts";
 
 export type AtmosphereId =
   | "cape-dusk"
@@ -155,8 +156,8 @@ export interface MatchState {
   photoQuestions: number;
   totalQuestions: number;
   totalRounds: number;
-  timeDifficulty: "easy" | "medium" | "hard";
-  matchLength: "standard" | "extended" | "full";
+  timeDifficulty: TimeDifficulty;
+  matchLength: MatchLengthId;
   atlas: AtlasSpec;
   roundStartedAtMs?: number;
   players: PlayerState[];
@@ -192,8 +193,8 @@ export interface PublicSnapshot {
   photoQuestions: number;
   totalQuestions: number;
   totalRounds: number;
-  timeDifficulty: "easy" | "medium" | "hard";
-  matchLength: "standard" | "extended" | "full";
+  timeDifficulty: TimeDifficulty;
+  matchLength: MatchLengthId;
   atlas: AtlasSpec;
   roundStartedAtMs?: number;
   players: Array<

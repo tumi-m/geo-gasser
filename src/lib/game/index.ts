@@ -13,6 +13,7 @@ export * from "./scene.ts";
 export * from "./mapillary.ts";
 export * from "./machine.ts";
 export * from "./rng.ts";
+export * from "./recent.ts";
 export * from "./settings.ts";
 export * from "./stats.ts";
 export * from "./audio.ts";

@@ -11,8 +11,8 @@ export { TOTAL_ROUNDS, TOTAL_QUESTIONS, QUESTIONS_PER_ROUND } from "./selection.
 
 export type MatchEvent =
   | { type: "HYDRATE"; state: MatchState }
-  | { type: "CREATE_SOLO"; playerId: string; name: string; avatarId?: string; seed: number; now: number; difficulty?: TimeDifficulty; matchLength?: MatchLengthId; atlas?: AtlasSpec }
-  | { type: "CREATE_DUEL"; playerId: string; name: string; avatarId?: string; roomCode: string; seed: number; now: number; difficulty?: TimeDifficulty; matchLength?: MatchLengthId; atlas?: AtlasSpec }
+  | { type: "CREATE_SOLO"; playerId: string; name: string; avatarId?: string; seed: number; now: number; difficulty?: TimeDifficulty; matchLength?: MatchLengthId; atlas?: AtlasSpec; avoidLocationIds?: string[] }
+  | { type: "CREATE_DUEL"; playerId: string; name: string; avatarId?: string; roomCode: string; seed: number; now: number; difficulty?: TimeDifficulty; matchLength?: MatchLengthId; atlas?: AtlasSpec; avoidLocationIds?: string[] }
   | {
       type: "CREATE_LOCAL_DUEL";
       seats: Array<{ id: string; name: string; avatarId?: string; kind?: "human" | "bot" }>;
@@ -22,6 +22,7 @@ export type MatchEvent =
       difficulty?: TimeDifficulty;
       matchLength?: MatchLengthId;
       atlas?: AtlasSpec;
+      avoidLocationIds?: string[];
     }
   | { type: "PLAYER_JOIN"; playerId: string; name: string; avatarId?: string; kind?: "human" | "bot"; now: number }
   | { type: "PLAYER_LEAVE"; playerId: string; now: number }
@@ -33,7 +34,7 @@ export type MatchEvent =
   | { type: "TIMEOUT"; now: number }
   | { type: "REVEAL_DONE"; now: number }
   | { type: "CONTINUE"; now: number }
-  | { type: "REMATCH"; seed: number; now: number; difficulty?: TimeDifficulty; matchLength?: MatchLengthId; atlas?: AtlasSpec }
+  | { type: "REMATCH"; seed: number; now: number; difficulty?: TimeDifficulty; matchLength?: MatchLengthId; atlas?: AtlasSpec; avoidLocationIds?: string[] }
   | { type: "HOME"; now: number };
 
 function bump(state: MatchState, phase: MatchPhase, now: number): MatchState {
@@ -210,7 +211,7 @@ export function reduce(state: MatchState, event: MatchEvent): MatchState {
     case "HOME":
       return createLobbyState();
     case "CREATE_SOLO": {
-      const plan = planMatch(event.seed, event.matchLength, event.atlas);
+      const plan = planMatch(event.seed, event.matchLength, event.atlas, event.avoidLocationIds);
       const opts = matchOptions(event.difficulty, event.matchLength);
       return beginRound(
         {
@@ -233,7 +234,7 @@ export function reduce(state: MatchState, event: MatchEvent): MatchState {
       );
     }
     case "CREATE_DUEL": {
-      const plan = planMatch(event.seed, event.matchLength, event.atlas);
+      const plan = planMatch(event.seed, event.matchLength, event.atlas, event.avoidLocationIds);
       const opts = matchOptions(event.difficulty, event.matchLength);
       return {
         seq: 1,
@@ -255,7 +256,7 @@ export function reduce(state: MatchState, event: MatchEvent): MatchState {
       };
     }
     case "CREATE_LOCAL_DUEL": {
-      const plan = planMatch(event.seed, event.matchLength, event.atlas);
+      const plan = planMatch(event.seed, event.matchLength, event.atlas, event.avoidLocationIds);
       const opts = matchOptions(event.difficulty, event.matchLength);
       const seats = event.seats.slice(0, 2).map((s) =>
         emptyPlayer(s.id, s.name, s.avatarId, s.kind ?? "human"),
@@ -433,7 +434,7 @@ export function reduce(state: MatchState, event: MatchEvent): MatchState {
       return beginQuestion(advancing, event.now, newRound);
     }
     case "REMATCH": {
-      const plan = planMatch(event.seed, event.matchLength ?? state.matchLength, event.atlas ?? state.atlas);
+      const plan = planMatch(event.seed, event.matchLength ?? state.matchLength, event.atlas ?? state.atlas, event.avoidLocationIds);
       const opts = matchOptions(event.difficulty ?? state.timeDifficulty, event.matchLength ?? state.matchLength);
       const players = state.players.map((p) => emptyPlayer(p.id, p.name, p.avatarId, p.kind));
       const next: MatchState = {

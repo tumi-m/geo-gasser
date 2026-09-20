@@ -31,7 +31,7 @@ function parseDifficulty(raw: string | null): TimeDifficulty | undefined {
 }
 
 function parseMatchLength(raw: string | null): MatchLengthId | undefined {
-  return raw === "standard" || raw === "extended" || raw === "full" ? raw : undefined;
+  return raw === "quick" || raw === "standard" || raw === "extended" || raw === "full" ? raw : undefined;
 }
 
 function parseAtlas(raw: string | null): AtlasSpec | undefined {

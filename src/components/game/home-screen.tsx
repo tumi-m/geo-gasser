@@ -80,7 +80,7 @@ export function HomeScreen() {
             {atlasLabel(settings.atlas)}
             <span className="text-subtle">
               {" "}
-              · {seconds}s · {rounds} rounds
+              · {seconds}s · {rounds === 1 ? "quick · 10" : `${rounds} rounds`}
             </span>
           </span>
           <ChevronRight className="size-4 shrink-0 text-subtle" />
