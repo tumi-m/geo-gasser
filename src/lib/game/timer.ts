@@ -15,9 +15,9 @@ export const MATCH_LENGTH: Record<
   MatchLengthId,
   { photoRounds: number; totalRounds: number; photoQuestions: number; totalQuestions: number }
 > = {
-  standard: { photoRounds: 4, totalRounds: 4, photoQuestions: 40, totalQuestions: 40 },
-  extended: { photoRounds: 7, totalRounds: 7, photoQuestions: 70, totalQuestions: 70 },
-  full: { photoRounds: 10, totalRounds: 10, photoQuestions: 100, totalQuestions: 100 },
+  standard: { photoRounds: 3, totalRounds: 4, photoQuestions: 30, totalQuestions: 40 },
+  extended: { photoRounds: 6, totalRounds: 7, photoQuestions: 60, totalQuestions: 70 },
+  full: { photoRounds: 9, totalRounds: 10, photoQuestions: 90, totalQuestions: 100 },
 };
 
 /**

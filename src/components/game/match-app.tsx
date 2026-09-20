@@ -3,6 +3,7 @@ import { useNavigate } from "@tanstack/react-router";
 import { Settings as SettingsIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
+  activeEnvironment,
   activeLocation,
   audio,
   createLobbyState,
@@ -11,9 +12,11 @@ import {
   grokThinkMs,
   GROK_BOT_ID,
   GROK_BOT_NAME,
+  isRound4,
   locationCountryLabel,
   QUESTIONS_PER_ROUND,
   questionInRound,
+  ROUND4_3D_LIVE,
   TOTAL_QUESTIONS,
   loadSettings,
   loadStats,
@@ -34,6 +37,7 @@ import { isWireMessage, sanitizeName, useP2PRoom, type WireMessage } from "@/lib
 import { GuessMap } from "./guess-map";
 import { PlayerAvatar } from "./player-avatar";
 import { RevealOverlay } from "./reveal-sequence";
+import { Round4Scene } from "./round4-scene";
 import { SceneExplorer } from "./scene-explorer";
 import { SettingsPanel } from "./settings-panel";
 import { QuestionMark, RoundPips, TimerRing } from "./timer-ring";
@@ -346,6 +350,9 @@ export function MatchApp({
   useEffect(() => () => window.clearTimeout(grokTimer.current), []);
 
   const loc = activeLocation(state);
+  const env = activeEnvironment(state);
+  const reconstructionRound = isRound4(state);
+  const live3d = ROUND4_3D_LIVE && reconstructionRound && Boolean(env);
   const you =
     duelKind === "hotseat"
       ? (state.players.find((p) => p.id === state.activeSeatId) ?? state.players[0])
@@ -651,14 +658,20 @@ export function MatchApp({
           <p className="atlas-rise text-xs uppercase tracking-[0.28em] text-muted">{roundLabel}</p>
           <h1 className="atlas-rise atlas-rise-1 font-display mt-3 text-5xl sm:text-7xl">Locate this</h1>
           <p className="atlas-rise atlas-rise-2 mt-4 max-w-sm text-sm text-muted">
-            {QUESTIONS_PER_ROUND} questions this round · {state.durationSec || 45}s · drag to look around
+            {reconstructionRound
+              ? ROUND4_3D_LIVE
+                ? "3D reconstruction · not a live photograph"
+                : "10 reconstruction plates · 3D scenes landing next"
+              : `${QUESTIONS_PER_ROUND} questions this round · ${state.durationSec || 45}s · drag to look around`}
           </p>
           <p className="atlas-rise atlas-rise-3 mt-8 text-xs uppercase tracking-[0.2em] text-subtle">Tap or Enter to start</p>
         </div>
       )}
 
       <div className="absolute inset-0">
-        {loc?.sceneUrl ? (
+        {live3d && env ? (
+          <Round4Scene key={env.id} env={env} reducedMotion={settings.reducedMotion} />
+        ) : loc?.sceneUrl ? (
           <SceneExplorer
             key={loc.sceneUrl}
             src={loc.sceneUrl}
@@ -671,7 +684,7 @@ export function MatchApp({
         ) : (
           <div className="absolute inset-0 bg-bg-subtle" />
         )}
-        {!sceneReady && <div className="absolute inset-0 bg-bg-subtle" />}
+        {!sceneReady && !live3d && <div className="absolute inset-0 bg-bg-subtle" />}
         <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(180deg,rgba(9,9,11,0.45)_0%,transparent_26%,transparent_62%,rgba(9,9,11,0.5)_100%)]" />
       </div>
 
@@ -687,6 +700,11 @@ export function MatchApp({
           )}
           <RoundPips index={state.roundIndex} total={state.totalRounds || 4} />
           <QuestionMark current={qNum} />
+          {reconstructionRound ? (
+            <div className="w-fit rounded-full border border-border bg-bg/75 px-2.5 py-1 text-[10px] uppercase tracking-wider text-muted">
+              {ROUND4_3D_LIVE ? "3D reconstruction" : "Reconstruction plates"}
+            </div>
+          ) : null}
         </div>
         <div className="flex items-center gap-2">
           <div className="hidden rounded-[var(--radius-sm)] border border-border bg-bg/70 px-3 py-2 text-[10px] uppercase tracking-wider text-muted sm:block">

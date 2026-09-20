@@ -481,7 +481,7 @@ export const LAUNCH_LOCATIONS: GeoLocation[] = [
   ...EXTRA_LOCATIONS,
 ];
 
-/** Ten reconstructions now live in the photo pool (3D round is parked). */
+/** Ten reconstruction sites reserved for round 4. 3D renderer is parked (OpenCode / GPT-6 Astra). Do not delete. */
 export const ROUND4_LOCATIONS: GeoLocation[] = [
   loc({
     id: "loc_31",

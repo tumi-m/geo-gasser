@@ -1,7 +1,7 @@
 import { environmentById } from "./environments.ts";
 import { getLocation } from "./locations.ts";
 import { NO_GUESS_KM, rankPlayers, scoreGuess } from "./scoring.ts";
-import { currentEnvId, currentLocationId, isRound4Question, planMatch, PHOTO_QUESTIONS, QUESTIONS_PER_ROUND, roundOf, TOTAL_QUESTIONS } from "./selection.ts";
+import { currentEnvId, currentLocationId, isRound4Question, planMatch, PHOTO_QUESTIONS, QUESTIONS_PER_ROUND, ROUND4_3D_LIVE, roundOf, TOTAL_QUESTIONS } from "./selection.ts";
 import { DIFFICULTY_SECONDS, MATCH_LENGTH, remainingSeconds, ROUND_DURATION_SEC, type MatchLengthId, type TimeDifficulty } from "./timer.ts";
 import type { LatLng, MatchPhase, MatchState, PlayerState, PublicSnapshot, RoundRecord } from "./types.ts";
 
@@ -74,7 +74,7 @@ function locationForQuestion(state: MatchState, questionIndex: number) {
 function applyScores(state: MatchState, now: number): MatchState {
   const loc = locationForQuestion(state, state.questionIndex);
   if (!loc || !state.truth || !state.roundStartedAtMs) return state;
-  const isRound4 = isRound4Question(state.questionIndex, state.photoQuestions || PHOTO_QUESTIONS);
+  const slotIsRound4 = isRound4Question(state.questionIndex, state.photoQuestions || PHOTO_QUESTIONS);
   const durationSec = state.durationSec || ROUND_DURATION_SEC;
   const players = state.players.map((p) => {
     const remaining =
@@ -90,7 +90,7 @@ function applyScores(state: MatchState, now: number): MatchState {
       nation: loc.nation,
       remainingSec: remaining,
       responseMs,
-      isRound4,
+      isRound4: ROUND4_3D_LIVE && slotIsRound4,
       durationSec,
     });
     const distance = Number.isFinite(roundScore.distanceKm) ? roundScore.distanceKm : NO_GUESS_KM;
@@ -105,8 +105,8 @@ function applyScores(state: MatchState, now: number): MatchState {
   const record: RoundRecord = {
     index: state.questionIndex,
     locationId: loc.id,
-    isRound4,
-    envId: isRound4 ? state.envId : undefined,
+    isRound4: slotIsRound4,
+    envId: slotIsRound4 ? state.envId : undefined,
     truth: state.truth,
     guesses: Object.fromEntries(
       players.map((p) => [

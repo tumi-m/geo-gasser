@@ -13,9 +13,11 @@ Scoring, geodesic math, timers, location selection and the match state machine l
 
 There is no dedicated multiplayer game server in this deployment target. Ranked play would need one.
 
-## Round 4 (parked)
+## Round 4 (parked — OpenCode / GPT-6 Astra)
 
-3D reconstructions are parked in `docs/round4-later.md` until generation credits return. The ten labelled plates still live in the photo pool. Look-around for every question is `SceneExplorer` (drag / WASD / zoom on the still), not a separate 3D round.
+3D reconstructions stay in the repo (`round4-scene.tsx`, `environments.ts`, `ROUND4_LOCATIONS`). Do not delete them. Flip `ROUND4_3D_LIVE` in `src/lib/game/selection.ts` when their renderer is ready. Until then the last 10 questions of a standard match are labelled reconstruction plates. See `docs/round4-later.md`.
+
+Look-around for photo questions is `SceneExplorer` (drag / WASD / zoom on the still).
 
 ## Imagery
 

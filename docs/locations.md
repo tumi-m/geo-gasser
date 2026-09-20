@@ -8,7 +8,7 @@ Verified 2026-09-20 (launch) and 2026-09-21 (pack). Opaque ids. Launch plates at
 | Netherlands | 50 | loc_16–30, 36–40, 56–70, 86–100 |
 | World | 49 | loc_101–149 |
 
-Matches shuffle this pool. Full game deals 33 ZA + 33 NL + 34 world. The ten labelled reconstructions (`loc_31`–`loc_40`) stay in the photo pool; the separate 3D round is parked.
+Matches shuffle this pool. Standard match: **15 ZA + 15 NL stills**, then **10 reserved reconstructions** (`loc_31`–`loc_40`) as round 4. The 3D renderer is parked for OpenCode / GPT-6 Astra — do not delete those files. Extended / full pull extra stills from the pack, then the same 10-question tail.
 
 ## Launch South Africa (15)
 

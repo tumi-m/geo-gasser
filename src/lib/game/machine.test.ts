@@ -262,4 +262,27 @@ describe("forty-question match", () => {
     assert.equal(s.phase, "round_intro");
     assert.equal(s.roundHistory.length, 10);
   });
+  it("opens round 4 on question 30 with reserved reconstructions", () => {
+    let s = reduce(createLobbyState(), {
+      type: "CREATE_SOLO",
+      playerId: "p1",
+      name: "Ada",
+      seed: 3,
+      now,
+    });
+    assert.equal(s.photoQuestions, 30);
+    assert.equal(s.totalQuestions, 40);
+    assert.equal(s.envIds.length, 10);
+    for (let q = 0; q < 30; q++) {
+      if (s.phase === "round_intro") s = reduce(s, { type: "INTRO_DONE", now: now + q * 100 });
+      s = reduce(s, { type: "PLACE_PIN", playerId: "p1", guess: s.truth!, now: now + q * 100 + 1 });
+      s = reduce(s, { type: "LOCK", playerId: "p1", now: now + q * 100 + 2 });
+      s = reduce(s, { type: "CONTINUE", now: now + q * 100 + 3 });
+    }
+    assert.equal(s.questionIndex, 30);
+    assert.equal(s.roundIndex, 3);
+    assert.equal(s.phase, "round_intro");
+    assert.ok(s.envId);
+    assert.equal(s.roundHistory.filter((r) => r.isRound4).length, 0);
+  });
 });

@@ -88,7 +88,7 @@ export function SettingsPanel({
           <div className="grid grid-cols-3 gap-2">
             <Choice
               label="Standard"
-              hint="4 rounds · 40"
+              hint="3 photo + reconstruction"
               active={settings.matchLength === "standard"}
               onClick={() => onChange({ ...settings, matchLength: "standard" as MatchLengthId })}
             />

@@ -1,14 +1,14 @@
-# ATLAS DUEL — South Africa · Netherlands · the world
+# ATLAS DUEL — South Africa · Netherlands
 
-A geo-guessing duel. Study a scene, look around it, drop a pin, lock in. Accuracy and speed both score. The pool is 149 places (50 South Africa, 50 Netherlands, 49 world). Matches shuffle the pack so it is hard to memorise.
+A geo-guessing duel. Study a scene, look around it, drop a pin, lock in. Accuracy and speed both score.
 
-- **Standard** — 4 rounds / 40 questions
+- **Standard** — 4 rounds / 40 questions (15 South Africa, 15 Netherlands, 10 reconstructions)
 - **Extended** — 7 rounds / 70 questions
 - **Full game** — 10 rounds / 100 questions
 
 Timer: Easy 60s, Medium 45s, Hard 30s.
 
-The old 3D reconstruction round is parked until generation credits return — see `docs/round4-later.md`. Those ten sites still appear as labelled stills in the photo pool.
+Round 4 is reserved for 3D reconstructions. OpenCode / GPT-6 Astra own that work — the files stay in the repo (`docs/round4-later.md`). Until they land, those ten sites play as labelled stills.
 
 ## Play
 
@@ -52,7 +52,7 @@ The app builds with the workspace Vite / Vercel pipeline. Optional `VITE_STUN_UR
 ## Known limitations
 
 - Duel is host-authoritative P2P, not a dedicated game server. Private rooms only.
-- The 3D reconstruction round is parked (`docs/round4-later.md`) until generation credits return.
+- The 3D reconstruction round is parked for OpenCode / GPT-6 Astra (`docs/round4-later.md`). Files are kept; `ROUND4_3D_LIVE` is false.
 - A few launch plates are cinematic reconstructions where a Commons file could not be fetched at pack time.
 - External map lookup cannot be fully prevented in a browser client.
 

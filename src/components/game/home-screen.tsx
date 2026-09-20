@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Globe } from "./globe";
 import { SettingsPanel } from "./settings-panel";
 import { Tutorial } from "./tutorial";
-import { audio, DIFFICULTY_SECONDS, formatDistance, loadSettings, loadStats, MATCH_LENGTH, saveSettings, type GameSettings, type PlayerStats } from "@/lib/game";
+import { audio, DIFFICULTY_SECONDS, formatDistance, loadSettings, loadStats, saveSettings, type GameSettings, type PlayerStats } from "@/lib/game";
 import { cn } from "@/lib/utils";
 
 const VIGNETTES = [
@@ -114,7 +114,7 @@ export function HomeScreen() {
             )}
           >
             <span className="block text-sm font-medium">Standard</span>
-            <span className="text-[11px] text-muted">4 rounds · 40</span>
+            <span className="text-[11px] text-muted">3 stills + 1 reconstruction</span>
           </button>
           <button
             type="button"
@@ -158,7 +158,7 @@ export function HomeScreen() {
           </dl>
         ) : null}
         <p className="mt-6 text-sm text-subtle">
-          149 places · {MATCH_LENGTH[settings.matchLength].totalRounds} rounds · {DIFFICULTY_SECONDS[settings.difficulty]}s
+          15 South Africa · 15 Netherlands · 10 reconstructions · {DIFFICULTY_SECONDS[settings.difficulty]}s
         </p>
       </section>
       {showSettings && (

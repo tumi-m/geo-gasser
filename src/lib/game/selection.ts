@@ -1,23 +1,31 @@
-import { enabledLocations } from "./locations.ts";
+import { environmentForLocation, ROUND4_ENVIRONMENTS } from "./environments.ts";
+import { enabledLocations, ROUND4_LOCATIONS } from "./locations.ts";
 import { mulberry32, shuffle } from "./rng.ts";
 import { MATCH_LENGTH, type MatchLengthId } from "./timer.ts";
 import type { CountryCode, GeoLocation } from "./types.ts";
 
 export const QUESTIONS_PER_ROUND = 10;
 export const TOTAL_ROUNDS = 4;
-export const PHOTO_ROUNDS = 4;
+export const PHOTO_ROUNDS = 3;
 export const PHOTO_QUESTIONS = PHOTO_ROUNDS * QUESTIONS_PER_ROUND;
-/** Parked 3D round — kept at 0 so older imports keep compiling. */
-export const ROUND4_QUESTIONS = 0;
-export const TOTAL_QUESTIONS = PHOTO_QUESTIONS;
+export const ROUND4_QUESTIONS = 10;
+export const TOTAL_QUESTIONS = PHOTO_QUESTIONS + ROUND4_QUESTIONS;
 /** @deprecated use PHOTO_ROUNDS — kept so older imports keep compiling */
 export const REAL_ROUNDS = PHOTO_ROUNDS;
 
-/** Deal from the 149-site pool so matches are hard to memorise. */
+/**
+ * OpenCode / GPT-6 Astra own the 3D round.
+ * Keep `round4-scene.tsx`, `environments.ts`, `ROUND4_LOCATIONS`, and
+ * `/generated/round4-*.jpg`. Flip this when their renderer is ready to mount.
+ * Do not delete those files.
+ */
+export const ROUND4_3D_LIVE = false;
+
+/** Photo-round country mix. Round 4 always appends the 10 reserved reconstructions. */
 export const MATCH_QUOTA: Record<MatchLengthId, Record<CountryCode, number>> = {
-  standard: { ZA: 13, NL: 13, WORLD: 14 },
-  extended: { ZA: 23, NL: 23, WORLD: 24 },
-  full: { ZA: 33, NL: 33, WORLD: 34 },
+  standard: { ZA: 15, NL: 15, WORLD: 0 },
+  extended: { ZA: 25, NL: 25, WORLD: 10 },
+  full: { ZA: 35, NL: 35, WORLD: 20 },
 };
 
 export interface MatchPlan {
@@ -48,15 +56,16 @@ function take(list: GeoLocation[], n: number): GeoLocation[] {
 }
 
 /**
- * Shuffle the 149-site pool and deal a unique set.
- * Standard 40 ≈ 13/13/14, extended 70 ≈ 23/23/24, full 100 = 33 ZA + 33 NL + 34 world.
- * No 3D final round — reconstructions sit in the photo pool like everything else.
+ * Standard: 15 ZA + 15 NL stills, then 10 reserved reconstructions.
+ * Extended / full pull extra stills from the 149-site pool, then the same 3D tail.
+ * The 3D renderer is parked (`ROUND4_3D_LIVE`) — plates still play as round 4.
  */
 export function planMatch(seed: number, matchLength: MatchLengthId = "standard"): MatchPlan {
   const cfg = MATCH_LENGTH[matchLength];
   const quota = MATCH_QUOTA[matchLength];
   const rand = mulberry32(seed);
-  const pool = enabledLocations();
+  const reserved = new Set(ROUND4_LOCATIONS.map((l) => l.id));
+  const pool = enabledLocations().filter((l) => !reserved.has(l.id));
   const za = shuffle(
     pool.filter((l) => l.country === "ZA"),
     rand,
@@ -80,13 +89,19 @@ export function planMatch(seed: number, matchLength: MatchLengthId = "standard")
     pool.filter((l) => !used.has(l.id)),
     rand,
   );
-  while (picked.length < cfg.totalQuestions && rest.length) {
+  while (picked.length < cfg.photoQuestions && rest.length) {
     picked.push(rest.shift()!);
   }
 
-  const locationIds = shuffle(picked, rand)
-    .slice(0, cfg.totalQuestions)
+  const photoIds = shuffle(picked, rand)
+    .slice(0, cfg.photoQuestions)
     .map((l) => l.id);
+
+  const reconstructions = shuffle([...ROUND4_LOCATIONS], rand);
+  const locationIds = [...photoIds, ...reconstructions.map((l) => l.id)].slice(0, cfg.totalQuestions);
+  const envIds = reconstructions.map(
+    (l, i) => environmentForLocation(l.id)?.id ?? ROUND4_ENVIRONMENTS[i % ROUND4_ENVIRONMENTS.length].id,
+  );
 
   return {
     seed,
@@ -96,7 +111,7 @@ export function planMatch(seed: number, matchLength: MatchLengthId = "standard")
     totalRounds: cfg.totalRounds,
     totalQuestions: cfg.totalQuestions,
     locationIds,
-    envIds: [],
+    envIds,
   };
 }
 

@@ -1,34 +1,26 @@
 # Round 4 — 3D reconstructions (parked)
 
-Parked 21 Sep 2026. Re-enable when 3D generation credits are available.
+Parked 21 Sep 2026. **OpenCode / GPT-6 Astra own this work.** Do not delete these files while they work:
 
-## What was built
+- `src/components/game/round4-scene.tsx` — procedural Three.js look-around
+- `src/lib/game/environments.ts` — ten labelled reconstructions
+- `src/lib/game/locations.ts` → `ROUND4_LOCATIONS` (`loc_31`–`loc_40`)
+- `public/generated/round4-*.jpg` and home plates used as skies
+- `docs/round4-provenance.md`
 
-- Ten labelled reconstructions (5 ZA + 5 NL) in `src/lib/game/environments.ts`
-  and `ROUND4_LOCATIONS` (`loc_31`–`loc_40`).
-- `Round4Scene` (`src/components/game/round4-scene.tsx`) — R3F look-around.
-- 1.25× score multiplier (`ROUND4_MULTIPLIER` in `scoring.ts`).
-- Provenance: `docs/round4-provenance.md`.
+The match still **reserves round 4** as ten reconstruction questions (5 ZA + 5 NL). Until 3D is live those play as labelled stills through `SceneExplorer`. The 1.25× score multiplier is off.
 
-Those ten sites are still in the **photo pool** as regular questions (disclosed
-as reconstructions). They are no longer a separate final round.
+## How to turn the 3D renderer on
 
-Look-around for every still is `SceneExplorer` (drag to look, WASD inspect,
-scroll/pinch zoom). That is not Street View and not the parked 3D round.
-
-## How to turn it back on
-
-1. Restore `MATCH_LENGTH` so the last round is reconstructions only
-   (`photoRounds = totalRounds - 1`, `ROUND4_QUESTIONS = 10`).
-2. `planMatch` should append shuffled `ROUND4_LOCATIONS` after photo questions
-   and fill `envIds` from `ROUND4_ENVIRONMENTS`.
-3. `isRound4Question(q, photoQuestions)` already exists — wire `Round4Scene`
-   in `match-app.tsx` when `isRound4(state)`.
-4. Keep the HUD disclosure: “3D reconstruction, not a live photograph.”
-5. Generate remaining environments with the Higgsfield / Imagine pipeline
-   rather than wallpaper reuse.
+1. Keep `MATCH_LENGTH` so the last round is reconstructions (`photoRounds = totalRounds - 1`, `ROUND4_QUESTIONS = 10`). Already true.
+2. `planMatch` already appends shuffled `ROUND4_LOCATIONS` after the photo questions and fills `envIds` from `ROUND4_ENVIRONMENTS`.
+3. In `src/lib/game/selection.ts` set `ROUND4_3D_LIVE = true`.
+4. `match-app.tsx` mounts `Round4Scene` when that flag is on and `isRound4(state)`.
+5. Keep the HUD disclosure: “3D reconstruction, not a live photograph.”
+6. Prefer Higgsfield / Imagine generated environments over wallpaper reuse.
 
 ## Do not
 
+- Delete `round4-scene.tsx`, `environments.ts`, or the generated plates.
 - Mix undisclosed fakes into photo rounds.
-- Apply the 1.25× multiplier to ordinary stills.
+- Apply the 1.25× multiplier to ordinary stills (gated on `ROUND4_3D_LIVE`).
