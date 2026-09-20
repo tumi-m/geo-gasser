@@ -128,8 +128,16 @@ export function GuessMap({
 
   /** Padding that keeps framed content clear of the toolbar / bottom bar. */
   function framePad(): { paddingTopLeft: [number, number]; paddingBottomRight: [number, number] } {
+    // Reveal only shows the expand button; guessing adds chips + bottom bar.
     const top = revealRef.current ? 64 : 108;
     const bottom = revealRef.current ? 28 : 60;
+    // Desktop keeps the 32vh corner sheet; that whole map is short.
+    if (typeof window !== "undefined" && !window.matchMedia("(max-width: 640px)").matches) {
+      return {
+        paddingTopLeft: [12, Math.min(top, 84)],
+        paddingBottomRight: [12, Math.min(bottom, 48)],
+      };
+    }
     return { paddingTopLeft: [20, top], paddingBottomRight: [20, bottom] };
   }
 
@@ -384,13 +392,19 @@ export function GuessMap({
     return () => window.clearTimeout(id);
   }, [expanded, reveal]);
 
-  // Reveal choreography.
+  // Reveal choreography. Re-runs whenever `opponent` changes identity, so
+  // every pass first tears down the previous arcs / labels / animations.
   useEffect(() => {
     if (!reveal || !truth) return;
     const map = mapRef.current;
     const L = LRef.current;
     if (!map || !L) return;
     const reduced = Boolean(reducedMotion);
+
+    for (const raf of revealRafs.current) cancelAnimationFrame(raf);
+    revealRafs.current = [];
+    for (const layer of revealLayers.current) layer.remove();
+    revealLayers.current = [];
 
     if (guess) placePin("you", guess, "you", "YOU");
     placePin("truth", truth, "truth", "TRUE");
@@ -435,8 +449,17 @@ export function GuessMap({
       animateArc(pts, { color: MAP_COLORS.arcOpp, weight: 1.75, opacity: 0.8, dashArray: "6 6" }, 900);
     }
 
-    const pts = [truth, guess, opponent?.guess].filter(Boolean) as LatLng[];
-    const b = L.latLngBounds(toLatLngs(pts));
+    // Frame the arcs too, not just the endpoints: a ZA↔NL geodesic bows
+    // hundreds of kilometres north of the straight-line box.
+    const framePts: LatLng[] = [truth];
+    if (guess) framePts.push(guess);
+    if (opponent) framePts.push(opponent.guess);
+    const b = L.latLngBounds(toLatLngs(framePts));
+    if (guess) {
+      const arc = toLatLngs(geodesicPoints(guess, truth, 64));
+      // Sample the apex every 8 points; cheap and keeps the frame tight.
+      for (let i = 4; i < arc.length - 4; i += 8) b.extend(arc[i]);
+    }
     revealRafs.current.push(
       requestAnimationFrame(() => {
         revealRafs.current.push(
@@ -445,7 +468,7 @@ export function GuessMap({
             if (!m) return;
             m.invalidateSize({ animate: false, pan: false });
             const pad = framePad();
-            if (pts.length === 1) {
+            if (framePts.length === 1) {
               m.setView([truth.latitude, truth.longitude], 4.5, { animate: !reduced });
             } else if (reduced) {
               m.fitBounds(b, { ...pad, maxZoom: 6, animate: false });
@@ -456,7 +479,7 @@ export function GuessMap({
         );
       }),
     );
-     
+
   }, [reveal, truth, guess, opponent, reducedMotion]);
 
   const chip =
