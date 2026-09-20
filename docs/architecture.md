@@ -9,9 +9,12 @@ Scoring, geodesic math, timers, location selection and the match state machine l
 ## Modes
 
 - **Solo** — the local client is the clock. `performance.now()` starts the round and stamps locks.
-- **Duel** — WebRTC P2P via `/api/rtc` signaling. In-memory on a single instance (live preview); Postgres when `DATABASE_URL` is set (deployed Neon). The room creator is host-authoritative: they own the timer, hide answers until reveal, and compute scores from host receipt time. Guests send pins/locks; they never receive truth coordinates before reveal.
+- **Online duel** — two transports:
+  - **Match server** (`workers/match`, preferred when `VITE_MATCH_SERVER_URL` is set) — one Cloudflare Durable Object per room owns the deck, clock and scores. Hibernating WebSockets carry commands in and `PublicSnapshot`s out; a DO alarm force-reveals timed-out rounds. Guests never receive the deck, seed, environment ids or truth coordinate before the reveal — only a `SceneInfo` descriptor for the plate on screen.
+  - **P2P** (fallback) — WebRTC data channels via `/api/rtc` signaling. The room creator is host-authoritative. Private rooms only.
+- **Bot / pass-and-play** — local only.
 
-There is no dedicated multiplayer game server in this deployment target. Ranked play would need one.
+Both transports share `src/lib/multiplayer/room.ts`, which applies commands through the same reducer the browser uses.
 
 ## Atlas
 
@@ -21,9 +24,16 @@ Matches deal from a chosen atlas: SA × NL (default), South Africa, the Netherla
 
 3D reconstructions stay in the repo (`round4-scene.tsx`, `environments.ts`, `ROUND4_LOCATIONS`). Do not delete them. Flip `ROUND4_3D_LIVE` in `src/lib/game/selection.ts` when their renderer is ready. Until then the last 10 questions of a standard match are labelled reconstruction plates. See `docs/round4-later.md`.
 
-Look-around for photo questions is `SceneExplorer` (drag / WASD / zoom on the still).
+## Scenes
+
+- **Stills** — `SceneExplorer` (drag / WASD / zoom on the plate) with a local plate → stored URL → Wikipedia pageimage fallback chain.
+- **360 panoramas** — `PanoViewer` (Three.js equirectangular sphere) with drag-look, wheel/pinch zoom and per-site heading/pitch. Any failure falls back to the flat still.
+- **Mapillary** — `src/lib/game/mapillary.ts` resolves street-level and 360 image ids through API v4 (`VITE_MAPILLARY_TOKEN`, a public client token). Packs built by `scripts/build-locations.mjs` can mix Commons and Mapillary plates with per-photo credit.
 
 ## Imagery
 
-Questions use Wikimedia/Wikipedia-sourced plates (or clearly labelled reconstructions when a Commons file was unavailable). The guessing map is Leaflet with a bundled Natural Earth country layer so it never depends on live tiles. No Google Maps scraping. No map-provider API keys. The World chip frames the true globe; SA and NL chips jump to those countries.
+Questions use Wikimedia/Wikipedia-sourced plates, Commons 360 panoramas and (when configured) Mapillary street-level imagery. The guessing map is Leaflet with a bundled Natural Earth country layer so it never depends on live tiles. No Google Maps scraping. No map-provider API keys. The World chip frames the true globe; SA and NL chips jump to those countries.
 
+## Content packs
+
+`scripts/build-locations.mjs` samples Commons geosearch or Mapillary radius search around coordinates, filters (bitmap, ≥1200px, sane aspect, 0.5 km dedupe), downloads display-size plates to `public/packs/<pack>/` and writes `src/data/packs/<pack>.json` with attribution and provider flags. The launch pool still ships in TypeScript; pack ingestion is the next content step.

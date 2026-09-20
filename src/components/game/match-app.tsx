@@ -15,6 +15,7 @@ import {
   GROK_BOT_ID,
   GROK_BOT_NAME,
   isRound4,
+  locationAt,
   locationCountryLabel,
   QUESTIONS_PER_ROUND,
   questionInRound,
@@ -398,6 +399,19 @@ export function MatchApp({
   useEffect(() => {
     setPanoFailed(false);
   }, [scene?.src]);
+
+  // Warm the next plate while the player studies the current one. Only the
+  // host/solo knows the deck, so guests simply skip this.
+  useEffect(() => {
+    if (!loc) return;
+    const next = locationAt(state, state.questionIndex + 1);
+    if (!next) return;
+    const src = next.panoUrl ?? next.sceneUrl;
+    if (!src || !src.startsWith("/")) return;
+    const img = new Image();
+    img.decoding = "async";
+    img.src = src;
+  }, [loc, state.questionIndex]);
   const reconstructionRound = isRound4(state);
   const live3d = ROUND4_3D_LIVE && reconstructionRound && Boolean(env);
   const you =

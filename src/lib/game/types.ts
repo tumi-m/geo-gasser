@@ -57,6 +57,8 @@ export interface GeoLocation {
   fov?: number;
   /** Equirectangular 360 plate. When set, the scene opens in the panorama viewer. */
   panoUrl?: string;
+  /** Explicit 360 flag for provider-backed panos resolved at runtime. */
+  isPano?: boolean;
   attribution: string;
   sourceUrl?: string;
   verifiedAt: string;

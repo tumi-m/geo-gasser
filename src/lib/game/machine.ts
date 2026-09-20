@@ -479,7 +479,7 @@ export function sceneInfoFor(state: MatchState): SceneInfo | undefined {
     provider: loc.panoramaProvider,
     heading: loc.heading,
     pitch: loc.pitch,
-    isPano: Boolean(loc.panoUrl),
+    isPano: loc.isPano ?? Boolean(loc.panoUrl),
     imageId: loc.panoramaId,
   };
 }
@@ -535,6 +535,11 @@ export function toPublicSnapshot(state: MatchState): PublicSnapshot {
 
 export function activeLocation(state: MatchState) {
   return locationForQuestion(state, state.questionIndex);
+}
+
+/** Location for an arbitrary question slot — used to preload the next plate. */
+export function locationAt(state: MatchState, questionIndex: number) {
+  return locationForQuestion(state, questionIndex);
 }
 
 export function activeEnvironment(state: MatchState) {
