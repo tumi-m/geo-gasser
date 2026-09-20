@@ -1,4 +1,6 @@
-const KEY = "atlas-duel-settings-v1";
+import { isMatchLengthId, isTimeDifficulty, type MatchLengthId, type TimeDifficulty } from "./timer.ts";
+
+const KEY = "atlas-duel-settings-v2";
 
 export interface GameSettings {
   displayName: string;
@@ -10,6 +12,8 @@ export interface GameSettings {
   reducedMotion: boolean;
   cameraShake: boolean;
   highContrast: boolean;
+  difficulty: TimeDifficulty;
+  matchLength: MatchLengthId;
 }
 
 export const DEFAULT_SETTINGS: GameSettings = {
@@ -22,17 +26,25 @@ export const DEFAULT_SETTINGS: GameSettings = {
   reducedMotion: false,
   cameraShake: true,
   highContrast: false,
+  difficulty: "medium",
+  matchLength: "standard",
 };
 
 export function loadSettings(): GameSettings {
   if (typeof window === "undefined") return DEFAULT_SETTINGS;
   try {
-    const raw = localStorage.getItem(KEY);
+    const raw = localStorage.getItem(KEY) ?? localStorage.getItem("atlas-duel-settings-v1");
     if (!raw) {
       const prefers = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
       return { ...DEFAULT_SETTINGS, reducedMotion: !!prefers, cameraShake: !prefers };
     }
-    return { ...DEFAULT_SETTINGS, ...JSON.parse(raw) };
+    const parsed = JSON.parse(raw) as Partial<GameSettings>;
+    return {
+      ...DEFAULT_SETTINGS,
+      ...parsed,
+      difficulty: isTimeDifficulty(parsed.difficulty) ? parsed.difficulty : DEFAULT_SETTINGS.difficulty,
+      matchLength: isMatchLengthId(parsed.matchLength) ? parsed.matchLength : DEFAULT_SETTINGS.matchLength,
+    };
   } catch {
     return DEFAULT_SETTINGS;
   }

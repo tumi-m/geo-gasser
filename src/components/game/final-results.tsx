@@ -62,14 +62,15 @@ export function FinalResults({
           </p>
         )}
         <ol className="atlas-rise atlas-rise-3 mt-8 space-y-5">
-          {[0, 1, 2, 3].map((round) => {
+          {Array.from({ length: state.totalRounds || 4 }, (_, round) => {
             const rows = state.roundHistory.filter((r) => Math.floor(r.index / 10) === round);
             if (!rows.length) return null;
+            const last = round === (state.totalRounds || 4) - 1;
             return (
               <li key={round}>
                 <p className="mb-2 text-[11px] uppercase tracking-[0.2em] text-subtle">
                   Round {round + 1}
-                  {round === 3 ? " · 3D" : ""}
+                  {last ? " · 3D" : ""}
                 </p>
                 <ol className="space-y-1.5">
                   {rows.map((r) => {

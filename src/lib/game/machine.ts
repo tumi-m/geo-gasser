@@ -1,22 +1,24 @@
 import { environmentById } from "./environments.ts";
 import { getLocation } from "./locations.ts";
 import { NO_GUESS_KM, rankPlayers, scoreGuess } from "./scoring.ts";
-import { currentEnvId, currentLocationId, isRound4Question, planMatch, PHOTO_QUESTIONS, QUESTIONS_PER_ROUND, roundOf, TOTAL_QUESTIONS } from "./selection.ts";
-import { remainingSeconds, ROUND_DURATION_SEC } from "./timer.ts";
+import { currentEnvId, currentLocationId, isRound4Question, planMatch, QUESTIONS_PER_ROUND, roundOf } from "./selection.ts";
+import { DIFFICULTY_SECONDS, MATCH_LENGTH, remainingSeconds, ROUND_DURATION_SEC, type MatchLengthId, type TimeDifficulty } from "./timer.ts";
 import type { LatLng, MatchPhase, MatchState, PlayerState, PublicSnapshot, RoundRecord } from "./types.ts";
 
 export { TOTAL_ROUNDS, TOTAL_QUESTIONS, QUESTIONS_PER_ROUND } from "./selection.ts";
 
 export type MatchEvent =
   | { type: "HYDRATE"; state: MatchState }
-  | { type: "CREATE_SOLO"; playerId: string; name: string; avatarId?: string; seed: number; now: number }
-  | { type: "CREATE_DUEL"; playerId: string; name: string; avatarId?: string; roomCode: string; seed: number; now: number }
+  | { type: "CREATE_SOLO"; playerId: string; name: string; avatarId?: string; seed: number; now: number; difficulty?: TimeDifficulty; matchLength?: MatchLengthId }
+  | { type: "CREATE_DUEL"; playerId: string; name: string; avatarId?: string; roomCode: string; seed: number; now: number; difficulty?: TimeDifficulty; matchLength?: MatchLengthId }
   | {
       type: "CREATE_LOCAL_DUEL";
       seats: Array<{ id: string; name: string; avatarId?: string; kind?: "human" | "bot" }>;
       hotseat?: boolean;
       seed: number;
       now: number;
+      difficulty?: TimeDifficulty;
+      matchLength?: MatchLengthId;
     }
   | { type: "PLAYER_JOIN"; playerId: string; name: string; avatarId?: string; kind?: "human" | "bot"; now: number }
   | { type: "PLAYER_LEAVE"; playerId: string; now: number }
@@ -28,7 +30,7 @@ export type MatchEvent =
   | { type: "TIMEOUT"; now: number }
   | { type: "REVEAL_DONE"; now: number }
   | { type: "CONTINUE"; now: number }
-  | { type: "REMATCH"; seed: number; now: number }
+  | { type: "REMATCH"; seed: number; now: number; difficulty?: TimeDifficulty; matchLength?: MatchLengthId }
   | { type: "HOME"; now: number };
 
 function bump(state: MatchState, phase: MatchPhase, now: number): MatchState {
@@ -72,14 +74,15 @@ function locationForQuestion(state: MatchState, questionIndex: number) {
 function applyScores(state: MatchState, now: number): MatchState {
   const loc = locationForQuestion(state, state.questionIndex);
   if (!loc || !state.truth || !state.roundStartedAtMs) return state;
-  const isRound4 = isRound4Question(state.questionIndex);
+  const isRound4 = isRound4Question(state.questionIndex, state.photoQuestions);
+  const durationSec = state.durationSec || ROUND_DURATION_SEC;
   const players = state.players.map((p) => {
     const remaining =
-      p.locked && p.lockedAtMs ? remainingSeconds(state.roundStartedAtMs!, p.lockedAtMs) : 0;
+      p.locked && p.lockedAtMs ? remainingSeconds(state.roundStartedAtMs!, p.lockedAtMs, durationSec) : 0;
     const responseMs =
       p.locked && p.lockedAtMs
         ? Math.max(0, p.lockedAtMs - state.roundStartedAtMs!)
-        : ROUND_DURATION_SEC * 1000;
+        : durationSec * 1000;
     const roundScore = scoreGuess({
       truth: state.truth!,
       guess: p.guess ?? null,
@@ -87,6 +90,7 @@ function applyScores(state: MatchState, now: number): MatchState {
       remainingSec: remaining,
       responseMs,
       isRound4,
+      durationSec,
     });
     const distance = Number.isFinite(roundScore.distanceKm) ? roundScore.distanceKm : NO_GUESS_KM;
     return {
@@ -132,6 +136,12 @@ export function createLobbyState(): MatchState {
     locationIds: [],
     envId: ROUND4_DEFAULT,
     envIds: [],
+    durationSec: ROUND_DURATION_SEC,
+    photoQuestions: MATCH_LENGTH.standard.photoQuestions,
+    totalQuestions: MATCH_LENGTH.standard.totalQuestions,
+    totalRounds: MATCH_LENGTH.standard.totalRounds,
+    timeDifficulty: "medium",
+    matchLength: "standard",
     players: [],
     revealed: false,
     roundHistory: [],
@@ -142,10 +152,24 @@ export function createLobbyState(): MatchState {
 
 const ROUND4_DEFAULT = "remix_rondavels";
 
+function matchOptions(difficulty?: TimeDifficulty, matchLength?: MatchLengthId) {
+  const timeDifficulty = difficulty ?? "medium";
+  const length = matchLength ?? "standard";
+  const cfg = MATCH_LENGTH[length];
+  return {
+    timeDifficulty,
+    matchLength: length,
+    durationSec: DIFFICULTY_SECONDS[timeDifficulty],
+    photoQuestions: cfg.photoQuestions,
+    totalQuestions: cfg.totalQuestions,
+    totalRounds: cfg.totalRounds,
+  };
+}
+
 function beginQuestion(state: MatchState, now: number, intro: boolean): MatchState {
   const loc = locationForQuestion(state, state.questionIndex);
   const envId =
-    currentEnvId({ envIds: state.envIds }, state.questionIndex) ?? state.envId;
+    currentEnvId({ envIds: state.envIds, photoQuestions: state.photoQuestions }, state.questionIndex) ?? state.envId;
   const firstHuman = state.players.find((p) => p.kind !== "bot") ?? state.players[0];
   const next = {
     ...state,
@@ -173,7 +197,8 @@ export function reduce(state: MatchState, event: MatchEvent): MatchState {
     case "HOME":
       return createLobbyState();
     case "CREATE_SOLO": {
-      const plan = planMatch(event.seed);
+      const plan = planMatch(event.seed, event.matchLength);
+      const opts = matchOptions(event.difficulty, event.matchLength);
       return beginRound(
         {
           seq: 0,
@@ -186,6 +211,7 @@ export function reduce(state: MatchState, event: MatchEvent): MatchState {
           locationIds: plan.locationIds,
           envId: plan.envIds[0] ?? ROUND4_DEFAULT,
           envIds: plan.envIds,
+          ...opts,
           players: [emptyPlayer(event.playerId, event.name, event.avatarId)],
           revealed: false,
           roundHistory: [],
@@ -196,7 +222,8 @@ export function reduce(state: MatchState, event: MatchEvent): MatchState {
       );
     }
     case "CREATE_DUEL": {
-      const plan = planMatch(event.seed);
+      const plan = planMatch(event.seed, event.matchLength);
+      const opts = matchOptions(event.difficulty, event.matchLength);
       return {
         seq: 1,
         phase: "waiting_for_players",
@@ -209,6 +236,7 @@ export function reduce(state: MatchState, event: MatchEvent): MatchState {
         locationIds: plan.locationIds,
         envId: plan.envIds[0] ?? ROUND4_DEFAULT,
         envIds: plan.envIds,
+        ...opts,
         players: [emptyPlayer(event.playerId, event.name, event.avatarId)],
         revealed: false,
         roundHistory: [],
@@ -218,7 +246,8 @@ export function reduce(state: MatchState, event: MatchEvent): MatchState {
       };
     }
     case "CREATE_LOCAL_DUEL": {
-      const plan = planMatch(event.seed);
+      const plan = planMatch(event.seed, event.matchLength);
+      const opts = matchOptions(event.difficulty, event.matchLength);
       const seats = event.seats.slice(0, 2).map((s) =>
         emptyPlayer(s.id, s.name, s.avatarId, s.kind ?? "human"),
       );
@@ -234,6 +263,7 @@ export function reduce(state: MatchState, event: MatchEvent): MatchState {
         locationIds: plan.locationIds,
         envId: plan.envIds[0] ?? ROUND4_DEFAULT,
         envIds: plan.envIds,
+        ...opts,
         players: seats,
         revealed: false,
         roundHistory: [],
@@ -382,7 +412,7 @@ export function reduce(state: MatchState, event: MatchEvent): MatchState {
       }
       if (state.phase !== "round_results" && state.phase !== "next_round") return state;
       const nextQ = state.questionIndex + 1;
-      if (nextQ >= TOTAL_QUESTIONS) {
+      if (nextQ >= state.totalQuestions) {
         const { winnerIds } = rankPlayers(state.players);
         return { ...bump(state, "final_reveal", event.now), winnerIds };
       }
@@ -396,7 +426,8 @@ export function reduce(state: MatchState, event: MatchEvent): MatchState {
       return beginQuestion(advancing, event.now, newRound);
     }
     case "REMATCH": {
-      const plan = planMatch(event.seed);
+      const plan = planMatch(event.seed, event.matchLength ?? state.matchLength);
+      const opts = matchOptions(event.difficulty ?? state.timeDifficulty, event.matchLength ?? state.matchLength);
       const players = state.players.map((p) => emptyPlayer(p.id, p.name, p.avatarId, p.kind));
       const next: MatchState = {
         ...state,
@@ -408,6 +439,7 @@ export function reduce(state: MatchState, event: MatchEvent): MatchState {
         locationIds: plan.locationIds,
         envId: plan.envIds[0] ?? ROUND4_DEFAULT,
         envIds: plan.envIds,
+        ...opts,
         players,
         revealed: false,
         roundHistory: [],
@@ -443,6 +475,12 @@ export function toPublicSnapshot(state: MatchState): PublicSnapshot {
     locationIds: hideGuesses ? state.locationIds : state.locationIds,
     envId: state.envId,
     envIds: state.envIds,
+    durationSec: state.durationSec,
+    photoQuestions: state.photoQuestions,
+    totalQuestions: state.totalQuestions,
+    totalRounds: state.totalRounds,
+    timeDifficulty: state.timeDifficulty,
+    matchLength: state.matchLength,
     roundStartedAtMs: state.roundStartedAtMs,
     players: state.players.map((p) => ({
       ...p,
@@ -461,10 +499,10 @@ export function activeLocation(state: MatchState) {
 }
 
 export function activeEnvironment(state: MatchState) {
-  if (!isRound4Question(state.questionIndex)) return undefined;
-  return environmentById(state.envId) ?? environmentById(state.envIds[state.questionIndex - PHOTO_QUESTIONS] ?? "");
+  if (!isRound4Question(state.questionIndex, state.photoQuestions)) return undefined;
+  return environmentById(state.envId) ?? environmentById(state.envIds[state.questionIndex - state.photoQuestions] ?? "");
 }
 
 export function isRound4(state: MatchState): boolean {
-  return isRound4Question(state.questionIndex);
+  return isRound4Question(state.questionIndex, state.photoQuestions);
 }

@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Globe } from "./globe";
 import { SettingsPanel } from "./settings-panel";
 import { Tutorial } from "./tutorial";
-import { audio, formatDistance, loadSettings, loadStats, saveSettings, type GameSettings, type PlayerStats } from "@/lib/game";
+import { audio, DIFFICULTY_SECONDS, formatDistance, loadSettings, loadStats, MATCH_LENGTH, saveSettings, type GameSettings, type PlayerStats } from "@/lib/game";
 import { cn } from "@/lib/utils";
 
 const VIGNETTES = [
@@ -82,7 +82,53 @@ export function HomeScreen() {
           South Africa × Netherlands
         </p>
         <p className="atlas-rise atlas-rise-3 mt-5 max-w-md text-lg text-fg/90">Where in the world are you?</p>
-        <div className="atlas-rise atlas-rise-4 mt-8 flex flex-col gap-3 sm:flex-row">
+        <div className="atlas-rise atlas-rise-4 mt-7 grid grid-cols-3 gap-2">
+          {(
+            [
+              ["easy", "Easy", "60s"],
+              ["medium", "Medium", "45s"],
+              ["hard", "Hard", "30s"],
+            ] as const
+          ).map(([id, label, hint]) => (
+            <button
+              key={id}
+              type="button"
+              onClick={() => setSettings({ ...settings, difficulty: id })}
+              className={cn(
+                "rounded-[var(--radius-md)] border px-3 py-2 text-left",
+                settings.difficulty === id ? "border-accent bg-accent/15" : "border-border bg-bg/40",
+              )}
+            >
+              <span className="block text-sm font-medium">{label}</span>
+              <span className="text-[11px] text-muted">{hint}</span>
+            </button>
+          ))}
+        </div>
+        <div className="atlas-rise atlas-rise-4 mt-2 grid grid-cols-2 gap-2">
+          <button
+            type="button"
+            onClick={() => setSettings({ ...settings, matchLength: "standard" })}
+            className={cn(
+              "rounded-[var(--radius-md)] border px-3 py-2 text-left",
+              settings.matchLength === "standard" ? "border-accent bg-accent/15" : "border-border bg-bg/40",
+            )}
+          >
+            <span className="block text-sm font-medium">Standard</span>
+            <span className="text-[11px] text-muted">4 rounds · 40 questions</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setSettings({ ...settings, matchLength: "extended" })}
+            className={cn(
+              "rounded-[var(--radius-md)] border px-3 py-2 text-left",
+              settings.matchLength === "extended" ? "border-accent bg-accent/15" : "border-border bg-bg/40",
+            )}
+          >
+            <span className="block text-sm font-medium">Extended</span>
+            <span className="text-[11px] text-muted">7 rounds · 70 questions</span>
+          </button>
+        </div>
+        <div className="atlas-rise atlas-rise-4 mt-6 flex flex-col gap-3 sm:flex-row">
           <Button size="lg" className="flex-1" onClick={() => play("/play")}>
             Play solo
           </Button>
@@ -100,7 +146,9 @@ export function HomeScreen() {
             />
           </dl>
         ) : (
-          <p className="mt-6 text-sm text-subtle">40 locations · 4 rounds · 10 questions each · 45 seconds</p>
+          <p className="mt-6 text-sm text-subtle">
+            60 places · {MATCH_LENGTH[settings.matchLength].totalRounds} rounds · {DIFFICULTY_SECONDS[settings.difficulty]}s
+          </p>
         )}
       </section>
       {showSettings && (

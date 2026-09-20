@@ -5,12 +5,12 @@ const STEPS = [
   {
     n: "01",
     title: "Study the scene",
-    body: "Rounds 1–3 are 10 real places each (15 South Africa + 15 Netherlands). Round 4 is 10 labelled 3D reconstructions.",
+    body: "Photo rounds use 30 South Africa and 30 Netherlands sites. The last round is 10 labelled 3D reconstructions.",
   },
   {
     n: "02",
     title: "Drop a pin",
-    body: "Tap the map. Use SA or NL to jump to a country. You have 45 seconds. Drag the pin to fine-tune.",
+    body: "Tap the map. Use SA or NL to jump to a country. Drag the pin to fine-tune. The timer depends on Easy / Medium / Hard.",
   },
   {
     n: "03",
@@ -24,8 +24,18 @@ const STEPS = [
   },
   {
     n: "05",
-    title: "Four rounds, forty questions",
-    body: "Ten questions per round. Highest total wins. Ties break on shorter total distance, then faster total time.",
+    title: "Timer difficulty",
+    body: "Easy gives 60 seconds, Medium 45, Hard 30. Speed points scale to the timer you picked.",
+  },
+  {
+    n: "06",
+    title: "Standard or extended",
+    body: "Standard is 4 rounds / 40 questions. Extended is 7 rounds / 70 questions from the full 60-place pack, then the 3D round.",
+  },
+  {
+    n: "07",
+    title: "Highest total wins",
+    body: "Ties break on shorter total distance, then faster total time.",
   },
 ];
 

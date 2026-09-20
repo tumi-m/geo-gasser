@@ -16,6 +16,12 @@ describe("timePoints", () => {
     assert.equal(timePoints(0), 0);
     assert.equal(timePoints(-4), 0);
   });
+  it("scales to the requested duration", () => {
+    assert.equal(timePoints(60, 60), 10_000);
+    assert.equal(timePoints(30, 30), 10_000);
+    assert.equal(timePoints(1, 30), 1_000);
+    assert.equal(timePoints(1, 60), 1_000);
+  });
   it("interpolates the midpoint", () => {
     assert.equal(timePoints(23), 5_500);
   });

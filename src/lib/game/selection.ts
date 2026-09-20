@@ -1,6 +1,7 @@
 import { ROUND4_ENVIRONMENTS } from "./environments.ts";
 import { enabledLocations, ROUND4_LOCATIONS } from "./locations.ts";
 import { mulberry32, shuffle } from "./rng.ts";
+import { MATCH_LENGTH, type MatchLengthId } from "./timer.ts";
 import type { GeoLocation } from "./types.ts";
 
 export const QUESTIONS_PER_ROUND = 10;
@@ -16,6 +17,11 @@ export interface MatchPlan {
   seed: number;
   locationIds: string[];
   envIds: string[];
+  matchLength: MatchLengthId;
+  photoRounds: number;
+  photoQuestions: number;
+  totalRounds: number;
+  totalQuestions: number;
 }
 
 export function roundOf(questionIndex: number): number {
@@ -26,15 +32,16 @@ export function questionInRound(questionIndex: number): number {
   return questionIndex % QUESTIONS_PER_ROUND;
 }
 
-export function isRound4Question(questionIndex: number): boolean {
-  return questionIndex >= PHOTO_QUESTIONS;
+export function isRound4Question(questionIndex: number, photoQuestions = PHOTO_QUESTIONS): boolean {
+  return questionIndex >= photoQuestions;
 }
 
 /**
- * 40 questions: 15 ZA + 15 NL photos dealt 5/5 into rounds 1–3,
- * then 10 labelled 3D reconstructions (5 ZA + 5 NL) for round 4.
+ * Standard: 3 photo rounds (15 ZA + 15 NL) + 10 reconstructions.
+ * Extended: 6 photo rounds (30 ZA + 30 NL) + 10 reconstructions.
  */
-export function planMatch(seed: number): MatchPlan {
+export function planMatch(seed: number, matchLength: MatchLengthId = "standard"): MatchPlan {
+  const cfg = MATCH_LENGTH[matchLength];
   const rand = mulberry32(seed);
   const pool = enabledLocations();
   const za = shuffle(
@@ -47,11 +54,11 @@ export function planMatch(seed: number): MatchPlan {
   );
 
   const photo: GeoLocation[] = [];
-  for (let r = 0; r < PHOTO_ROUNDS; r++) {
+  for (let r = 0; r < cfg.photoRounds; r++) {
     const chunk = shuffle([...za.splice(0, 5), ...nl.splice(0, 5)], rand);
     photo.push(...chunk);
   }
-  while (photo.length < PHOTO_QUESTIONS) {
+  while (photo.length < cfg.photoQuestions) {
     const rest = shuffle(
       pool.filter((l) => !photo.some((p) => p.id === l.id)),
       rand,
@@ -66,7 +73,12 @@ export function planMatch(seed: number): MatchPlan {
 
   return {
     seed,
-    locationIds: [...photo.slice(0, PHOTO_QUESTIONS).map((l) => l.id), ...r4.map((l) => l.id)],
+    matchLength,
+    photoRounds: cfg.photoRounds,
+    photoQuestions: cfg.photoQuestions,
+    totalRounds: cfg.totalRounds,
+    totalQuestions: cfg.totalQuestions,
+    locationIds: [...photo.slice(0, cfg.photoQuestions).map((l) => l.id), ...r4.map((l) => l.id)],
     envIds,
   };
 }
@@ -75,7 +87,10 @@ export function currentLocationId(plan: Pick<MatchPlan, "locationIds">, question
   return plan.locationIds[questionIndex] ?? plan.locationIds[0];
 }
 
-export function currentEnvId(plan: Pick<MatchPlan, "envIds">, questionIndex: number): string | undefined {
-  if (!isRound4Question(questionIndex)) return undefined;
-  return plan.envIds[questionIndex - PHOTO_QUESTIONS];
+export function currentEnvId(
+  plan: Pick<MatchPlan, "envIds" | "photoQuestions">,
+  questionIndex: number,
+): string | undefined {
+  if (!isRound4Question(questionIndex, plan.photoQuestions)) return undefined;
+  return plan.envIds[questionIndex - plan.photoQuestions];
 }

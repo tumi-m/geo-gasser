@@ -1,7 +1,7 @@
 import { LogOut, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import type { AvatarId, GameSettings } from "@/lib/game";
+import type { AvatarId, GameSettings, MatchLengthId, TimeDifficulty } from "@/lib/game";
 import { sanitizeAvatar } from "@/lib/game";
 import { AvatarPicker } from "./player-avatar";
 import { cn } from "@/lib/utils";
@@ -63,6 +63,43 @@ export function SettingsPanel({
             onChange={(avatarId: AvatarId) => onChange({ ...settings, avatarId })}
           />
         </div>
+        <div className="flex flex-col gap-2 text-sm text-muted">
+          Timer
+          <div className="grid grid-cols-3 gap-2">
+            {(
+              [
+                ["easy", "Easy", "60s"],
+                ["medium", "Medium", "45s"],
+                ["hard", "Hard", "30s"],
+              ] as const
+            ).map(([id, label, hint]) => (
+              <Choice
+                key={id}
+                label={label}
+                hint={hint}
+                active={settings.difficulty === id}
+                onClick={() => onChange({ ...settings, difficulty: id as TimeDifficulty })}
+              />
+            ))}
+          </div>
+        </div>
+        <div className="flex flex-col gap-2 text-sm text-muted">
+          Match length
+          <div className="grid grid-cols-2 gap-2">
+            <Choice
+              label="Standard"
+              hint="4 rounds · 40 questions"
+              active={settings.matchLength === "standard"}
+              onClick={() => onChange({ ...settings, matchLength: "standard" as MatchLengthId })}
+            />
+            <Choice
+              label="Extended"
+              hint="7 rounds · 70 questions"
+              active={settings.matchLength === "extended"}
+              onClick={() => onChange({ ...settings, matchLength: "extended" as MatchLengthId })}
+            />
+          </div>
+        </div>
         {slider("master", "Master")}
         {slider("music", "Music")}
         {slider("sfx", "Effects")}
@@ -101,6 +138,32 @@ export function SettingsPanel({
         )}
       </div>
     </ModalShell>
+  );
+}
+
+function Choice({
+  label,
+  hint,
+  active,
+  onClick,
+}: {
+  label: string;
+  hint: string;
+  active: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={cn(
+        "rounded-[var(--radius-md)] border px-3 py-2 text-left transition-colors",
+        active ? "border-accent bg-accent/15 text-fg" : "border-border bg-bg-subtle text-muted",
+      )}
+    >
+      <span className="block text-sm font-medium text-fg">{label}</span>
+      <span className="mt-0.5 block text-[11px] text-muted">{hint}</span>
+    </button>
   );
 }
 

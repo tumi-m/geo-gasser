@@ -1,3 +1,4 @@
+import { EXTRA_LOCATIONS } from "./extra-locations.ts";
 import type { GeoLocation } from "./types.ts";
 
 const V = "2026-09-20";
@@ -17,7 +18,7 @@ function loc(
 }
 
 /**
- * Launch pool: 15 South Africa + 15 Netherlands.
+ * Launch pool: 30 South Africa + 30 Netherlands photos.
  * Coordinates cross-checked against Wikipedia/Wikimedia 2026-09-20
  * and conservative national bounding boxes (see validation.ts).
  */
@@ -476,6 +477,7 @@ export const LAUNCH_LOCATIONS: GeoLocation[] = [
     sceneKind: "wikimedia",
     panoramaProvider: "wikimedia",
   }),
+  ...EXTRA_LOCATIONS,
 ];
 
 /** Ten extra reconstructed sites used only in round 4 (5 ZA + 5 NL). */

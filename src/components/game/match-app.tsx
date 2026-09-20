@@ -104,8 +104,10 @@ export function MatchApp({
       avatarId,
       seed: randomSeed(),
       now: performance.now(),
+      difficulty: settings.difficulty,
+      matchLength: settings.matchLength,
     });
-  }, [mode, selfId, name, avatarId, dispatch]);
+  }, [mode, selfId, name, avatarId, dispatch, settings.difficulty, settings.matchLength]);
 
   useEffect(() => {
     if (mode !== "duel" || bootRef.current) return;
@@ -116,6 +118,8 @@ export function MatchApp({
         type: "CREATE_LOCAL_DUEL",
         seed: randomSeed(),
         now: Date.now(),
+        difficulty: settings.difficulty,
+        matchLength: settings.matchLength,
         seats: [
           { id: selfId, name, avatarId },
           { id: GROK_BOT_ID, name: GROK_BOT_NAME, avatarId: "grok", kind: "bot" },
@@ -138,6 +142,8 @@ export function MatchApp({
         hotseat: true,
         seed: randomSeed(),
         now: Date.now(),
+        difficulty: settings.difficulty,
+        matchLength: settings.matchLength,
         seats: [
           { id: selfId, name, avatarId },
           { id: "seat-2", name: guest.name, avatarId: sanitizeAvatar(guest.avatarId) },
@@ -158,6 +164,8 @@ export function MatchApp({
         roomCode: roomCode ?? "ROOM",
         seed: randomSeed(),
         now: Date.now(),
+        difficulty: settings.difficulty,
+        matchLength: settings.matchLength,
       });
     }
   }, [mode, duelKind, isCreator, selfId, name, avatarId, roomCode, dispatch, state.phase]);
@@ -176,6 +184,8 @@ export function MatchApp({
         roomCode: roomCode ?? "ROOM",
         seed: randomSeed(),
         now: Date.now(),
+        difficulty: settings.difficulty,
+        matchLength: settings.matchLength,
       });
     }
   }, [mode, duelKind, isCreator, p2p.peers, selfId, name, avatarId, roomCode, dispatch]);
@@ -275,7 +285,7 @@ export function MatchApp({
       : (state.players.find((p) => p.id === selfId) ?? state.players[0]);
   const opponent = state.players.find((p) => p.id !== you?.id);
   const showingReveal = state.phase === "round_reveal" || state.phase === "round_expired" || state.phase === "round_results";
-  const lastRound = state.questionIndex >= TOTAL_QUESTIONS - 1;
+  const lastRound = state.questionIndex >= (state.totalQuestions || TOTAL_QUESTIONS) - 1;
   const canGuess =
     Boolean(you) &&
     !you?.locked &&
@@ -317,7 +327,7 @@ export function MatchApp({
     let raf = 0;
     const loop = () => {
       const clock = mode === "solo" ? performance.now() : Date.now();
-      const rem = remainingSeconds(state.roundStartedAtMs!, clock);
+      const rem = remainingSeconds(state.roundStartedAtMs!, clock, state.durationSec || ROUND_DURATION_SEC);
       setRemaining(rem);
       if (rem <= 0) {
         if (mode === "duel" && duelKind === "online" && !hostRef.current) return;
@@ -346,10 +356,10 @@ export function MatchApp({
     if (state.phase === "round_intro") {
       setSceneReady(false);
       setSceneFailed(false);
-      setRemaining(ROUND_DURATION_SEC);
+      setRemaining(state.durationSec || ROUND_DURATION_SEC);
     }
     if (state.phase === "round_active") {
-      setRemaining(ROUND_DURATION_SEC);
+      setRemaining(state.durationSec || ROUND_DURATION_SEC);
       // Phones use the split layout; collapsing there would shrink the map.
       if (!window.matchMedia("(max-width: 640px)").matches) setExpanded(false);
       audio.play("start");
@@ -560,9 +570,10 @@ export function MatchApp({
   }
 
   const qNum = questionInRound(state.questionIndex) + 1;
+  const rounds = state.totalRounds || 4;
   const roundLabel = isRound4(state)
-    ? `Round 4 of 4 · 3D · Q${qNum}/${QUESTIONS_PER_ROUND}`
-    : `Round ${state.roundIndex + 1} of 4 · Q${qNum}/${QUESTIONS_PER_ROUND}`;
+    ? `Round ${rounds} of ${rounds} · 3D · Q${qNum}/${QUESTIONS_PER_ROUND}`
+    : `Round ${state.roundIndex + 1} of ${rounds} · Q${qNum}/${QUESTIONS_PER_ROUND}`;
   const urgent = remaining <= 10 && state.phase === "round_active" && !you?.locked;
 
   return (
@@ -585,7 +596,7 @@ export function MatchApp({
           <p className="atlas-rise atlas-rise-2 mt-4 max-w-sm text-sm text-muted">
             {isRound4(state)
               ? "10 reconstructions · 1.25× score"
-              : "10 questions this round"}
+              : `${QUESTIONS_PER_ROUND} questions this round · ${state.durationSec || 45}s`}
           </p>
           <p className="atlas-rise atlas-rise-3 mt-8 text-xs uppercase tracking-[0.2em] text-subtle">Tap or Enter to start</p>
         </div>
@@ -629,12 +640,12 @@ export function MatchApp({
           {!showingReveal && (
             <TimerRing
               remaining={remaining}
-              duration={45}
+              duration={state.durationSec || 45}
               urgent={urgent}
               locked={Boolean(you?.locked && !showingReveal)}
             />
           )}
-          <RoundPips index={state.roundIndex} />
+          <RoundPips index={state.roundIndex} total={state.totalRounds || 4} />
           <QuestionMark current={qNum} />
         </div>
         <div className="flex items-center gap-2">

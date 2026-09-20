@@ -59,8 +59,8 @@ export function validateLaunchPool(pool: GeoLocation[] = LAUNCH_LOCATIONS): Vali
   }
   const za = pool.filter((l) => l.country === "ZA" && l.enabled).length;
   const nl = pool.filter((l) => l.country === "NL" && l.enabled).length;
-  if (pool.length !== 30) issues.push({ message: `expected 30 launch locations, got ${pool.length}` });
-  if (za !== 15 || nl !== 15) issues.push({ message: `expected 15/15 country split, got ZA ${za} NL ${nl}` });
+  if (pool.length !== 60) issues.push({ message: `expected 60 launch locations, got ${pool.length}` });
+  if (za !== 30 || nl !== 30) issues.push({ message: `expected 30/30 country split, got ZA ${za} NL ${nl}` });
   return issues;
 }
 

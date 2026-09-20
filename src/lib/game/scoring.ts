@@ -71,6 +71,7 @@ export function scoreGuess(opts: {
   remainingSec: number;
   responseMs: number;
   isRound4?: boolean;
+  durationSec?: number;
 }): RoundScore {
   const multiplier = opts.isRound4 ? ROUND4_MULTIPLIER : 1;
   if (!opts.guess) {
@@ -90,7 +91,7 @@ export function scoreGuess(opts: {
   const distanceKm = haversineKm(opts.truth, opts.guess);
   const countryCorrect = detectCountry(opts.guess) === opts.country;
   const acc = accuracyPoints(distanceKm, opts.country);
-  const time = timePoints(opts.remainingSec);
+  const time = timePoints(opts.remainingSec, opts.durationSec);
   const roundScore = Math.round((acc + time) * multiplier);
   return {
     distanceKm,

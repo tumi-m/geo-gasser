@@ -125,6 +125,12 @@ export interface MatchState {
   locationIds: string[];
   envId: string;
   envIds: string[];
+  durationSec: number;
+  photoQuestions: number;
+  totalQuestions: number;
+  totalRounds: number;
+  timeDifficulty: "easy" | "medium" | "hard";
+  matchLength: "standard" | "extended";
   roundStartedAtMs?: number;
   players: PlayerState[];
   /** Host-only until reveal. Stripped from public snapshots. */
@@ -149,6 +155,12 @@ export interface PublicSnapshot {
   locationIds: string[];
   envId: string;
   envIds: string[];
+  durationSec: number;
+  photoQuestions: number;
+  totalQuestions: number;
+  totalRounds: number;
+  timeDifficulty: "easy" | "medium" | "hard";
+  matchLength: "standard" | "extended";
   roundStartedAtMs?: number;
   players: Array<
     Omit<PlayerState, "guess" | "roundScore"> & {
