@@ -172,10 +172,17 @@ export function MatchApp({
 
   useEffect(() => {
     if (mode !== "duel" || duelKind !== "online" || isCreator) return;
-    if (p2p.peers.length === 0) return;
-    const elected = [selfId, ...p2p.peers.map((p) => p.id)].sort()[0];
-    hostRef.current = elected === selfId;
-    if (hostRef.current && stateRef.current.phase === "lobby") {
+    // Never self-host while a host already exists; otherwise wait a grace
+    // period and only the smallest peer id in the room claims the room.
+    // Without the grace period a joiner can self-host before the creator's
+    // first snapshot arrives and the two hosts wedge on separate games.
+    if (state.hostId) return;
+    if (stateRef.current.phase !== "lobby") return;
+    const t = window.setTimeout(() => {
+      if (stateRef.current.phase !== "lobby" || stateRef.current.hostId) return;
+      const elected = [selfId, ...p2p.peers.map((p) => p.id)].sort()[0];
+      if (elected !== selfId) return;
+      hostRef.current = true;
       dispatch({
         type: "CREATE_DUEL",
         playerId: selfId,
@@ -187,28 +194,33 @@ export function MatchApp({
         difficulty: settings.difficulty,
         matchLength: settings.matchLength,
       });
-    }
-  }, [mode, duelKind, isCreator, p2p.peers, selfId, name, avatarId, roomCode, dispatch]);
+    }, 2500);
+    return () => window.clearTimeout(t);
+  }, [mode, duelKind, isCreator, state.hostId, p2p.peers, selfId, name, avatarId, roomCode, dispatch, settings.difficulty, settings.matchLength]);
 
   useEffect(() => {
     if (mode !== "duel") return;
     return p2p.onMessage((_from, data) => {
       if (!isWireMessage(data)) return;
       const msg = data as WireMessage;
-      if (msg.t === "snapshot" && !hostRef.current) {
-        setState((prev) => {
-          const incoming = msg.state as MatchState;
-          if (incoming.revealed) return incoming;
-          const mine = prev.players.find((p) => p.id === selfId);
-          return {
-            ...incoming,
-            players: incoming.players.map((p) =>
-              p.id === selfId && mine
-                ? { ...p, guess: mine.guess ?? p.guess, locked: mine.locked || p.locked, lockedAtMs: mine.lockedAtMs ?? p.lockedAtMs }
-                : p,
-            ),
-          };
-        });
+      if (msg.t === "snapshot") {
+        const incoming = msg.state as MatchState;
+        if (!hostRef.current) {
+          adoptSnapshot(incoming);
+          return;
+        }
+        // Host collision (creator + a joiner that elected itself before the
+        // first snapshot arrived): the smaller hostId wins. The loser demotes
+        // and adopts so the room converges on one game instead of both tabs
+        // waiting forever on their own lobby.
+        if (incoming.hostId !== stateRef.current.hostId) {
+          if (incoming.hostId < stateRef.current.hostId) {
+            hostRef.current = false;
+            adoptSnapshot(incoming);
+          } else {
+            p2p.send({ t: "snapshot", state: toPublicSnapshot(stateRef.current) });
+          }
+        }
         return;
       }
       if (!hostRef.current) return;
@@ -228,7 +240,32 @@ export function MatchApp({
       if (msg.t === "rematch") dispatch({ type: "REMATCH", seed: msg.seed, now });
       if (msg.t === "handoff") dispatch({ type: "HANDOFF_DONE", now });
     });
-  }, [mode, p2p.onMessage, dispatch, selfId]);
+
+    function adoptSnapshot(incoming: MatchState) {
+      setState((prev) => {
+        // A stale or re-ordered packet must not rewind a live round.
+        const inRound =
+          prev.phase === "round_active" ||
+          prev.phase === "waiting_for_opponent" ||
+          prev.phase === "player_locked" ||
+          prev.phase === "round_reveal" ||
+          prev.phase === "round_expired" ||
+          prev.phase === "round_results";
+        if (inRound && incoming.seq <= prev.seq) return prev;
+        if (incoming.revealed) return incoming;
+        const mine = prev.players.find((p) => p.id === selfId);
+        return {
+          ...incoming,
+          players: incoming.players.map((p) =>
+            p.id === selfId && mine
+              ? { ...p, guess: mine.guess ?? p.guess, locked: mine.locked || p.locked, lockedAtMs: mine.lockedAtMs ?? p.lockedAtMs }
+              : p,
+          ),
+        };
+      });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mode, p2p.onMessage, p2p.send, dispatch, selfId]);
 
   useEffect(() => {
     if (mode !== "duel" || !hostRef.current) return;
@@ -236,13 +273,33 @@ export function MatchApp({
     p2p.send({ t: "snapshot", state: toPublicSnapshot(state) });
   }, [mode, p2p.send, state]);
 
+  // While the room is filling there is no other state change to trigger a
+  // resend, yet the data channel often opens AFTER CREATE_DUEL was
+  // broadcast. Re-announce on a timer so a late joiner can never miss the
+  // only snapshot that ever carried the room.
   useEffect(() => {
-    if (mode !== "duel" || duelKind !== "online" || hostRef.current) return;
+    if (mode !== "duel" || duelKind !== "online" || !hostRef.current) return;
+    if (state.phase !== "waiting_for_players" && state.phase !== "rematch_pending" && state.phase !== "lobby") return;
+    const send = () => p2p.send({ t: "snapshot", state: toPublicSnapshot(stateRef.current) });
+    send();
+    const id = window.setInterval(send, 2500);
+    return () => window.clearInterval(id);
+  }, [mode, duelKind, p2p.send, state.phase]);
+
+  useEffect(() => {
+    if (mode !== "duel" || duelKind !== "online") return;
+    // Keep announcing until this player is IN the host's game — not merely
+    // until a peer is visible. A host that received our hello may have had
+    // its reply lost; a resend costs nothing and unsticks the room.
+    const waiting =
+      state.phase === "lobby" || state.phase === "waiting_for_players" || state.phase === "rematch_pending";
+    const registered = state.players.some((p) => p.id === selfId);
+    if (!waiting || registered || state.hostId === selfId) return;
     const ping = () => p2p.send({ t: "hello", peerId: selfId, name, avatarId });
     ping();
-    const id = setInterval(ping, 1500);
-    return () => clearInterval(id);
-  }, [mode, duelKind, p2p.send, selfId, name, avatarId]);
+    const id = window.setInterval(ping, 1500);
+    return () => window.clearInterval(id);
+  }, [mode, duelKind, p2p.send, selfId, name, avatarId, state.phase, state.players, state.hostId]);
 
   useEffect(() => {
     if (mode !== "duel" || duelKind !== "online" || !hostRef.current) return;
