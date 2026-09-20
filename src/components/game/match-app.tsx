@@ -260,22 +260,35 @@ export function MatchApp({
     return () => window.clearTimeout(id);
   }, [mode, state.phase, state.players.length, dispatch]);
 
+  const grokTimer = useRef(0);
+  const grokQ = useRef(-1);
+  const grokSeed = useRef(-1);
+
   useEffect(() => {
-    if (mode !== "duel" || duelKind === "online") return;
-    const bot = state.players.find((p) => p.kind === "bot");
-    if (!bot || bot.locked) return;
+    if (mode !== "duel" || duelKind !== "bot") return;
     if (state.phase !== "round_active" && state.phase !== "waiting_for_opponent") return;
+    if (grokQ.current === state.questionIndex && grokSeed.current === state.seed) return;
+    grokQ.current = state.questionIndex;
+    grokSeed.current = state.seed;
     const place = activeLocation(state);
-    if (!place) return;
-    const wait = grokThinkMs(place.difficulty, state.seed, state.questionIndex);
-    const id = window.setTimeout(() => {
-      const guess = grokGuess(place, state.seed, state.questionIndex);
+    const bot = state.players.find((p) => p.kind === "bot");
+    if (!place || !bot || bot.locked) return;
+    const cap = Math.max(1400, (state.durationSec || ROUND_DURATION_SEC) * 1000 - 2000);
+    const wait = Math.min(grokThinkMs(place.difficulty, state.seed, state.questionIndex), cap);
+    window.clearTimeout(grokTimer.current);
+    grokTimer.current = window.setTimeout(() => {
+      const s = stateRef.current;
+      const b = s.players.find((p) => p.kind === "bot");
+      if (!b || b.locked) return;
+      const loc = activeLocation(s);
+      if (!loc) return;
       const now = Date.now();
-      dispatch({ type: "PLACE_PIN", playerId: bot.id, guess, now });
-      dispatch({ type: "LOCK", playerId: bot.id, now: now + 1 });
+      dispatch({ type: "PLACE_PIN", playerId: b.id, guess: grokGuess(loc, s.seed, s.questionIndex), now });
+      dispatch({ type: "LOCK", playerId: b.id, now: now + 1 });
     }, wait);
-    return () => window.clearTimeout(id);
-  }, [mode, duelKind, state.phase, state.questionIndex, state.seed, state.players, dispatch]);
+  }, [mode, duelKind, state.phase, state.questionIndex, state.seed, state.durationSec, dispatch]);
+
+  useEffect(() => () => window.clearTimeout(grokTimer.current), []);
 
   const loc = activeLocation(state);
   const env = activeEnvironment(state);
@@ -338,7 +351,7 @@ export function MatchApp({
     };
     raf = requestAnimationFrame(loop);
     return () => cancelAnimationFrame(raf);
-  }, [state.phase, state.roundStartedAtMs, mode, duelKind, dispatch]);
+  }, [state.phase, state.roundStartedAtMs, state.durationSec, mode, duelKind, dispatch]);
 
   useEffect(() => {
     if (state.phase !== "round_active") {
@@ -378,9 +391,19 @@ export function MatchApp({
   }, [state.phase]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
+    setSceneReady(false);
+    setSceneFailed(false);
     if (!loc?.sceneUrl) return;
     const img = new Image();
     img.src = loc.sceneUrl;
+    img.onload = () => {
+      setSceneFailed(false);
+      setSceneReady(true);
+    };
+    img.onerror = () => {
+      setSceneFailed(true);
+      setSceneReady(true);
+    };
     if (img.complete && img.naturalWidth > 0) {
       setSceneFailed(false);
       setSceneReady(true);
@@ -562,7 +585,7 @@ export function MatchApp({
           statsRecorded.current = false;
           const seed = randomSeed();
           if (mode === "duel" && duelKind === "online" && !hostRef.current) p2p.send({ t: "rematch", seed });
-          else dispatch({ type: "REMATCH", seed, now: mode === "solo" ? performance.now() : Date.now() });
+          else dispatch({ type: "REMATCH", seed, now: mode === "solo" ? performance.now() : Date.now(), difficulty: settings.difficulty, matchLength: settings.matchLength });
         }}
         onHome={quit}
       />
@@ -679,7 +702,7 @@ export function MatchApp({
           <PlayerAvatar id={you?.avatarId} size={72} />
           <p className="mt-5 text-xs uppercase tracking-[0.28em] text-muted">Pass the phone</p>
           <h2 className="font-display mt-2 text-4xl">{you?.name}</h2>
-          <p className="mt-3 max-w-sm text-muted">Same location. Fresh 45 seconds. Don’t peek at the last pin.</p>
+          <p className="mt-3 max-w-sm text-muted">Same location. Fresh {state.durationSec || 45} seconds. Don’t peek at the last pin.</p>
           <Button className="mt-8" size="lg" onClick={() => dispatch({ type: "HANDOFF_DONE", now: Date.now() })}>
             I’m {you?.name}
           </Button>
@@ -730,6 +753,11 @@ export function MatchApp({
         />
       )}
 
+      {loc && loc.sceneKind === "generated-reconstruction" && !showingReveal && (
+        <p className="pointer-events-none absolute left-3 bottom-[calc(var(--atlas-map-h)+0.75rem)] z-10 max-w-[52%] text-[10px] leading-snug text-subtle max-sm:max-w-[70%]">
+          Reconstruction · not a live street photo
+        </p>
+      )}
       {loc && isRound4(state) && env && !showingReveal && (
         <p className="pointer-events-none absolute right-3 bottom-[calc(var(--atlas-map-h)+0.75rem)] z-10 max-w-[46%] text-right text-[10px] leading-snug text-subtle max-sm:max-w-[70%]">
           {env.disclosure}

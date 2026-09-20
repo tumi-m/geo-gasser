@@ -177,7 +177,7 @@ export const EXTRA_LOCATIONS: GeoLocation[] = [
     attribution: "Cinematic reconstruction inspired by Hillbrow Tower. Not a live street photograph. Coordinates from Wikipedia.",
     sourceUrl: "https://en.wikipedia.org/wiki/Hillbrow_Tower",
     sceneKind: "generated-reconstruction",
-      }),
+  }),
   loc({
     id: "loc_52",
     country: "ZA",

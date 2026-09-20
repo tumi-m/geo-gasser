@@ -195,6 +195,35 @@ describe("two-player lock and local duels", () => {
   });
 });
 
+describe("match options", () => {
+  it("hard solo uses a 30 second timer", () => {
+    const s = reduce(createLobbyState(), {
+      type: "CREATE_SOLO",
+      playerId: "p1",
+      name: "Ada",
+      seed: 4,
+      now,
+      difficulty: "hard",
+    });
+    assert.equal(s.durationSec, 30);
+    assert.equal(s.timeDifficulty, "hard");
+  });
+  it("extended solo deals 70 unique questions", () => {
+    const s = reduce(createLobbyState(), {
+      type: "CREATE_SOLO",
+      playerId: "p1",
+      name: "Ada",
+      seed: 8,
+      now,
+      matchLength: "extended",
+    });
+    assert.equal(s.totalQuestions, 70);
+    assert.equal(s.locationIds.length, 70);
+    assert.equal(new Set(s.locationIds).size, 70);
+    assert.equal(s.totalRounds, 7);
+  });
+});
+
 describe("forty-question match", () => {
   const now = 1_000_000;
   it("plays ten questions in a round before advancing", () => {

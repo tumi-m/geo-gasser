@@ -32,7 +32,6 @@ import "leaflet/dist/leaflet.css";
  *  - reveal draws the geodesic, labels the distance, pulses TRUE, flies the camera
  */
 
-type Leaflet = typeof import("leaflet");
 const WORLD = worldJson as unknown as RegionCollection;
 const DETAIL = detailJson as unknown as { countries: RegionCollection; provinces: RegionCollection };
 const DETAIL_CODES = new Set(DETAIL.countries.features.map((f) => f.properties.c));
@@ -100,7 +99,7 @@ export function GuessMap({
   const hostRef = useRef<HTMLDivElement>(null);
   const wrapRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<import("leaflet").Map | null>(null);
-  const LRef = useRef<Leaflet | null>(null);
+  const LRef = useRef<typeof import("leaflet") | null>(null);
   const pins = useRef<Record<string, import("leaflet").Marker>>({});
   const revealLayers = useRef<import("leaflet").Layer[]>([]);
   const revealRafs = useRef<number[]>([]);
@@ -148,22 +147,25 @@ export function GuessMap({
     let map: import("leaflet").Map | null = null;
     let ro: ResizeObserver | undefined;
     let waitTimer = 0;
+    const startedAt = performance.now();
 
-    const boot = async () => {
+    const waitForBox = (): Promise<void> =>
+      new Promise((resolve) => {
+        const check = () => {
+          const r = host.getBoundingClientRect();
+          if ((r.height >= 80 && r.width >= 80) || performance.now() - startedAt > 2000) resolve();
+          else waitTimer = window.setTimeout(check, 50);
+        };
+        check();
+      });
+
+    void (async () => {
       try {
-        const L = await import("leaflet");
-        LRef.current = L;
-
-        // Never init into a zero-height box; vh layouts on Android measure ~0 early.
-        await new Promise<void>((resolve) => {
-          const check = () => {
-            const r = host.getBoundingClientRect();
-            if (r.height >= 80 && r.width >= 80) resolve();
-            else waitTimer = window.setTimeout(check, 60);
-          };
-          check();
-        });
+        const leaflet = await import("leaflet");
+        LRef.current = leaflet;
+        await waitForBox();
         if (cancelled || !hostRef.current) return;
+        const L = leaflet;
 
         map = L.map(hostRef.current, {
           center: [10, 14],
@@ -177,13 +179,15 @@ export function GuessMap({
           zoomDelta: 0.5,
           wheelPxPerZoomLevel: 90,
           worldCopyJump: false,
-          maxBounds: [[-85, -180], [85, 180]],
+          maxBounds: [
+            [-85, -180],
+            [85, 180],
+          ],
           maxBoundsViscosity: 0.85,
           preferCanvas: false,
         });
         mapRef.current = map;
 
-        // Layers, bottom to top.
         graticuleLayer(L).addTo(map);
         worldLayer(L, WORLD, DETAIL_CODES).addTo(map);
         detailCountryLayer(L, DETAIL.countries).addTo(map);
@@ -246,9 +250,7 @@ export function GuessMap({
       } catch {
         if (!cancelled) setStatus("error");
       }
-    };
-
-    void boot();
+    })();
 
     return () => {
       cancelled = true;
@@ -339,8 +341,12 @@ export function GuessMap({
 
   function goToPlace(place: Place) {
     const map = mapRef.current;
-    setQuery(place.name);
+    setQuery("");
     setActiveHit(0);
+    if (!disabledRef.current && !revealRef.current) {
+      buzz(12);
+      onGuessRef.current({ latitude: place.latitude, longitude: place.longitude });
+    }
     if (!map) return;
     const zoom = Math.min(place.zoom, 12);
     if (reducedRef.current) map.setView([place.latitude, place.longitude], zoom, { animate: false });
@@ -529,7 +535,7 @@ export function GuessMap({
               <input
                 type="search"
                 value={query}
-                placeholder="Search a city or town"
+                placeholder="Search a city to drop a pin"
                 autoComplete="off"
                 autoCorrect="off"
                 spellCheck={false}

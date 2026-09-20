@@ -145,11 +145,10 @@ export function HomeScreen() {
               value={stats.closestKm != null ? formatDistance(stats.closestKm) : "—"}
             />
           </dl>
-        ) : (
-          <p className="mt-6 text-sm text-subtle">
-            60 places · {MATCH_LENGTH[settings.matchLength].totalRounds} rounds · {DIFFICULTY_SECONDS[settings.difficulty]}s
-          </p>
-        )}
+        ) : null}
+        <p className="mt-6 text-sm text-subtle">
+          60 places · {MATCH_LENGTH[settings.matchLength].totalRounds} rounds · {DIFFICULTY_SECONDS[settings.difficulty]}s
+        </p>
       </section>
       {showSettings && (
         <SettingsPanel

@@ -1,7 +1,7 @@
 import { environmentById } from "./environments.ts";
 import { getLocation } from "./locations.ts";
 import { NO_GUESS_KM, rankPlayers, scoreGuess } from "./scoring.ts";
-import { currentEnvId, currentLocationId, isRound4Question, planMatch, QUESTIONS_PER_ROUND, roundOf } from "./selection.ts";
+import { currentEnvId, currentLocationId, isRound4Question, planMatch, PHOTO_QUESTIONS, QUESTIONS_PER_ROUND, roundOf, TOTAL_QUESTIONS } from "./selection.ts";
 import { DIFFICULTY_SECONDS, MATCH_LENGTH, remainingSeconds, ROUND_DURATION_SEC, type MatchLengthId, type TimeDifficulty } from "./timer.ts";
 import type { LatLng, MatchPhase, MatchState, PlayerState, PublicSnapshot, RoundRecord } from "./types.ts";
 
@@ -74,7 +74,7 @@ function locationForQuestion(state: MatchState, questionIndex: number) {
 function applyScores(state: MatchState, now: number): MatchState {
   const loc = locationForQuestion(state, state.questionIndex);
   if (!loc || !state.truth || !state.roundStartedAtMs) return state;
-  const isRound4 = isRound4Question(state.questionIndex, state.photoQuestions);
+  const isRound4 = isRound4Question(state.questionIndex, state.photoQuestions || PHOTO_QUESTIONS);
   const durationSec = state.durationSec || ROUND_DURATION_SEC;
   const players = state.players.map((p) => {
     const remaining =
@@ -169,7 +169,7 @@ function matchOptions(difficulty?: TimeDifficulty, matchLength?: MatchLengthId) 
 function beginQuestion(state: MatchState, now: number, intro: boolean): MatchState {
   const loc = locationForQuestion(state, state.questionIndex);
   const envId =
-    currentEnvId({ envIds: state.envIds, photoQuestions: state.photoQuestions }, state.questionIndex) ?? state.envId;
+    currentEnvId({ envIds: state.envIds, photoQuestions: state.photoQuestions || PHOTO_QUESTIONS }, state.questionIndex) ?? state.envId;
   const firstHuman = state.players.find((p) => p.kind !== "bot") ?? state.players[0];
   const next = {
     ...state,
@@ -412,7 +412,7 @@ export function reduce(state: MatchState, event: MatchEvent): MatchState {
       }
       if (state.phase !== "round_results" && state.phase !== "next_round") return state;
       const nextQ = state.questionIndex + 1;
-      if (nextQ >= state.totalQuestions) {
+      if (nextQ >= (state.totalQuestions || TOTAL_QUESTIONS)) {
         const { winnerIds } = rankPlayers(state.players);
         return { ...bump(state, "final_reveal", event.now), winnerIds };
       }
@@ -499,10 +499,10 @@ export function activeLocation(state: MatchState) {
 }
 
 export function activeEnvironment(state: MatchState) {
-  if (!isRound4Question(state.questionIndex, state.photoQuestions)) return undefined;
-  return environmentById(state.envId) ?? environmentById(state.envIds[state.questionIndex - state.photoQuestions] ?? "");
+  if (!isRound4Question(state.questionIndex, state.photoQuestions || PHOTO_QUESTIONS)) return undefined;
+  return environmentById(state.envId) ?? environmentById(state.envIds[state.questionIndex - (state.photoQuestions || PHOTO_QUESTIONS)] ?? "");
 }
 
 export function isRound4(state: MatchState): boolean {
-  return isRound4Question(state.questionIndex, state.photoQuestions);
+  return isRound4Question(state.questionIndex, state.photoQuestions || PHOTO_QUESTIONS);
 }

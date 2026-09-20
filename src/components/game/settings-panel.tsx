@@ -99,6 +99,7 @@ export function SettingsPanel({
               onClick={() => onChange({ ...settings, matchLength: "extended" as MatchLengthId })}
             />
           </div>
+          {onQuit ? <p className="text-[11px] text-subtle">Timer and length apply on the next match.</p> : null}
         </div>
         {slider("master", "Master")}
         {slider("music", "Music")}
