@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { resolveWikiImage } from "@/lib/game";
 import { cn } from "@/lib/utils";
 
 type Probe = {
@@ -37,6 +38,9 @@ function typingTarget(el: EventTarget | null) {
 export function SceneExplorer({
   src,
   alt,
+  fallbacks,
+  sourceUrl,
+  title,
   reducedMotion,
   interactive = true,
   onReady,
@@ -44,6 +48,9 @@ export function SceneExplorer({
 }: {
   src: string;
   alt: string;
+  fallbacks?: string[];
+  sourceUrl?: string;
+  title?: string;
   reducedMotion?: boolean;
   interactive?: boolean;
   onReady?: () => void;
@@ -68,6 +75,9 @@ export function SceneExplorer({
   interactiveRef.current = interactive;
   const [failed, setFailed] = useState(false);
   const [hint, setHint] = useState(true);
+  const [current, setCurrent] = useState(src);
+  const queue = useRef<string[]>([]);
+  const wikiTried = useRef(false);
 
   useEffect(() => {
     const s = sim.current;
@@ -80,9 +90,20 @@ export function SceneExplorer({
     s.pointers.clear();
     setFailed(false);
     setHint(true);
+    wikiTried.current = false;
+    const seen = new Set<string>();
+    const chain: string[] = [];
+    for (const url of [src, ...(fallbacks ?? [])]) {
+      if (url && !seen.has(url)) {
+        seen.add(url);
+        chain.push(url);
+      }
+    }
+    queue.current = chain.slice(1);
+    setCurrent(chain[0] ?? src);
     const hide = window.setTimeout(() => setHint(false), 4200);
     return () => window.clearTimeout(hide);
-  }, [src, reducedMotion]);
+  }, [src, reducedMotion, fallbacks?.join("|"), sourceUrl, title]);
 
   useEffect(() => {
     const host = hostRef.current;
@@ -250,9 +271,11 @@ export function SceneExplorer({
       >
         <img
           ref={imgRef}
-          src={src}
+          src={current}
           alt={alt}
           draggable={false}
+          referrerPolicy="no-referrer"
+          decoding="async"
           className={cn(
             "pointer-events-none h-full w-full origin-center object-cover select-none will-change-transform",
             failed ? "opacity-0" : "opacity-100",
@@ -262,9 +285,27 @@ export function SceneExplorer({
             onReady?.();
           }}
           onError={() => {
-            setFailed(true);
-            onError?.();
-            onReady?.();
+            const next = queue.current.shift();
+            if (next) {
+              setCurrent(next);
+              return;
+            }
+            if (wikiTried.current) {
+              setFailed(true);
+              onError?.();
+              onReady?.();
+              return;
+            }
+            wikiTried.current = true;
+            void resolveWikiImage(sourceUrl, title).then((wiki) => {
+              if (wiki) {
+                setCurrent(wiki);
+                return;
+              }
+              setFailed(true);
+              onError?.();
+              onReady?.();
+            });
           }}
         />
       </div>

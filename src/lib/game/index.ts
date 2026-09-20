@@ -9,7 +9,7 @@ export * from "./validation.ts";
 export * from "./atlas.ts";
 export * from "./selection.ts";
 export * from "./environments.ts";
-export * from "./providers.ts";
+export * from "./scene.ts";
 export * from "./machine.ts";
 export * from "./rng.ts";
 export * from "./settings.ts";

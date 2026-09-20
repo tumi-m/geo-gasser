@@ -26,6 +26,7 @@ import {
   reduce,
   remainingSeconds,
   ROUND_DURATION_SEC,
+  sceneCandidates,
   saveSettings,
   sanitizeAvatar,
   toPublicSnapshot,
@@ -677,8 +678,11 @@ export function MatchApp({
           <Round4Scene key={env.id} env={env} reducedMotion={settings.reducedMotion} />
         ) : loc?.sceneUrl ? (
           <SceneExplorer
-            key={loc.sceneUrl}
-            src={loc.sceneUrl}
+            key={loc.id}
+            src={sceneCandidates(loc)[0]}
+            fallbacks={sceneCandidates(loc).slice(1)}
+            sourceUrl={loc.sourceUrl}
+            title={loc.title}
             alt="Location to identify"
             reducedMotion={settings.reducedMotion}
             interactive={canGuess && !showSettings && !showingReveal}
@@ -688,7 +692,11 @@ export function MatchApp({
         ) : (
           <div className="absolute inset-0 bg-bg-subtle" />
         )}
-        {!sceneReady && !live3d && <div className="absolute inset-0 bg-bg-subtle" />}
+        {!sceneReady && !live3d ? (
+          <div className="pointer-events-none absolute inset-0 flex items-center justify-center bg-bg/55">
+            <p className="text-sm text-muted">Loading scene</p>
+          </div>
+        ) : null}
         <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(180deg,rgba(9,9,11,0.45)_0%,transparent_26%,transparent_62%,rgba(9,9,11,0.5)_100%)]" />
       </div>
 
