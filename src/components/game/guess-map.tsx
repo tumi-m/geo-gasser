@@ -1,49 +1,63 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Search } from "lucide-react";
+import { Globe, LocateFixed, Lock, Maximize2, Minimize2, Search } from "lucide-react";
 import type { LatLng } from "@/lib/game";
-import { geodesicPoints, PLACES, searchPlaces, type Place } from "@/lib/game";
+import { formatDistance, geodesicPoints, haversineKm, searchPlaces, type Place } from "@/lib/game";
 import { cn } from "@/lib/utils";
 import worldJson from "@/data/world.json";
-import type { FeatureCollection } from "geojson";
+import detailJson from "@/data/detail.json";
+import { describePoint, type RegionCollection } from "@/lib/map/lookup";
+import {
+  BOTH_BOUNDS,
+  cityLayers,
+  detailCountryLayer,
+  graticuleLayer,
+  MAP_COLORS,
+  NL_BOUNDS,
+  provinceLayer,
+  regionLabels,
+  textMarker,
+  toLatLngs,
+  worldLayer,
+  ZA_BOUNDS,
+  ZoomGate,
+} from "@/lib/map/layers";
 import "leaflet/dist/leaflet.css";
 
 /**
- * Bundled Natural Earth 110m countries, rendered by Leaflet as SVG.
- * No WebGL, no tile CDN, no network fetch — the map paints on first try,
- * even offline, on Android Chrome where MapLibre fills came up black.
+ * Leaflet + bundled Natural Earth. SVG paint, no WebGL, no tiles, no keys:
+ *  - 110m world for context, 50m ZA/NL + neighbours, 10m provinces
+ *  - zoom-gated labels (countries → provinces → towns) so phones stay legible
+ *  - tap drops a pin instantly (double-click zoom is off; pinch/wheel/buttons zoom)
+ *  - pin readout tells you what you are standing on
+ *  - reveal draws the geodesic, labels the distance, pulses TRUE, flies the camera
  */
 
-const worldData = worldJson as unknown as FeatureCollection;
-
-const COLORS = {
-  water: "#243044",
-  land: "#8b93a3",
-  za: "#3f9a70",
-  nl: "#d96a32",
-  border: "#10141c",
-  city: "#f4f4f0",
-};
-
-/** Leaflet order: [lat, lng] — GeoJSON is [lng, lat], do not mix them up. */
-const BOTH_BOUNDS: [[number, number], [number, number]] = [
-  [-35.0, 3.2],
-  [53.6, 32.9],
-];
-const ZA_BOUNDS: [[number, number], [number, number]] = [
-  [-34.85, 16.5],
-  [-22.1, 32.9],
-];
-const NL_BOUNDS: [[number, number], [number, number]] = [
-  [50.75, 3.32],
-  [53.55, 7.23],
-];
+type Leaflet = typeof import("leaflet");
+const WORLD = worldJson as unknown as RegionCollection;
+const DETAIL = detailJson as unknown as { countries: RegionCollection; provinces: RegionCollection };
+const DETAIL_CODES = new Set(DETAIL.countries.features.map((f) => f.properties.c));
 
 type PinKind = "you" | "truth" | "opp";
 type MapStatus = "loading" | "ready" | "error";
 
+function buzz(pattern: number | number[]) {
+  if (typeof navigator !== "undefined" && "vibrate" in navigator) {
+    try {
+      navigator.vibrate(pattern);
+    } catch {
+      /* not supported */
+    }
+  }
+}
+
 function makePin(kind: PinKind, label?: string) {
   const el = document.createElement("div");
-  el.className = "atlas-pin";
+  el.className = `atlas-pin atlas-pin-kind-${kind}`;
+  if (kind === "truth") {
+    const ring = document.createElement("span");
+    ring.className = "atlas-pin-ring";
+    el.appendChild(ring);
+  }
   const dot = document.createElement("span");
   dot.className = `atlas-pin-dot atlas-pin-${kind}`;
   el.appendChild(dot);
@@ -53,7 +67,6 @@ function makePin(kind: PinKind, label?: string) {
     tag.textContent = label;
     el.appendChild(tag);
   }
-  el.style.position = "relative";
   return el;
 }
 
@@ -69,6 +82,7 @@ export function GuessMap({
   reducedMotion,
   onLock,
   canLock,
+  urgent,
 }: {
   guess?: LatLng;
   onGuess: (p: LatLng) => void;
@@ -81,13 +95,15 @@ export function GuessMap({
   reducedMotion?: boolean;
   onLock?: () => void;
   canLock?: boolean;
+  urgent?: boolean;
 }) {
   const hostRef = useRef<HTMLDivElement>(null);
   const wrapRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<import("leaflet").Map | null>(null);
+  const LRef = useRef<Leaflet | null>(null);
   const pins = useRef<Record<string, import("leaflet").Marker>>({});
-  const arcRef = useRef<import("leaflet").Polyline | null>(null);
-  const LRef = useRef<typeof import("leaflet") | null>(null);
+  const revealLayers = useRef<import("leaflet").Layer[]>([]);
+  const revealRafs = useRef<number[]>([]);
   const viewportKickRef = useRef<(() => void) | null>(null);
   const guessRef = useRef(guess);
   guessRef.current = guess;
@@ -97,12 +113,25 @@ export function GuessMap({
   disabledRef.current = disabled;
   const reducedRef = useRef(reducedMotion);
   reducedRef.current = reducedMotion;
+  const revealRef = useRef(reveal);
+  revealRef.current = reveal;
   const pendingFocus = useRef<"ZA" | "NL" | "both" | null>("both");
   const [status, setStatus] = useState<MapStatus>("loading");
   const [epoch, setEpoch] = useState(0);
   const [query, setQuery] = useState("");
   const [activeHit, setActiveHit] = useState(0);
-  const hits = useMemo(() => searchPlaces(query, expanded ? 8 : 5), [query, expanded]);
+  const hits = useMemo(() => searchPlaces(query, expanded ? 8 : 6), [query, expanded]);
+  const readout = useMemo(
+    () => (guess ? describePoint(guess, DETAIL.provinces, DETAIL.countries, WORLD) : null),
+    [guess],
+  );
+
+  /** Padding that keeps framed content clear of the toolbar / bottom bar. */
+  function framePad(): { paddingTopLeft: [number, number]; paddingBottomRight: [number, number] } {
+    const top = revealRef.current ? 64 : 108;
+    const bottom = revealRef.current ? 28 : 60;
+    return { paddingTopLeft: [20, top], paddingBottomRight: [20, bottom] };
+  }
 
   useEffect(() => {
     const host = hostRef.current;
@@ -110,91 +139,61 @@ export function GuessMap({
     let cancelled = false;
     let map: import("leaflet").Map | null = null;
     let ro: ResizeObserver | undefined;
-    const watchdog = 0;
     let waitTimer = 0;
-    let L: typeof import("leaflet");
 
     const boot = async () => {
       try {
-        L = await import("leaflet");
+        const L = await import("leaflet");
         LRef.current = L;
-        // Guard from the contract: never init into a zero-height box.
-        // vh-based first layout on Android Chrome can measure ~0.
-        const waitForBox = () =>
-          new Promise<void>((resolve) => {
-            const check = () => {
-              const r = host.getBoundingClientRect();
-              if (r.height >= 80 && r.width >= 80) {
-                resolve();
-                return;
-              }
-              waitTimer = window.setTimeout(check, 60);
-            };
-            check();
-          });
-        await waitForBox();
+
+        // Never init into a zero-height box; vh layouts on Android measure ~0 early.
+        await new Promise<void>((resolve) => {
+          const check = () => {
+            const r = host.getBoundingClientRect();
+            if (r.height >= 80 && r.width >= 80) resolve();
+            else waitTimer = window.setTimeout(check, 60);
+          };
+          check();
+        });
         if (cancelled || !hostRef.current) return;
 
         map = L.map(hostRef.current, {
           center: [10, 14],
           zoom: 2,
-          minZoom: 1,
+          minZoom: 1.5,
           maxZoom: 12,
           zoomControl: false,
           attributionControl: false,
-          zoomSnap: 0.5,
+          doubleClickZoom: false,
+          zoomSnap: 0.25,
           zoomDelta: 0.5,
+          wheelPxPerZoomLevel: 90,
           worldCopyJump: false,
           maxBounds: [[-85, -180], [85, 180]],
-          maxBoundsViscosity: 0.8,
+          maxBoundsViscosity: 0.85,
           preferCanvas: false,
         });
         mapRef.current = map;
 
-        L.geoJSON(worldData, {
-          style: (feature) => {
-            const c = (feature?.properties as { c?: string } | undefined)?.c;
-            if (c === "ZA") return { color: COLORS.border, weight: 0.8, fillColor: COLORS.za, fillOpacity: 1 };
-            if (c === "NL") return { color: COLORS.border, weight: 0.8, fillColor: COLORS.nl, fillOpacity: 1 };
-            return { color: COLORS.border, weight: 0.6, fillColor: COLORS.land, fillOpacity: 1 };
-          },
-        }).addTo(map);
+        // Layers, bottom to top.
+        graticuleLayer(L).addTo(map);
+        worldLayer(L, WORLD, DETAIL_CODES).addTo(map);
+        detailCountryLayer(L, DETAIL.countries).addTo(map);
+        provinceLayer(L, DETAIL.provinces).addTo(map);
+        const gate = new ZoomGate(map);
+        cityLayers(L, map, gate);
+        regionLabels(L, gate, DETAIL.countries, DETAIL.provinces);
+        gate.update();
+        map.on("zoomend", () => gate.update());
 
-        // City dots: circle markers over the polygons.
-        const dotLayer = L.layerGroup().addTo(map);
-        for (const place of PLACES) {
-          if (!place.major) continue;
-          L.circleMarker([place.latitude, place.longitude], {
-            radius: 3.2,
-            color: "#09090b",
-            weight: 1,
-            fillColor: COLORS.city,
-            fillOpacity: 1,
-          })
-            .bindTooltip(place.name, { direction: "top", offset: [0, -6] })
-            .addTo(dotLayer);
-        }
-        map.on("zoomend", () => {
-          const z = map!.getZoom();
-          dotLayer.getLayers().forEach((layer) => {
-            const cm = layer as import("leaflet").CircleMarker;
-            cm.setStyle({ fillOpacity: z >= 3 ? 1 : 0.55, opacity: z >= 3 ? 1 : 0.55 });
-          });
+        L.control.scale({ imperial: false, maxWidth: 120, position: "bottomright" }).addTo(map);
+        L.control.zoom({ position: "bottomright" }).addTo(map);
+
+        map.on("click", (e: import("leaflet").LeafletMouseEvent) => {
+          if (disabledRef.current) return;
+          buzz(12);
+          onGuessRef.current({ latitude: e.latlng.lat, longitude: e.latlng.lng });
         });
-
-        // Country labels as HTML markers — readable even without glyphs/tiles.
-        const mkLabel = (text: string, at: [number, number]) => {
-          const el = document.createElement("span");
-          el.className = "atlas-country-label";
-          el.textContent = text;
-          L.marker(at, {
-            icon: L.divIcon({ className: "atlas-label-icon", html: el, iconSize: [0, 0] }),
-            interactive: false,
-            keyboard: false,
-          }).addTo(map!);
-        };
-        mkLabel("SOUTH AFRICA", [-29.5, 24.8]);
-        mkLabel("NETHERLANDS", [52.2, 5.3]);
 
         const applyPending = () => {
           if (!map) return;
@@ -203,20 +202,14 @@ export function GuessMap({
           const box = map.getSize();
           if (box.x < 80 || box.y < 80) return;
           pendingFocus.current = null;
-          const duration = reducedRef.current ? 0 : next === "both" ? 0 : 750;
-          if (next === "both") map.fitBounds(BOTH_BOUNDS, { padding: [16, 16], animate: false, maxZoom: 2.8 });
-          else if (next === "ZA") map.fitBounds(ZA_BOUNDS, { padding: [28, 28], animate: duration > 0, duration, maxZoom: 5.1 });
-          else map.fitBounds(NL_BOUNDS, { padding: [28, 28], animate: duration > 0, duration, maxZoom: 7.1 });
+          const pad = framePad();
+          if (next === "both") map.fitBounds(BOTH_BOUNDS, { ...pad, animate: false, maxZoom: 3 });
+          else if (next === "ZA") map.fitBounds(ZA_BOUNDS, { ...pad, animate: !reducedRef.current, maxZoom: 5.5 });
+          else map.fitBounds(NL_BOUNDS, { ...pad, animate: !reducedRef.current, maxZoom: 7.5 });
         };
-
-        map.on("click", (e: import("leaflet").LeafletMouseEvent) => {
-          if (disabledRef.current) return;
-          onGuessRef.current({ latitude: e.latlng.lat, longitude: e.latlng.lng });
-        });
 
         const kickSize = () => {
           if (cancelled || !map) return;
-          // Two rAFs = layout + paint settled, then Leaflet recomputes.
           requestAnimationFrame(() => {
             requestAnimationFrame(() => {
               if (cancelled || !map) return;
@@ -225,15 +218,13 @@ export function GuessMap({
             });
           });
         };
+
         map.whenReady(() => {
           if (cancelled) return;
           setStatus("ready");
-          window.clearTimeout(watchdog);
           kickSize();
           if (guessRef.current) placePin("you", guessRef.current);
         });
-
-        L.control.zoom({ position: "bottomright" }).addTo(map);
 
         const wrap = wrapRef.current;
         if (wrap) {
@@ -253,13 +244,15 @@ export function GuessMap({
 
     return () => {
       cancelled = true;
-      window.clearTimeout(watchdog);
       window.clearTimeout(waitTimer);
       if (viewportKickRef.current) {
         window.visualViewport?.removeEventListener("resize", viewportKickRef.current);
         viewportKickRef.current = null;
       }
       ro?.disconnect();
+      for (const raf of revealRafs.current) cancelAnimationFrame(raf);
+      revealRafs.current = [];
+      revealLayers.current = [];
       map?.remove();
       mapRef.current = null;
       pins.current = {};
@@ -281,49 +274,59 @@ export function GuessMap({
           const t = document.createElement("span");
           t.className = "atlas-pin-label";
           t.textContent = label;
-          el.appendChild(t);
-        } else if (label && tag && tag.textContent !== label) {
+          el.querySelector(".atlas-pin")?.appendChild(t);
+        } else if (tag && label && tag.textContent !== label) {
           tag.textContent = label;
+        } else if (tag && !label) {
+          tag.remove();
         }
       }
       return;
     }
-    const el = makePin(kind, label);
     const icon = L.divIcon({
       className: "atlas-pin-icon",
-      html: el,
-      iconSize: [16, 16],
-      iconAnchor: [8, 8],
+      html: makePin(kind, label),
+      iconSize: [40, 40],
+      iconAnchor: [20, 20],
     });
     const marker = L.marker([point.latitude, point.longitude], {
       icon,
       draggable: key === "you" && !disabledRef.current,
       keyboard: false,
-      zIndexOffset: kind === "truth" ? 500 : 0,
+      zIndexOffset: kind === "truth" ? 600 : kind === "you" ? 400 : 200,
     }).addTo(map);
     if (key === "you") {
+      marker.on("dragstart", () => buzz(6));
       marker.on("dragend", () => {
         if (disabledRef.current) return;
         const ll = marker.getLatLng();
+        buzz(12);
         onGuessRef.current({ latitude: ll.lat, longitude: ll.lng });
       });
     }
     pins.current[key] = marker;
   }
 
-  function focusCountry(which: "ZA" | "NL") {
+  function focusCountry(which: "ZA" | "NL" | "both") {
     const map = mapRef.current;
-    const bounds = which === "ZA" ? ZA_BOUNDS : NL_BOUNDS;
     if (!map) {
       pendingFocus.current = which;
       return;
     }
-    map.fitBounds(bounds, {
-      padding: [expanded ? 48 : 28, expanded ? 48 : 28],
-      maxZoom: which === "ZA" ? 5.1 : 7.1,
-      animate: !reducedRef.current,
-      duration: reducedRef.current ? 0 : 750,
-    });
+    const pad = framePad();
+    const bounds = which === "ZA" ? ZA_BOUNDS : which === "NL" ? NL_BOUNDS : BOTH_BOUNDS;
+    const maxZoom = which === "ZA" ? 5.5 : which === "NL" ? 7.5 : 3;
+    if (reducedRef.current) map.fitBounds(bounds, { ...pad, animate: false, maxZoom });
+    else map.flyToBounds(bounds, { ...pad, maxZoom, duration: 0.7 });
+  }
+
+  function focusPin() {
+    const map = mapRef.current;
+    const g = guessRef.current;
+    if (!map || !g) return;
+    const zoom = Math.max(map.getZoom(), 7);
+    if (reducedRef.current) map.setView([g.latitude, g.longitude], zoom, { animate: false });
+    else map.flyTo([g.latitude, g.longitude], zoom, { duration: 0.6 });
   }
 
   function goToPlace(place: Place) {
@@ -331,25 +334,26 @@ export function GuessMap({
     setQuery(place.name);
     setActiveHit(0);
     if (!map) return;
-    map.flyTo([place.latitude, place.longitude], Math.min(place.zoom, 12), {
-      duration: reducedRef.current ? 0 : 800,
-    });
+    const zoom = Math.min(place.zoom, 12);
+    if (reducedRef.current) map.setView([place.latitude, place.longitude], zoom, { animate: false });
+    else map.flyTo([place.latitude, place.longitude], zoom, { duration: 0.8 });
   }
 
+  // Your pin follows the guess; its label explains its state.
   useEffect(() => {
     if (!guess) return;
-    placePin("you", guess, "you", reveal ? "YOU" : undefined);
-  }, [guess, reveal]);
+    placePin("you", guess, "you", reveal ? "YOU" : disabled ? "LOCKED" : undefined);
+  }, [guess, reveal, disabled]);
 
+  // Round reset: clear reveal layers, drop stale pins, frame both countries.
   useEffect(() => {
     if (reveal) return;
     const map = mapRef.current;
-    for (const key of ["truth", "opp", "arc"] as const) {
-      if (key === "arc") {
-        arcRef.current?.remove();
-        arcRef.current = null;
-        continue;
-      }
+    for (const raf of revealRafs.current) cancelAnimationFrame(raf);
+    revealRafs.current = [];
+    for (const layer of revealLayers.current) layer.remove();
+    revealLayers.current = [];
+    for (const key of ["truth", "opp"] as const) {
       pins.current[key]?.remove();
       delete pins.current[key];
     }
@@ -360,7 +364,7 @@ export function GuessMap({
     if (!guess) {
       pendingFocus.current = "both";
       if (map) {
-        map.fitBounds(BOTH_BOUNDS, { padding: [16, 16], animate: false, maxZoom: 2.8 });
+        map.fitBounds(BOTH_BOUNDS, { ...framePad(), animate: false, maxZoom: 3 });
         pendingFocus.current = null;
       }
     }
@@ -380,44 +384,90 @@ export function GuessMap({
     return () => window.clearTimeout(id);
   }, [expanded, reveal]);
 
+  // Reveal choreography.
   useEffect(() => {
     if (!reveal || !truth) return;
     const map = mapRef.current;
-    if (!map) return;
-    void (async () => {
-      const L = LRef.current ?? (await import("leaflet"));
-      LRef.current = L;
-      // YOU first so bounds include it, then truth + opponent.
-      if (guess) placePin("you", guess, "you", "YOU");
-      placePin("truth", truth, "truth", "TRUE");
-      if (opponent) placePin("opp", opponent.guess, "opp", opponent.name);
-      if (guess) {
-        const line = geodesicPoints(guess, truth, 48).map((p) => [p.latitude, p.longitude]) as [number, number][];
-        arcRef.current?.remove();
-        arcRef.current = L.polyline(line, { color: "#d5d8de", weight: 2, opacity: 0.85, interactive: false }).addTo(map);
+    const L = LRef.current;
+    if (!map || !L) return;
+    const reduced = Boolean(reducedMotion);
+
+    if (guess) placePin("you", guess, "you", "YOU");
+    placePin("truth", truth, "truth", "TRUE");
+    if (opponent) placePin("opp", opponent.guess, "opp", opponent.name);
+
+    const animateArc = (
+      pts: [number, number][],
+      opts: import("leaflet").PolylineOptions,
+      durationMs: number,
+      onDone?: () => void,
+    ) => {
+      const line = L.polyline(reduced ? pts : [], { ...opts, interactive: false }).addTo(map);
+      revealLayers.current.push(line);
+      if (reduced || durationMs <= 0) {
+        onDone?.();
+        return;
       }
-      const pts = [truth, guess, opponent?.guess].filter(Boolean) as LatLng[];
-      const b = L.latLngBounds(pts.map((p) => [p.latitude, p.longitude] as [number, number]));
-      requestAnimationFrame(() => {
-        requestAnimationFrame(() => {
-          if (!mapRef.current) return;
-          mapRef.current.invalidateSize({ animate: false, pan: false });
-          mapRef.current.fitBounds(b, {
-            padding: [48, 48],
-            maxZoom: 5.5,
-            animate: !reducedMotion,
-            duration: reducedMotion ? 0 : 900,
-          });
-        });
+      const start = performance.now();
+      const step = (now: number) => {
+        const t = Math.min(1, (now - start) / durationMs);
+        const eased = 1 - Math.pow(1 - t, 3);
+        const n = Math.max(2, Math.round(eased * pts.length));
+        line.setLatLngs(pts.slice(0, n));
+        if (t < 1) revealRafs.current.push(requestAnimationFrame(step));
+        else onDone?.();
+      };
+      revealRafs.current.push(requestAnimationFrame(step));
+    };
+
+    if (guess) {
+      const pts = toLatLngs(geodesicPoints(guess, truth, 64));
+      const mid = pts[Math.floor(pts.length / 2)];
+      animateArc(pts, { color: MAP_COLORS.arc, weight: 2.25, opacity: 0.9 }, 900, () => {
+        if (!mapRef.current) return;
+        const label = textMarker(L, mid, formatDistance(haversineKm(guess, truth)), "atlas-distance-label");
+        label.addTo(map);
+        revealLayers.current.push(label);
       });
-    })();
+    }
+    if (opponent) {
+      const pts = toLatLngs(geodesicPoints(opponent.guess, truth, 64));
+      animateArc(pts, { color: MAP_COLORS.arcOpp, weight: 1.75, opacity: 0.8, dashArray: "6 6" }, 900);
+    }
+
+    const pts = [truth, guess, opponent?.guess].filter(Boolean) as LatLng[];
+    const b = L.latLngBounds(toLatLngs(pts));
+    revealRafs.current.push(
+      requestAnimationFrame(() => {
+        revealRafs.current.push(
+          requestAnimationFrame(() => {
+            const m = mapRef.current;
+            if (!m) return;
+            m.invalidateSize({ animate: false, pan: false });
+            const pad = framePad();
+            if (pts.length === 1) {
+              m.setView([truth.latitude, truth.longitude], 4.5, { animate: !reduced });
+            } else if (reduced) {
+              m.fitBounds(b, { ...pad, maxZoom: 6, animate: false });
+            } else {
+              m.flyToBounds(b, { ...pad, maxZoom: 6, duration: 1.1 });
+            }
+          }),
+        );
+      }),
+    );
+     
   }, [reveal, truth, guess, opponent, reducedMotion]);
+
+  const chip =
+    "inline-flex h-9 items-center gap-1.5 rounded-full border border-border bg-bg/85 px-3 text-[11px] font-medium uppercase tracking-wider text-fg backdrop-blur-sm active:scale-95 transition-transform";
 
   return (
     <div
       ref={wrapRef}
       className={cn(
-        "relative overflow-hidden border border-border bg-[#14141c] shadow-[var(--shadow-panel)] transition-[width,height,inset,border-radius] duration-300",
+        "relative overflow-hidden border border-border bg-[#243044] shadow-[var(--shadow-panel)] transition-[width,height,inset,border-radius,box-shadow] duration-300",
+        urgent && !reveal && "atlas-map-urgent",
         expanded
           ? "fixed inset-3 z-30 rounded-[var(--radius-xl)]"
           : reveal
@@ -426,6 +476,7 @@ export function GuessMap({
       )}
     >
       <div ref={hostRef} className="absolute inset-0 z-0" role="application" aria-label="Guessing map" />
+
       {status !== "ready" && (
         <div className="pointer-events-none absolute inset-0 z-[701] flex items-center justify-center bg-bg-elevated/80">
           {status === "loading" ? (
@@ -445,121 +496,162 @@ export function GuessMap({
           )}
         </div>
       )}
-      <div className="absolute left-3 top-3 z-[800] flex max-w-[calc(100%-4.5rem)] flex-col gap-2">
-        <div className="flex flex-wrap items-center gap-2">
+
+      {/* Toolbar */}
+      <div className="pointer-events-none absolute inset-x-3 top-3 z-[800] flex flex-col gap-2">
+        <div className="flex items-start gap-2">
+          {!reveal ? (
+            <div className="pointer-events-auto relative min-w-0 flex-1">
+              <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted" />
+              <input
+                type="search"
+                value={query}
+                placeholder="Search a city or town"
+                autoComplete="off"
+                autoCorrect="off"
+                spellCheck={false}
+                enterKeyHint="go"
+                aria-label="Search a city in South Africa or the Netherlands"
+                aria-autocomplete="list"
+                className="h-11 w-full rounded-[var(--radius-sm)] border border-border bg-bg/90 pl-9 pr-3 text-sm text-fg outline-none backdrop-blur-sm placeholder:text-subtle"
+                onFocus={() => {
+                  if (!expanded && window.matchMedia("(min-width: 641px)").matches) onToggleExpand();
+                }}
+                onChange={(e) => {
+                  setQuery(e.target.value);
+                  setActiveHit(0);
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === "ArrowDown") {
+                    e.preventDefault();
+                    setActiveHit((i) => Math.min(i + 1, Math.max(hits.length - 1, 0)));
+                  } else if (e.key === "ArrowUp") {
+                    e.preventDefault();
+                    setActiveHit((i) => Math.max(i - 1, 0));
+                  } else if (e.key === "Enter" && hits[activeHit]) {
+                    e.preventDefault();
+                    goToPlace(hits[activeHit]);
+                    (e.target as HTMLInputElement).blur();
+                  } else if (e.key === "Escape") {
+                    setQuery("");
+                    (e.target as HTMLInputElement).blur();
+                  }
+                }}
+              />
+              {query && hits.length > 0 && (
+                <ul
+                  role="listbox"
+                  className="absolute top-[calc(100%+4px)] z-20 max-h-64 w-full overflow-auto rounded-[var(--radius-sm)] border border-border bg-bg py-1 shadow-[var(--shadow-panel)]"
+                >
+                  {hits.map((place, i) => (
+                    <li key={`${place.country}-${place.name}`}>
+                      <button
+                        type="button"
+                        role="option"
+                        aria-selected={i === activeHit}
+                        className={cn(
+                          "flex w-full items-center justify-between gap-3 px-3 py-2 text-left text-sm",
+                          i === activeHit ? "bg-bg-subtle" : "hover:bg-bg-subtle",
+                        )}
+                        onMouseDown={(e) => e.preventDefault()}
+                        onClick={() => goToPlace(place)}
+                      >
+                        <span className="min-w-0">
+                          <span className="block truncate font-medium">{place.name}</span>
+                          <span className="block text-[10px] uppercase tracking-wider text-muted">{place.region}</span>
+                        </span>
+                        <span
+                          className={cn(
+                            "shrink-0 rounded-full px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider",
+                            place.country === "ZA" ? "bg-za text-fg" : "bg-nl text-fg",
+                          )}
+                        >
+                          {place.country === "ZA" ? "SA" : "NL"}
+                        </span>
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+              {query.trim() && hits.length === 0 && (
+                <p className="absolute top-[calc(100%+4px)] z-20 w-full rounded-[var(--radius-sm)] border border-border bg-bg px-3 py-2 text-xs text-muted">
+                  No match in SA or NL
+                </p>
+              )}
+            </div>
+          ) : (
+            <div className="flex-1" />
+          )}
           <button
             type="button"
-            className="h-11 rounded-[var(--radius-sm)] border border-border bg-bg/80 px-3 text-xs font-medium uppercase tracking-wider"
+            className="pointer-events-auto inline-flex size-11 shrink-0 items-center justify-center rounded-[var(--radius-sm)] border border-border bg-bg/85 text-fg backdrop-blur-sm"
             onClick={onToggleExpand}
+            aria-label={expanded ? "Shrink map" : "Expand map"}
+            title={expanded ? "Shrink map" : "Expand map"}
           >
-            {expanded ? "Shrink map" : "Expand map"}
+            {expanded ? <Minimize2 className="size-4" /> : <Maximize2 className="size-4" />}
           </button>
-          {!reveal && (
-            <>
-              <button
-                type="button"
-                className="h-11 min-w-11 rounded-[var(--radius-sm)] bg-za px-3 text-xs font-medium uppercase tracking-wider text-fg"
-                onClick={() => focusCountry("ZA")}
-                aria-label="Focus map on South Africa"
-              >
-                SA
-              </button>
-              <button
-                type="button"
-                className="h-11 min-w-11 rounded-[var(--radius-sm)] bg-nl px-3 text-xs font-medium uppercase tracking-wider text-fg"
-                onClick={() => focusCountry("NL")}
-                aria-label="Focus map on the Netherlands"
-              >
-                NL
-              </button>
-            </>
-          )}
         </div>
         {!reveal && (
-          <div className="relative w-[min(100%,280px)]">
-            <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted" />
-            <input
-              type="search"
-              value={query}
-              placeholder="Search a city"
-              autoComplete="off"
-              autoCorrect="off"
-              spellCheck={false}
-              aria-label="Search a city in South Africa or the Netherlands"
-              aria-autocomplete="list"
-              className="h-11 w-full rounded-[var(--radius-sm)] border border-border bg-bg/90 pl-9 pr-3 text-sm text-fg outline-none placeholder:text-subtle"
-              onFocus={() => {
-                // Desktop keeps the corner-sheet behaviour; phones are
-                // already split-screen, so expanding would shrink the map.
-                if (!expanded && window.matchMedia("(min-width: 641px)").matches) onToggleExpand();
-              }}
-              onChange={(e) => {
-                setQuery(e.target.value);
-                setActiveHit(0);
-              }}
-              onKeyDown={(e) => {
-                if (e.key === "ArrowDown") {
-                  e.preventDefault();
-                  setActiveHit((i) => Math.min(i + 1, Math.max(hits.length - 1, 0)));
-                } else if (e.key === "ArrowUp") {
-                  e.preventDefault();
-                  setActiveHit((i) => Math.max(i - 1, 0));
-                } else if (e.key === "Enter" && hits[activeHit]) {
-                  e.preventDefault();
-                  goToPlace(hits[activeHit]);
-                } else if (e.key === "Escape") {
-                  setQuery("");
-                  (e.target as HTMLInputElement).blur();
-                }
-              }}
-            />
-            {query && hits.length > 0 && (
-              <ul
-                role="listbox"
-                className="absolute top-[calc(100%+4px)] z-20 max-h-64 w-full overflow-auto rounded-[var(--radius-sm)] border border-border bg-bg py-1 shadow-[var(--shadow-panel)]"
-              >
-                {hits.map((place, i) => (
-                  <li key={`${place.country}-${place.name}`}>
-                    <button
-                      type="button"
-                      role="option"
-                      aria-selected={i === activeHit}
-                      className={cn(
-                        "flex w-full flex-col items-start px-3 py-2 text-left text-sm",
-                        i === activeHit ? "bg-bg-subtle" : "hover:bg-bg-subtle",
-                      )}
-                      onMouseDown={(e) => e.preventDefault()}
-                      onClick={() => goToPlace(place)}
-                    >
-                      <span className="font-medium">{place.name}</span>
-                      <span className="text-[10px] uppercase tracking-wider text-muted">
-                        {place.region} · {place.country === "ZA" ? "South Africa" : "Netherlands"}
-                      </span>
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            )}
-            {query.trim() && hits.length === 0 && (
-              <p className="absolute top-[calc(100%+4px)] z-20 w-full rounded-[var(--radius-sm)] border border-border bg-bg px-3 py-2 text-xs text-muted">
-                No match in SA or NL
-              </p>
+          <div className="pointer-events-auto flex flex-wrap items-center gap-1.5">
+            <button type="button" className={cn(chip, "border-transparent bg-za/90")} onClick={() => focusCountry("ZA")} aria-label="Focus map on South Africa">
+              SA
+            </button>
+            <button type="button" className={cn(chip, "border-transparent bg-nl/90")} onClick={() => focusCountry("NL")} aria-label="Focus map on the Netherlands">
+              NL
+            </button>
+            <button type="button" className={chip} onClick={() => focusCountry("both")} aria-label="Show both countries">
+              <Globe className="size-3.5" /> World
+            </button>
+            {guess && (
+              <button type="button" className={chip} onClick={focusPin} aria-label="Zoom to my pin">
+                <LocateFixed className="size-3.5" /> My pin
+              </button>
             )}
           </div>
         )}
       </div>
-      {onLock && !reveal && (
-        <button
-          type="button"
-          disabled={!canLock}
-          onClick={onLock}
-          className={cn(
-            "absolute bottom-3 left-3 z-[800] h-11 rounded-[var(--radius-md)] bg-accent px-4 text-sm font-medium text-accent-fg disabled:opacity-40",
-            canLock && "atlas-lock-ready",
+
+      {/* Bottom bar: lock + readout, clear of the zoom control on the right. */}
+      {!reveal && (onLock || readout) && (
+        <div className="pointer-events-none absolute bottom-3 left-3 right-[3.5rem] z-[800] flex items-center gap-2">
+          {onLock && (
+            <button
+              type="button"
+              disabled={!canLock}
+              onClick={() => {
+                buzz([18, 30, 18]);
+                onLock();
+              }}
+              className={cn(
+                "pointer-events-auto inline-flex h-11 shrink-0 items-center gap-2 rounded-[var(--radius-md)] bg-accent px-4 text-sm font-medium text-accent-fg disabled:opacity-40",
+                canLock && "atlas-lock-ready",
+              )}
+            >
+              <Lock className="size-4" />
+              Lock guess
+            </button>
           )}
-        >
-          Lock guess
-        </button>
+          {readout && (
+            <div
+              className="pointer-events-auto flex h-11 min-w-0 items-center gap-2 rounded-[var(--radius-md)] border border-border bg-bg/85 px-3 backdrop-blur-sm"
+              aria-live="polite"
+            >
+              <span
+                className={cn(
+                  "size-2 shrink-0 rounded-full",
+                  readout.country === "ZA" ? "bg-za" : readout.country === "NL" ? "bg-nl" : "bg-subtle",
+                )}
+              />
+              <span className="min-w-0 truncate text-xs leading-tight">
+                <span className="block truncate font-medium">{readout.primary}</span>
+                {readout.secondary && (
+                  <span className="block truncate text-[10px] uppercase tracking-wider text-muted">{readout.secondary}</span>
+                )}
+              </span>
+            </div>
+          )}
+        </div>
       )}
     </div>
   );

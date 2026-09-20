@@ -1,6 +1,29 @@
+import { useEffect, useState } from "react";
 import { BADGE_COPY, FEEDBACK_COPY, formatDistance, type PlayerState, type RoundScore } from "@/lib/game";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+
+/** Counts a number up from 0 over `ms`, eased; instant when motion is reduced. */
+function useCountUp(target: number, ms: number, reduced: boolean) {
+  const [value, setValue] = useState(reduced ? target : 0);
+  useEffect(() => {
+    if (reduced || !Number.isFinite(target)) {
+      setValue(target);
+      return;
+    }
+    let raf = 0;
+    const start = performance.now();
+    const step = (now: number) => {
+      const t = Math.min(1, (now - start) / ms);
+      const eased = 1 - Math.pow(1 - t, 3);
+      setValue(target * eased);
+      if (t < 1) raf = requestAnimationFrame(step);
+    };
+    raf = requestAnimationFrame(step);
+    return () => cancelAnimationFrame(raf);
+  }, [target, ms, reduced]);
+  return value;
+}
 
 export function RevealOverlay({
   score,
@@ -14,6 +37,7 @@ export function RevealOverlay({
   lastRound,
   expanded,
   timedOut,
+  reducedMotion,
 }: {
   score: RoundScore;
   you: PlayerState;
@@ -26,9 +50,12 @@ export function RevealOverlay({
   lastRound?: boolean;
   expanded?: boolean;
   timedOut?: boolean;
+  reducedMotion?: boolean;
 }) {
   const hasPin = Number.isFinite(score.distanceKm);
   const headline = !hasPin ? "NO PIN — TIME RAN OUT" : timedOut ? `${FEEDBACK_COPY[score.feedback]} · TIMED OUT` : FEEDBACK_COPY[score.feedback];
+  const shownKm = useCountUp(hasPin ? score.distanceKm : 0, 900, Boolean(reducedMotion));
+  const shownRound = useCountUp(score.roundScore, 900, Boolean(reducedMotion));
   return (
     <div
       className={cn(
@@ -52,12 +79,12 @@ export function RevealOverlay({
         </div>
         <div className="mt-3 flex items-end justify-between gap-3">
           <p className="font-display text-3xl tabular tracking-tight sm:text-4xl">
-            {hasPin ? formatDistance(score.distanceKm) : "No pin"}
+            {hasPin ? formatDistance(shownKm) : "No pin"}
           </p>
           <div className="flex gap-4 text-right text-[11px] uppercase tracking-wider text-muted">
             <Stat label="Acc" value={score.accuracyPoints.toLocaleString()} />
             <Stat label="Time" value={timedOut ? "0 · clock" : score.timePoints.toLocaleString()} />
-            <Stat label="Round" value={score.roundScore.toLocaleString()} highlight />
+            <Stat label="Round" value={Math.round(shownRound).toLocaleString()} highlight />
           </div>
         </div>
         {timedOut && hasPin && (

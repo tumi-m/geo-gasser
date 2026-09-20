@@ -559,6 +559,7 @@ export function MatchApp({
           }
           reveal={showingReveal}
           reducedMotion={settings.reducedMotion}
+          urgent={urgent}
           onLock={state.phase === "round_active" && !you?.locked ? lock : undefined}
           canLock={Boolean(you?.guess)}
         />
@@ -576,6 +577,7 @@ export function MatchApp({
           lastRound={lastRound}
           expanded={expanded}
           timedOut={state.phase === "round_expired"}
+          reducedMotion={settings.reducedMotion}
           onContinue={continueRound}
         />
       )}

@@ -64,6 +64,8 @@ html.hc {
     font-family: var(--font-sans);
     line-height: 1.5;
     -webkit-font-smoothing: antialiased;
+    /* Map pans must not turn into pull-to-refresh or rubber-banding. */
+    overscroll-behavior: none;
   }
 
   button:not(:disabled),
@@ -132,7 +134,7 @@ html.hc {
 
 .atlas-pin-label {
   position: absolute;
-  top: -18px;
+  top: -8px;
   left: 50%;
   transform: translateX(-50%);
   font-size: 10px;
@@ -140,6 +142,9 @@ html.hc {
   color: var(--color-fg);
   white-space: nowrap;
   text-transform: uppercase;
+  text-shadow:
+    0 1px 2px rgba(9, 9, 11, 0.95),
+    0 0 6px rgba(9, 9, 11, 0.7);
 }
 
 /* Guess-map heights. One source of truth for the sheet, the reveal card
@@ -164,6 +169,7 @@ div.leaflet-container {
   background: #243044 !important;
   font: inherit;
   outline: none;
+  touch-action: none;
 }
 
 /* Draggable overlay pane is transparent; keep it that way over our water. */
@@ -172,37 +178,156 @@ div.leaflet-container {
 }
 
 .leaflet-container .leaflet-interactive,
-.leaflet-container path {
+.leaflet-container path,
+.leaflet-container .leaflet-overlay-pane svg {
   cursor: crosshair;
 }
 
-/* Leaflet's default divIcon box must not frame our pins. */
+/* Leaflet's default divIcon box must not frame our pins. The icon is a
+   40px hit target so thumbs can grab the 16px dot. */
 .atlas-pin-icon,
 .atlas-label-icon {
   background: transparent;
   border: none;
 }
 
-.atlas-pin-icon > .atlas-pin {
+.atlas-pin-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.atlas-pin {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
   pointer-events: auto;
+}
+
+.atlas-pin-ring {
+  position: absolute;
+  inset: 4px;
+  border-radius: 999px;
+  border: 2px solid var(--color-fg);
+  opacity: 0;
+  animation: atlas-pin-pulse 1.8s var(--ease-out) infinite;
+}
+
+@keyframes atlas-pin-pulse {
+  0% {
+    transform: scale(0.45);
+    opacity: 0.9;
+  }
+  80%,
+  100% {
+    transform: scale(1.4);
+    opacity: 0;
+  }
 }
 
 .leaflet-marker-draggable .atlas-pin-dot {
   cursor: grab;
 }
 
-.atlas-country-label {
-  font-size: 10px;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  white-space: nowrap;
-  color: rgba(244, 244, 240, 0.85);
-  text-shadow:
-    0 1px 2px rgba(9, 9, 11, 0.9),
-    0 0 8px rgba(9, 9, 11, 0.7);
-  transform: translate(-50%, -50%);
+.leaflet-marker-draggable:active .atlas-pin-dot {
+  cursor: grabbing;
+}
+
+/* Map labels. All are HTML markers, so they render without glyph tiles. */
+.atlas-country-label,
+.atlas-province-label,
+.atlas-city-label,
+.atlas-distance-label {
   display: block;
   position: absolute;
+  white-space: nowrap;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  text-shadow:
+    0 1px 2px rgba(9, 9, 11, 0.95),
+    0 0 8px rgba(9, 9, 11, 0.75);
+}
+
+.atlas-country-label {
+  font-size: 10px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: rgba(244, 244, 240, 0.78);
+}
+
+.atlas-country-focus {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.22em;
+  color: rgba(244, 244, 240, 0.95);
+}
+
+.atlas-province-label {
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: rgba(244, 244, 240, 0.82);
+}
+
+.atlas-city-label {
+  font-size: 10px;
+  color: rgba(244, 244, 240, 0.9);
+  transform: translate(6px, -50%);
+}
+
+.atlas-city-major {
+  font-weight: 600;
+  font-size: 11px;
+}
+
+.atlas-distance-label {
+  font-family: var(--font-display);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: var(--color-fg);
+  background: color-mix(in oklab, var(--color-bg) 82%, transparent);
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  padding: 3px 10px;
+  text-shadow: none;
+  animation: atlas-drop 260ms var(--ease-smooth-out);
+}
+
+/* Last-10-seconds pressure on the map frame itself. */
+.atlas-map-urgent {
+  box-shadow:
+    0 0 0 2px var(--color-danger),
+    var(--shadow-panel);
+  animation: atlas-map-urgent 1s ease-in-out infinite;
+}
+
+@keyframes atlas-map-urgent {
+  0%,
+  100% {
+    box-shadow:
+      0 0 0 2px var(--color-danger),
+      var(--shadow-panel);
+  }
+  50% {
+    box-shadow:
+      0 0 0 4px color-mix(in oklab, var(--color-danger) 55%, transparent),
+      var(--shadow-panel);
+  }
+}
+
+/* Scale bar in app chrome. */
+.leaflet-control-scale-line {
+  background: color-mix(in oklab, var(--color-bg) 75%, transparent);
+  border: 1px solid var(--color-border);
+  border-top: none;
+  color: var(--color-muted);
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  text-shadow: none;
 }
 
 .leaflet-tooltip {
