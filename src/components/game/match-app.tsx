@@ -43,6 +43,7 @@ import { Round4Scene } from "./round4-scene";
 import { SceneExplorer } from "./scene-explorer";
 import { SettingsPanel } from "./settings-panel";
 import { QuestionMark, RoundPips, TimerRing } from "./timer-ring";
+import { ScoreTally } from "./score-tally";
 import { FinalResults } from "./final-results";
 import { cn } from "@/lib/utils";
 
@@ -638,17 +639,21 @@ export function MatchApp({
             </div>
           ) : null}
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-start gap-2">
           <div className="hidden rounded-[var(--radius-sm)] border border-border bg-bg/70 px-3 py-2 text-[10px] uppercase tracking-wider text-muted sm:block">
             Drag · WASD
           </div>
-          <div className="flex items-center gap-2">
-            <PlayerAvatar id={you?.avatarId} size={36} />
-            <div className="rounded-[var(--radius-sm)] border border-border bg-bg/70 px-3 py-2 text-right">
-              <div className="text-[10px] uppercase tracking-wider text-subtle">Score</div>
-              <div className="font-display tabular text-lg leading-none">{(you?.totalScore ?? 0).toLocaleString()}</div>
+          {mode === "duel" && state.players.length > 1 && !showingReveal ? (
+            <ScoreTally players={state.players} selfId={you?.id} />
+          ) : mode === "duel" && showingReveal ? null : (
+            <div className="flex items-center gap-2">
+              <PlayerAvatar id={you?.avatarId} size={36} />
+              <div className="rounded-[var(--radius-sm)] border border-border bg-bg/70 px-3 py-2 text-right">
+                <div className="text-[10px] uppercase tracking-wider text-subtle">Score</div>
+                <div className="font-display tabular text-lg leading-none">{(you?.totalScore ?? 0).toLocaleString()}</div>
+              </div>
             </div>
-          </div>
+          )}
           <Button variant="ghost" size="icon" aria-label="Settings" onClick={() => setShowSettings(true)}>
             <SettingsIcon className="size-5" />
           </Button>
