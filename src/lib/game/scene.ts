@@ -19,13 +19,17 @@ export function localScenePath(id: string): string {
   return `/locations/${id}.jpg`;
 }
 
-/** Ordered candidates: local plate first, then whatever the pack stored. */
-export function sceneCandidates(loc: Pick<GeoLocation, "id" | "sceneUrl">): string[] {
+/** Ordered candidates: 360 plate first, then the local still, then stored. */
+export function sceneCandidates(
+  loc: Pick<GeoLocation, "id" | "sceneUrl" | "panoUrl">,
+): string[] {
   const url = loc.sceneUrl;
   if (url.startsWith("/generated/")) return [url];
+  const urls: string[] = [];
+  if (loc.panoUrl) urls.push(loc.panoUrl);
   const local = localScenePath(loc.id);
-  const urls = [local];
-  if (url && url !== local) urls.push(url);
+  if (!urls.includes(local)) urls.push(local);
+  if (url && url !== local && !urls.includes(url)) urls.push(url);
   return urls;
 }
 

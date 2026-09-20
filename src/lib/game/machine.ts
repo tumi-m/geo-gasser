@@ -478,6 +478,9 @@ export function sceneInfoFor(state: MatchState): SceneInfo | undefined {
     fallbacks: candidates.slice(1),
     provider: loc.panoramaProvider,
     heading: loc.heading,
+    pitch: loc.pitch,
+    isPano: Boolean(loc.panoUrl),
+    imageId: loc.panoramaId,
   };
 }
 

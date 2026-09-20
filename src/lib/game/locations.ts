@@ -34,10 +34,13 @@ export const LAUNCH_LOCATIONS: GeoLocation[] = [
     longitude: 18.409883,
     difficulty: 2,
     tags: ["mountain", "coastal", "iconic", "landscape"],
-    attribution: "Photo: DanieVDM, Wikimedia Commons, CC BY-SA. Wikipedia: Table Mountain.",
+    attribution:
+      "360° plate: Greg Zaal and Rico Cilliers, Poly Haven, CC0. Still: DanieVDM, Wikimedia Commons, CC BY-SA. Wikipedia: Table Mountain.",
     sourceUrl: "https://en.wikipedia.org/wiki/Table_Mountain",
     sceneKind: "wikimedia",
     panoramaProvider: "wikimedia",
+    panoUrl: "/locations/pano_table_mountain.jpg",
+    pitch: -20,
   }),
   loc({
     id: "loc_02",
@@ -458,10 +461,13 @@ export const LAUNCH_LOCATIONS: GeoLocation[] = [
     longitude: 4.28,
     difficulty: 3,
     tags: ["coastal", "beach", "infrastructure"],
-    attribution: "Photo: Michielverbeek, Wikimedia Commons, CC BY-SA 4.0. Wikipedia: Scheveningen Pier.",
+    attribution:
+      "360° plate: Wvdp, Wikimedia Commons, CC0. Still: Michielverbeek, Wikimedia Commons, CC BY-SA 4.0. Wikipedia: Scheveningen Pier.",
     sourceUrl: "https://en.wikipedia.org/wiki/Scheveningen_Pier",
     sceneKind: "wikimedia",
     panoramaProvider: "wikimedia",
+    panoUrl: "/locations/pano_scheveningen.jpg",
+    pitch: -20,
   }),
   loc({
     id: "loc_30",

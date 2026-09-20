@@ -37,6 +37,7 @@ import {
 } from "@/lib/game";
 import { isWireMessage, sanitizeName, useMatchRoom, useP2PRoom, type WireMessage } from "@/lib/multiplayer";
 import { GuessMap } from "./guess-map";
+import { PanoViewer } from "./pano-viewer";
 import { PlayerAvatar } from "./player-avatar";
 import { RevealOverlay } from "./reveal-sequence";
 import { Round4Scene } from "./round4-scene";
@@ -72,6 +73,7 @@ export function MatchApp({
   const [expanded, setExpanded] = useState(false);
   const [copied, setCopied] = useState(false);
   const [shake, setShake] = useState(false);
+  const [panoFailed, setPanoFailed] = useState(false);
   const statsRecorded = useRef(false);
   const lastUrgentRef = useRef<number | null>(null);
   const name = sanitizeName(settings.displayName);
@@ -393,6 +395,9 @@ export function MatchApp({
   const loc = activeLocation(state);
   const scene = activeScene(state);
   const env = activeEnvironment(state);
+  useEffect(() => {
+    setPanoFailed(false);
+  }, [scene?.src]);
   const reconstructionRound = isRound4(state);
   const live3d = ROUND4_3D_LIVE && reconstructionRound && Boolean(env);
   const you =
@@ -729,6 +734,19 @@ export function MatchApp({
       <div className="absolute inset-0">
         {live3d && env ? (
           <Round4Scene key={env.id} env={env} reducedMotion={settings.reducedMotion} />
+        ) : scene?.isPano && !panoFailed ? (
+          <PanoViewer
+            key={scene.src}
+            src={scene.src}
+            imageId={scene.imageId}
+            provider={scene.provider}
+            heading={scene.heading}
+            pitch={scene.pitch}
+            alt="Location to identify"
+            reducedMotion={settings.reducedMotion}
+            interactive={canGuess && !showSettings && !showingReveal}
+            onError={() => setPanoFailed(true)}
+          />
         ) : scene ? (
           <SceneExplorer
             key={scene.src}

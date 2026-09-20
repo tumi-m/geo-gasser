@@ -55,6 +55,8 @@ export interface GeoLocation {
   heading?: number;
   pitch?: number;
   fov?: number;
+  /** Equirectangular 360 plate. When set, the scene opens in the panorama viewer. */
+  panoUrl?: string;
   attribution: string;
   sourceUrl?: string;
   verifiedAt: string;
@@ -128,6 +130,11 @@ export interface SceneInfo {
   fallbacks: string[];
   provider?: string;
   heading?: number;
+  pitch?: number;
+  /** True for equirectangular 360 plates; the client opens the pano viewer. */
+  isPano?: boolean;
+  /** Mapillary image id when the plate is resolved through the Mapillary API. */
+  imageId?: string;
 }
 
 export interface MatchState {

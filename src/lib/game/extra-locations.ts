@@ -245,10 +245,13 @@ export const EXTRA_LOCATIONS: GeoLocation[] = [
     longitude: 4.8853,
     difficulty: 2,
     tags: ["museum", "architecture", "urban", "iconic"],
-    attribution: "Cinematic reconstruction inspired by Rijksmuseum. Not a live street photograph. Coordinates from Wikipedia.",
+    attribution:
+      "360° plate: Greg Zaal, Poly Haven, CC0. Coordinates from Wikipedia: Rijksmuseum.",
     sourceUrl: "https://en.wikipedia.org/wiki/Rijksmuseum",
     sceneKind: "wikimedia",
-      }),
+    panoUrl: "/locations/pano_museumplein.jpg",
+    pitch: -20,
+  }),
   loc({
     id: "loc_57",
     country: "NL",
