@@ -29,7 +29,7 @@ export function RevealOverlay({
     <div
       className={cn(
         "pointer-events-none absolute inset-x-0 z-40 flex flex-col items-center px-3",
-        expanded ? "top-[max(4.75rem,env(safe-area-inset-top))]" : "bottom-[calc(46vh+0.75rem)]",
+        expanded ? "top-[max(4.75rem,env(safe-area-inset-top))]" : "bottom-[calc(var(--atlas-map-reveal-h)+1.5rem)]",
       )}
     >
       <div className="atlas-rise pointer-events-auto w-full max-w-lg rounded-[var(--radius-lg)] border border-border bg-bg/92 p-3 shadow-[var(--shadow-panel)] sm:p-4">

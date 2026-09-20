@@ -250,7 +250,8 @@ export function MatchApp({
       setRemaining(ROUND_DURATION_SEC);
     }
     if (state.phase === "round_active") {
-      setExpanded(false);
+      // Phones use the split layout; collapsing there would shrink the map.
+      if (!window.matchMedia("(max-width: 640px)").matches) setExpanded(false);
       audio.play("start");
     }
     if (state.phase === "round_reveal" || state.phase === "round_expired") {
@@ -579,7 +580,7 @@ export function MatchApp({
       )}
 
       {loc && isRound4(state) && env && !showingReveal && (
-        <p className="pointer-events-none absolute right-3 bottom-[calc(32vh+0.75rem)] z-10 max-w-[46%] text-right text-[10px] leading-snug text-subtle max-sm:max-w-[70%]">
+        <p className="pointer-events-none absolute right-3 bottom-[calc(var(--atlas-map-h)+0.75rem)] z-10 max-w-[46%] text-right text-[10px] leading-snug text-subtle max-sm:max-w-[70%]">
           {env.disclosure}
         </p>
       )}

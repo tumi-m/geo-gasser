@@ -142,6 +142,22 @@ html.hc {
   text-transform: uppercase;
 }
 
+/* Guess-map heights. One source of truth for the sheet, the reveal card
+   offset, and the round-4 caption. Phones get at least half the screen
+   (and never under 360px) so the map is the primary guessing surface.
+   dvh tracks the collapsing URL bar; vh does not. */
+:root {
+  --atlas-map-h: 32vh;
+  --atlas-map-reveal-h: min(46vh, 440px);
+}
+
+@media (max-width: 640px) {
+  :root {
+    --atlas-map-h: max(360px, 55dvh);
+    --atlas-map-reveal-h: max(360px, 52dvh);
+  }
+}
+
 /* Leaflet host: water colour doubles as the "did it paint?" signal. */
 .leaflet-container,
 div.leaflet-container {

@@ -274,9 +274,17 @@ export function GuessMap({
     const existing = pins.current[key];
     if (existing) {
       existing.setLatLng([point.latitude, point.longitude]);
-      if (label) {
-        const tag = existing.getElement()?.querySelector(".atlas-pin-label");
-        if (tag) tag.textContent = label;
+      const el = existing.getElement();
+      if (el) {
+        const tag = el.querySelector(".atlas-pin-label");
+        if (label && !tag) {
+          const t = document.createElement("span");
+          t.className = "atlas-pin-label";
+          t.textContent = label;
+          el.appendChild(t);
+        } else if (label && tag && tag.textContent !== label) {
+          tag.textContent = label;
+        }
       }
       return;
     }
@@ -413,8 +421,8 @@ export function GuessMap({
         expanded
           ? "fixed inset-3 z-30 rounded-[var(--radius-xl)]"
           : reveal
-            ? "absolute inset-x-3 bottom-3 z-30 h-[min(46vh,440px)] rounded-[var(--radius-xl)]"
-            : "absolute right-3 bottom-3 z-20 h-[32vh] w-[min(100%-1.5rem,400px)] rounded-[var(--radius-lg)] max-sm:inset-x-3 max-sm:w-auto",
+            ? "absolute inset-x-3 bottom-3 z-30 h-[var(--atlas-map-reveal-h)] rounded-[var(--radius-xl)] max-sm:bottom-[max(0.75rem,env(safe-area-inset-bottom))]"
+            : "absolute right-3 bottom-3 z-20 h-[var(--atlas-map-h)] w-[min(100%-1.5rem,400px)] rounded-[var(--radius-lg)] max-sm:inset-x-3 max-sm:w-auto max-sm:bottom-[max(0.75rem,env(safe-area-inset-bottom))]",
       )}
     >
       <div ref={hostRef} className="absolute inset-0 z-0" role="application" aria-label="Guessing map" />
@@ -481,7 +489,9 @@ export function GuessMap({
               aria-autocomplete="list"
               className="h-11 w-full rounded-[var(--radius-sm)] border border-border bg-bg/90 pl-9 pr-3 text-sm text-fg outline-none placeholder:text-subtle"
               onFocus={() => {
-                if (!expanded) onToggleExpand();
+                // Desktop keeps the corner-sheet behaviour; phones are
+                // already split-screen, so expanding would shrink the map.
+                if (!expanded && window.matchMedia("(min-width: 641px)").matches) onToggleExpand();
               }}
               onChange={(e) => {
                 setQuery(e.target.value);
@@ -544,7 +554,7 @@ export function GuessMap({
           disabled={!canLock}
           onClick={onLock}
           className={cn(
-            "absolute bottom-3 left-3 z-[800] h-11 rounded-[var(--radius-md)] bg-accent px-4 text-sm font-medium text-accent-fg disabled:hidden sm:disabled:inline-flex sm:disabled:opacity-40",
+            "absolute bottom-3 left-3 z-[800] h-11 rounded-[var(--radius-md)] bg-accent px-4 text-sm font-medium text-accent-fg disabled:opacity-40",
             canLock && "atlas-lock-ready",
           )}
         >
