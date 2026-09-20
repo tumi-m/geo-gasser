@@ -48,22 +48,6 @@ export function SettingsPanel({
         </Button>
       </div>
       <div className="flex flex-col gap-5">
-        <label className="flex flex-col gap-2 text-sm text-muted">
-          Display name
-          <Input
-            value={settings.displayName}
-            maxLength={24}
-            autoComplete="nickname"
-            onChange={(e) => onChange({ ...settings, displayName: e.target.value })}
-          />
-        </label>
-        <div className="flex flex-col gap-2 text-sm text-muted">
-          Avatar
-          <AvatarPicker
-            value={sanitizeAvatar(settings.avatarId)}
-            onChange={(avatarId: AvatarId) => onChange({ ...settings, avatarId })}
-          />
-        </div>
         <div className="flex flex-col gap-2 text-sm text-muted">
           Atlas
           <AtlasPicker value={settings.atlas} onChange={(atlas) => onChange({ ...settings, atlas })} />
@@ -93,7 +77,7 @@ export function SettingsPanel({
           <div className="grid grid-cols-3 gap-2">
             <Choice
               label="Standard"
-              hint="3 photo + reconstruction"
+              hint="4 rounds · 40"
               active={settings.matchLength === "standard"}
               onClick={() => onChange({ ...settings, matchLength: "standard" as MatchLengthId })}
             />
@@ -110,7 +94,23 @@ export function SettingsPanel({
               onClick={() => onChange({ ...settings, matchLength: "full" as MatchLengthId })}
             />
           </div>
-          {onQuit ? <p className="text-[11px] text-subtle">Timer and length apply on the next match.</p> : null}
+          {onQuit ? <p className="text-xs text-subtle">Timer and length apply on the next match.</p> : null}
+        </div>
+        <label className="flex flex-col gap-2 text-sm text-muted">
+          Display name
+          <Input
+            value={settings.displayName}
+            maxLength={24}
+            autoComplete="nickname"
+            onChange={(e) => onChange({ ...settings, displayName: e.target.value })}
+          />
+        </label>
+        <div className="flex flex-col gap-2 text-sm text-muted">
+          Avatar
+          <AvatarPicker
+            value={sanitizeAvatar(settings.avatarId)}
+            onChange={(avatarId: AvatarId) => onChange({ ...settings, avatarId })}
+          />
         </div>
         {slider("master", "Master")}
         {slider("music", "Music")}
