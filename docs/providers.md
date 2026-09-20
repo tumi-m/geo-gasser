@@ -2,7 +2,7 @@
 
 | Surface | Provider | Notes |
 | --- | --- | --- |
-| Guessing map | MapLibre GL JS + Esri Canvas Dark Gray / Reference rasters | OpenFreeMap vector tiles return empty bodies (blank map). CARTO watermarks without a key. Esri paints without a key. Attribution on the map control. |
+| Guessing map | MapLibre GL JS + bundled Natural Earth 110m countries (`/maps/world.json`) | No live tile dependency. External raster/vector hosts (OpenFreeMap, Esri, OSM) were blank on mobile/Vercel. |
 | Location plates | Wikimedia Commons / Wikipedia page images | CC BY-SA. Per-location credit in the location record and after reveal. |
 | Generated plates | Imagine cinematic reconstructions | Used only where a live Commons file was unavailable. Labelled as reconstructions. |
 | Earth globe | NASA Blue Marble (`land_shallow_topo_2048`) | Public domain. |

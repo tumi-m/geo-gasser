@@ -19,4 +19,4 @@ There is no dedicated multiplayer game server in this deployment target. Ranked 
 
 ## Imagery
 
-Rounds 1–3 use Wikimedia/Wikipedia-sourced plates (or clearly labelled reconstructions when a Commons file was unavailable). The guessing map is MapLibre + Esri dark-gray raster tiles. No Google Maps scraping. No map-provider API keys.
+Rounds 1–3 use Wikimedia/Wikipedia-sourced plates (or clearly labelled reconstructions when a Commons file was unavailable). The guessing map is MapLibre with a bundled Natural Earth country layer so it never depends on live tiles. No Google Maps scraping. No map-provider API keys.

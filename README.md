@@ -26,7 +26,7 @@ See `docs/architecture.md`. Game rules live in `src/lib/game` so they can be tes
 
 ## Providers
 
-See `docs/providers.md`. Map tiles: Esri Canvas Dark Gray (no API key). Location plates: Wikimedia Commons (CC BY-SA) or labelled reconstructions. Round 4 is generated/procedural — never presented as a live photograph.
+See `docs/providers.md`. Map: bundled Natural Earth countries (no live tile API). Location plates: Wikimedia Commons (CC BY-SA) or labelled reconstructions. Round 4 is generated/procedural — never presented as a live photograph.
 
 ## Testing
 

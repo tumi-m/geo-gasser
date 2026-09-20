@@ -563,19 +563,6 @@ export function MatchApp({
         />
       )}
 
-      {state.phase === "round_active" && !you?.locked && !expanded && (
-        <div className="absolute bottom-[calc(32vh+1rem)] left-3 z-20 max-sm:right-3">
-          <Button
-            size="lg"
-            disabled={!you?.guess}
-            onClick={lock}
-            className={cn("max-sm:w-full", you?.guess && "atlas-lock-ready")}
-          >
-            {urgent && you?.guess ? `Lock guess · ${Math.ceil(remaining)}s` : "Lock guess"}
-          </Button>
-        </div>
-      )}
-
       {showingReveal && you?.roundScore && loc && (
         <RevealOverlay
           score={you.roundScore}

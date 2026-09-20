@@ -2,34 +2,64 @@ import { useEffect, useRef, useState } from "react";
 import type { LatLng } from "@/lib/game";
 import { geodesicPoints } from "@/lib/game";
 import { cn } from "@/lib/utils";
-import type { GeoJSONSource, Map as MapLibreMap, Marker } from "maplibre-gl";
+import type { GeoJSONSource, Map as MapLibreMap, Marker, StyleSpecification } from "maplibre-gl";
 
 /**
- * OpenFreeMap vector tiles currently return HTTP 200 with an empty body
- * (`x-ofm-debug: empty tile`, cached for years) so the map looks blank.
- * CARTO dark_all watermarks without a key. Esri Canvas Dark Gray raster
- * always paints land and labels, no API key.
+ * Bundled Natural Earth 110m countries. External raster/vector tile hosts
+ * fail in the live preview and often on mobile (blank black canvas).
  */
+const CITIES = {
+  type: "FeatureCollection" as const,
+  features: [
+    { type: "Feature", properties: { n: "Cape Town" }, geometry: { type: "Point", coordinates: [18.42, -33.93] } },
+    { type: "Feature", properties: { n: "Johannesburg" }, geometry: { type: "Point", coordinates: [28.05, -26.2] } },
+    { type: "Feature", properties: { n: "Durban" }, geometry: { type: "Point", coordinates: [31.05, -29.86] } },
+    { type: "Feature", properties: { n: "Pretoria" }, geometry: { type: "Point", coordinates: [28.19, -25.75] } },
+    { type: "Feature", properties: { n: "Gqeberha" }, geometry: { type: "Point", coordinates: [25.6, -33.96] } },
+    { type: "Feature", properties: { n: "Amsterdam" }, geometry: { type: "Point", coordinates: [4.89, 52.37] } },
+    { type: "Feature", properties: { n: "Rotterdam" }, geometry: { type: "Point", coordinates: [4.48, 51.92] } },
+    { type: "Feature", properties: { n: "The Hague" }, geometry: { type: "Point", coordinates: [4.3, 52.08] } },
+    { type: "Feature", properties: { n: "Utrecht" }, geometry: { type: "Point", coordinates: [5.12, 52.09] } },
+    { type: "Feature", properties: { n: "Eindhoven" }, geometry: { type: "Point", coordinates: [5.47, 51.44] } },
+    { type: "Feature", properties: { n: "Groningen" }, geometry: { type: "Point", coordinates: [6.57, 53.22] } },
+  ],
+};
+
 const MAP_STYLE = {
   version: 8 as const,
   sources: {
-    esri: {
-      type: "raster" as const,
-      tiles: ["/api/tiles/esri/{z}/{y}/{x}"],
-      tileSize: 256,
-      maxzoom: 16,
-      attribution: "Tiles © Esri",
-    },
-    labels: {
-      type: "raster" as const,
-      tiles: ["/api/tiles/labels/{z}/{y}/{x}"],
-      tileSize: 256,
-      maxzoom: 16,
-    },
+    world: { type: "geojson" as const, data: "/maps/world.json", attribution: "Natural Earth" },
+    cities: { type: "geojson" as const, data: CITIES },
   },
   layers: [
-    { id: "esri", type: "raster" as const, source: "esri" },
-    { id: "labels", type: "raster" as const, source: "labels" },
+    { id: "bg", type: "background" as const, paint: { "background-color": "#14141c" } },
+    {
+      id: "land",
+      type: "fill" as const,
+      source: "world",
+      paint: {
+        "fill-color": ["match", ["get", "c"], "ZA", "#3d8f6e", "NL", "#c45c2a", "#2c2c34"],
+        "fill-opacity": 1,
+      },
+    },
+    {
+      id: "borders",
+      type: "line" as const,
+      source: "world",
+      paint: { "line-color": "#5a5a66", "line-width": 0.7 },
+    },
+    {
+      id: "cities",
+      type: "circle" as const,
+      source: "cities",
+      minzoom: 3.2,
+      paint: {
+        "circle-radius": 3.2,
+        "circle-color": "#f4f4f0",
+        "circle-stroke-width": 1,
+        "circle-stroke-color": "#09090b",
+      },
+    },
   ],
 };
 
@@ -114,6 +144,7 @@ export function GuessMap({
     let map: MapLibreMap | undefined;
     let ro: ResizeObserver | undefined;
     let watchdog = 0;
+    const onViewport = () => map?.resize();
 
     (async () => {
       try {
@@ -122,17 +153,16 @@ export function GuessMap({
         if (cancelled || !hostRef.current) return;
         map = new ml.Map({
           container: hostRef.current,
-          style: MAP_STYLE,
+          style: MAP_STYLE as StyleSpecification,
           center: [14, 10],
           zoom: 2.05,
           minZoom: 1,
-          maxZoom: 18,
-          attributionControl: { compact: true },
+          maxZoom: 10,
+          attributionControl: false,
           dragRotate: false,
           pitchWithRotate: false,
           renderWorldCopies: false,
         });
-        map.addControl(new ml.NavigationControl({ showCompass: false }), "top-right");
         mapRef.current = map;
 
         const applyPending = () => {
@@ -157,16 +187,24 @@ export function GuessMap({
           setStatus("ready");
           window.clearTimeout(watchdog);
         };
-        map.on("load", () => {
-          markReady();
-          applyPending();
-          if (guessRef.current) void placePin("you", guessRef.current, "you");
+        map.addControl(new ml.NavigationControl({ showCompass: false }), "top-right");
+        const kickResize = () => {
           map?.resize();
           applyPending();
+        };
+        requestAnimationFrame(() => {
+          markReady();
+          kickResize();
+        });
+        map.on("load", () => {
+          markReady();
+          kickResize();
+          if (guessRef.current) void placePin("you", guessRef.current, "you");
+          [50, 200, 500, 1000].forEach((ms) => window.setTimeout(kickResize, ms));
         });
         map.on("idle", markReady);
         map.on("sourcedata", (e) => {
-          if (e.sourceId === "esri" && e.isSourceLoaded) markReady();
+          if (e.sourceId === "world" && e.isSourceLoaded) markReady();
         });
         watchdog = window.setTimeout(() => {
           if (cancelled || !map) return;
@@ -181,6 +219,7 @@ export function GuessMap({
           });
           ro.observe(wrap);
         }
+        window.visualViewport?.addEventListener("resize", onViewport);
       } catch {
         if (!cancelled) setStatus("error");
       }
@@ -189,6 +228,7 @@ export function GuessMap({
     return () => {
       cancelled = true;
       window.clearTimeout(watchdog);
+      window.visualViewport?.removeEventListener("resize", onViewport);
       ro?.disconnect();
       map?.remove();
       mapRef.current = null;
@@ -317,7 +357,7 @@ export function GuessMap({
     <div
       ref={wrapRef}
       className={cn(
-        "overflow-hidden border border-border bg-bg-elevated shadow-[var(--shadow-panel)] transition-[width,height,inset,border-radius] duration-300",
+        "relative overflow-hidden border border-border bg-[#14141c] shadow-[var(--shadow-panel)] transition-[width,height,inset,border-radius] duration-300",
         expanded
           ? "fixed inset-3 z-30 rounded-[var(--radius-xl)]"
           : reveal
@@ -325,7 +365,7 @@ export function GuessMap({
             : "absolute right-3 bottom-3 z-20 h-[32vh] w-[min(100%-1.5rem,400px)] rounded-[var(--radius-lg)] max-sm:inset-x-3 max-sm:w-auto",
       )}
     >
-      <div ref={hostRef} className="h-full w-full" role="application" aria-label="Guessing map" />
+      <div ref={hostRef} className="absolute inset-0" role="application" aria-label="Guessing map" />
       {status !== "ready" && (
         <div className="pointer-events-none absolute inset-0 z-[5] flex items-center justify-center bg-bg-elevated/80">
           {status === "loading" ? (
@@ -374,13 +414,13 @@ export function GuessMap({
           </>
         )}
       </div>
-      {onLock && !reveal && expanded && (
+      {onLock && !reveal && (
         <button
           type="button"
           disabled={!canLock}
           onClick={onLock}
           className={cn(
-            "absolute bottom-3 left-3 z-10 h-11 rounded-[var(--radius-md)] bg-accent px-4 text-sm font-medium text-accent-fg disabled:opacity-40",
+            "absolute bottom-3 left-3 z-10 h-11 rounded-[var(--radius-md)] bg-accent px-4 text-sm font-medium text-accent-fg disabled:hidden sm:disabled:inline-flex sm:disabled:opacity-40",
             canLock && "atlas-lock-ready",
           )}
         >
