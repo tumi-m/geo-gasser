@@ -32,6 +32,11 @@ describe("detectCountry", () => {
     assert.equal(detectCountry({ latitude: 52.3731, longitude: 4.8928 }), "NL");
     assert.equal(detectCountry({ latitude: 40.4, longitude: -3.7 }), null);
   });
+  it("does not treat Lesotho or Eswatini interiors as South Africa", () => {
+    assert.equal(detectCountry({ latitude: -29.31, longitude: 27.72 }), null); // Lesotho interior
+    assert.equal(detectCountry({ latitude: -26.5, longitude: 31.5 }), null); // Eswatini interior
+    assert.equal(detectCountry({ latitude: -26.2, longitude: 28.05 }), "ZA"); // Johannesburg
+  });
 });
 
 describe("geodesicPoints", () => {

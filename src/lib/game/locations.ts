@@ -223,8 +223,8 @@ export const LAUNCH_LOCATIONS: GeoLocation[] = [
     title: "Drakensberg Amphitheatre",
     city: "Royal Natal",
     region: "KwaZulu-Natal",
-    latitude: -28.689,
-    longitude: 28.945,
+    latitude: -28.7519,
+    longitude: 28.8958,
     difficulty: 2,
     tags: ["mountain", "landscape", "rural"],
     attribution: "Photo: Wikimedia Commons contributors, CC BY-SA. Wikipedia: Royal Natal National Park.",
@@ -327,7 +327,7 @@ export const LAUNCH_LOCATIONS: GeoLocation[] = [
   loc({
     id: "loc_21",
     country: "NL",
-    title: "Grote Markt",
+    title: "Grote Markt, Groningen",
     city: "Groningen",
     region: "Groningen",
     latitude: 53.2186,
@@ -373,7 +373,7 @@ export const LAUNCH_LOCATIONS: GeoLocation[] = [
   loc({
     id: "loc_24",
     country: "NL",
-    title: "Grote Markt",
+    title: "Grote Markt, Haarlem",
     city: "Haarlem",
     region: "North Holland",
     latitude: 52.381367,

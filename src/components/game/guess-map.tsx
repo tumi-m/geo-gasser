@@ -35,6 +35,19 @@ const RASTER_FALLBACK = {
   ],
 };
 
+const BOTH_COUNTRIES: [[number, number], [number, number]] = [
+  [3.2, -35.0],
+  [32.9, 53.6],
+];
+const ZA_BOUNDS: [[number, number], [number, number]] = [
+  [16.5, -34.85],
+  [32.9, -22.1],
+];
+const NL_BOUNDS: [[number, number], [number, number]] = [
+  [3.32, 50.75],
+  [7.23, 53.55],
+];
+
 type MarkerHandle = { el: HTMLDivElement; marker: Marker };
 type PinKind = "you" | "truth" | "opp";
 
@@ -83,6 +96,8 @@ export function GuessMap({
   onGuessRef.current = onGuess;
   const disabledRef = useRef(disabled);
   disabledRef.current = disabled;
+  const reducedRef = useRef(reducedMotion);
+  reducedRef.current = reducedMotion;
 
   useEffect(() => {
     const host = hostRef.current;
@@ -99,30 +114,44 @@ export function GuessMap({
       map = new ml.Map({
         container: hostRef.current,
         style: OPENFREEMAP_DARK,
-        center: [20, 5],
-        zoom: 2.15,
+        center: [14, 10],
+        zoom: 2.05,
         attributionControl: { compact: true },
         dragRotate: false,
         pitchWithRotate: false,
       });
       map.addControl(new ml.NavigationControl({ showCompass: false }), "top-right");
       mapRef.current = map;
+      let framed = false;
+      const frameBoth = () => {
+        if (!map || framed || cancelled) return;
+        const canvas = map.getCanvas();
+        if (canvas.clientWidth < 40 || canvas.clientHeight < 40) return;
+        framed = true;
+        map.fitBounds(BOTH_COUNTRIES, { padding: 16, duration: 0, maxZoom: 2.8 });
+      };
       map.on("click", (e) => {
         if (disabledRef.current) return;
         onGuessRef.current({ latitude: e.lngLat.lat, longitude: e.lngLat.lng });
       });
       map.on("load", () => {
+        frameBoth();
         if (guessRef.current) void placePin("you", guessRef.current, "you");
         map?.resize();
+        frameBoth();
       });
       map.on("error", () => {
         if (usedFallback || cancelled || !map || map.isStyleLoaded()) return;
         usedFallback = true;
+        framed = false;
         map.setStyle(RASTER_FALLBACK);
       });
       const wrap = wrapRef.current;
       if (wrap) {
-        ro = new ResizeObserver(() => map?.resize());
+        ro = new ResizeObserver(() => {
+          map?.resize();
+          frameBoth();
+        });
         ro.observe(wrap);
       }
     })();
@@ -159,6 +188,17 @@ export function GuessMap({
     pins.current[key] = { el, marker };
   }
 
+  function focusCountry(which: "ZA" | "NL") {
+    const map = mapRef.current;
+    if (!map) return;
+    const bounds = which === "ZA" ? ZA_BOUNDS : NL_BOUNDS;
+    map.fitBounds(bounds, {
+      padding: expanded ? 48 : 28,
+      maxZoom: which === "ZA" ? 5.1 : 7.1,
+      duration: reducedRef.current ? 0 : 750,
+    });
+  }
+
   useEffect(() => {
     if (!guess) return;
     void placePin("you", guess, "you", reveal ? "YOU" : undefined);
@@ -176,6 +216,9 @@ export function GuessMap({
     if (!guess && pins.current.you) {
       pins.current.you.marker.remove();
       delete pins.current.you;
+    }
+    if (!guess && map) {
+      map.fitBounds(BOTH_COUNTRIES, { padding: 16, duration: 0, maxZoom: 2.8 });
     }
   }, [reveal, guess]);
 
@@ -242,13 +285,35 @@ export function GuessMap({
       )}
     >
       <div ref={hostRef} className="h-full w-full" role="application" aria-label="Guessing map" />
-      <button
-        type="button"
-        className="absolute left-3 top-3 z-10 h-11 rounded-[var(--radius-sm)] border border-border bg-bg/80 px-3 text-xs font-medium uppercase tracking-wider"
-        onClick={onToggleExpand}
-      >
-        {expanded ? "Shrink map" : "Expand map"}
-      </button>
+      <div className="absolute left-3 top-3 z-10 flex flex-wrap items-center gap-2">
+        <button
+          type="button"
+          className="h-11 rounded-[var(--radius-sm)] border border-border bg-bg/80 px-3 text-xs font-medium uppercase tracking-wider"
+          onClick={onToggleExpand}
+        >
+          {expanded ? "Shrink map" : "Expand map"}
+        </button>
+        {!reveal && (
+          <>
+            <button
+              type="button"
+              className="h-11 min-w-11 rounded-[var(--radius-sm)] bg-za px-3 text-xs font-medium uppercase tracking-wider text-fg"
+              onClick={() => focusCountry("ZA")}
+              aria-label="Focus map on South Africa"
+            >
+              SA
+            </button>
+            <button
+              type="button"
+              className="h-11 min-w-11 rounded-[var(--radius-sm)] bg-nl px-3 text-xs font-medium uppercase tracking-wider text-fg"
+              onClick={() => focusCountry("NL")}
+              aria-label="Focus map on the Netherlands"
+            >
+              NL
+            </button>
+          </>
+        )}
+      </div>
       {onLock && !reveal && expanded && (
         <button
           type="button"

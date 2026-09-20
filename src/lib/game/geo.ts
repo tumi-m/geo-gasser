@@ -80,9 +80,25 @@ export const COUNTRY_BOUNDS: Record<
   NL: { south: 50.75, north: 53.56, west: 3.31, east: 7.23 },
 };
 
+/** Neighbours that sit inside the ZA AABB so they must not count as South Africa. */
+const ZA_EXCLAVES = [
+  { south: -30.55, north: -28.82, west: 27.55, east: 29.3 }, // Lesotho interior (Amphitheatre stays ZA)
+  { south: -27.2, north: -25.82, west: 31.02, east: 32.05 }, // Eswatini interior
+] as const;
+
 export function isInsideCountry(p: LatLng, country: CountryCode): boolean {
   const b = COUNTRY_BOUNDS[country];
-  return p.latitude >= b.south && p.latitude <= b.north && p.longitude >= b.west && p.longitude <= b.east;
+  if (p.latitude < b.south || p.latitude > b.north || p.longitude < b.west || p.longitude > b.east) {
+    return false;
+  }
+  if (country === "ZA") {
+    for (const hole of ZA_EXCLAVES) {
+      if (p.latitude >= hole.south && p.latitude <= hole.north && p.longitude >= hole.west && p.longitude <= hole.east) {
+        return false;
+      }
+    }
+  }
+  return true;
 }
 
 export function detectCountry(p: LatLng): CountryCode | null {

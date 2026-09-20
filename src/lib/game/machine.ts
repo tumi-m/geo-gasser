@@ -1,6 +1,6 @@
 import { environmentById } from "./environments.ts";
 import { getLocation } from "./locations.ts";
-import { rankPlayers, scoreGuess } from "./scoring.ts";
+import { NO_GUESS_KM, rankPlayers, scoreGuess } from "./scoring.ts";
 import { currentLocationId, planMatch, REAL_ROUNDS } from "./selection.ts";
 import { remainingSeconds, ROUND_DURATION_SEC } from "./timer.ts";
 import type { LatLng, MatchPhase, MatchState, PlayerState, PublicSnapshot, RoundRecord } from "./types.ts";
@@ -60,26 +60,26 @@ function applyScores(state: MatchState, now: number): MatchState {
   if (!loc || !state.truth || !state.roundStartedAtMs) return state;
   const isRound4 = state.roundIndex >= REAL_ROUNDS;
   const players = state.players.map((p) => {
-    const remaining = p.locked && p.lockedAtMs
-      ? remainingSeconds(state.roundStartedAtMs!, p.lockedAtMs)
-      : 0;
-    const responseMs = p.locked && p.lockedAtMs
-      ? Math.max(0, p.lockedAtMs - state.roundStartedAtMs!)
-      : ROUND_DURATION_SEC * 1000;
+    const remaining =
+      p.locked && p.lockedAtMs ? remainingSeconds(state.roundStartedAtMs!, p.lockedAtMs) : 0;
+    const responseMs =
+      p.locked && p.lockedAtMs
+        ? Math.max(0, p.lockedAtMs - state.roundStartedAtMs!)
+        : ROUND_DURATION_SEC * 1000;
     const roundScore = scoreGuess({
       truth: state.truth!,
-      guess: p.locked ? p.guess ?? null : null,
+      guess: p.guess ?? null,
       country: loc.country,
       remainingSec: remaining,
       responseMs,
       isRound4,
     });
-    const distance = Number.isFinite(roundScore.distanceKm) ? roundScore.distanceKm : 0;
+    const distance = Number.isFinite(roundScore.distanceKm) ? roundScore.distanceKm : NO_GUESS_KM;
     return {
       ...p,
       roundScore,
       totalScore: p.totalScore + roundScore.roundScore,
-      totalDistanceKm: p.totalDistanceKm + (Number.isFinite(roundScore.distanceKm) ? distance : 0),
+      totalDistanceKm: p.totalDistanceKm + distance,
       totalResponseMs: p.totalResponseMs + responseMs,
     };
   });

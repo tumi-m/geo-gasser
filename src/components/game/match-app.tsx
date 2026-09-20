@@ -56,6 +56,7 @@ export function MatchApp({
   const [copied, setCopied] = useState(false);
   const [shake, setShake] = useState(false);
   const [sceneReady, setSceneReady] = useState(false);
+  const [sceneFailed, setSceneFailed] = useState(false);
   const statsRecorded = useRef(false);
   const lastUrgentRef = useRef<number | null>(null);
   const name = sanitizeName(settings.displayName);
@@ -208,7 +209,12 @@ export function MatchApp({
   }, [state.phase, settings.reducedMotion, finishIntro]);
 
   useEffect(() => {
-    if (state.phase !== "round_active" || !state.roundStartedAtMs) return;
+    const ticking =
+      Boolean(state.roundStartedAtMs) &&
+      (state.phase === "round_active" ||
+        state.phase === "waiting_for_opponent" ||
+        state.phase === "player_locked");
+    if (!ticking) return;
     let raf = 0;
     const loop = () => {
       const clock = mode === "solo" ? performance.now() : Date.now();
@@ -238,7 +244,10 @@ export function MatchApp({
   }, [remaining, state.phase]);
 
   useEffect(() => {
-    if (state.phase === "round_intro") setSceneReady(false);
+    if (state.phase === "round_intro") {
+      setSceneReady(false);
+      setSceneFailed(false);
+    }
     if (state.phase === "round_active") {
       setExpanded(false);
       audio.play("start");
@@ -422,7 +431,6 @@ export function MatchApp({
 
   const roundLabel = `Round ${state.roundIndex + 1} of 4${isRound4(state) ? " · reconstruction" : ""}`;
   const urgent = remaining <= 10 && state.phase === "round_active" && !you?.locked;
-  const fallbackPlate = loc?.country === "NL" ? "/generated/home-amsterdam.jpg" : "/generated/home-cape.jpg";
 
   return (
     <main className={cn("relative min-h-dvh overflow-hidden bg-bg", shake && "atlas-shake")}>
@@ -459,13 +467,31 @@ export function MatchApp({
             <img
               key={loc?.sceneUrl}
               src={loc?.sceneUrl}
-              alt="Location scene"
-              className={cn("h-full w-full object-cover transition-opacity duration-500", sceneReady ? "opacity-100" : "opacity-0")}
-              onLoad={() => setSceneReady(true)}
-              onError={(e) => {
-                e.currentTarget.src = fallbackPlate;
+              alt="Location to identify"
+              className={cn(
+                "h-full w-full object-cover transition-opacity duration-500",
+                sceneReady && !sceneFailed ? "opacity-100" : "opacity-0",
+              )}
+              onLoad={() => {
+                setSceneFailed(false);
+                setSceneReady(true);
+              }}
+              onError={() => {
+                setSceneFailed(true);
+                setSceneReady(true);
+              }}
+              ref={(el) => {
+                if (el?.complete && el.naturalWidth > 0) {
+                  setSceneFailed(false);
+                  setSceneReady(true);
+                }
               }}
             />
+            {sceneFailed && (
+              <div className="absolute inset-0 flex items-center justify-center bg-bg-subtle">
+                <p className="px-6 text-center text-sm text-muted">Scene unavailable — use the map</p>
+              </div>
+            )}
           </>
         )}
         <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(9,9,11,0.45)_0%,transparent_26%,transparent_62%,rgba(9,9,11,0.5)_100%)]" />
@@ -501,7 +527,8 @@ export function MatchApp({
 
       {you?.locked && !showingReveal && (
         <p className="relative z-20 mx-4 mt-1 w-fit rounded-full border border-border bg-bg/80 px-3 py-1 text-xs uppercase tracking-wider">
-          Guess locked{mode === "duel" ? " · waiting" : ""}
+          Guess locked
+          {mode === "duel" ? ` · ${Math.ceil(remaining)}s left` : ""}
         </p>
       )}
 

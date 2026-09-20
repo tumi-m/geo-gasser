@@ -10,12 +10,12 @@ const STEPS = [
   {
     n: "02",
     title: "Drop a pin",
-    body: "Tap the map. You have 45 seconds. Drag the pin to fine-tune.",
+    body: "Tap the map. Use SA or NL to jump to a country. You have 45 seconds. Drag the pin to fine-tune.",
   },
   {
     n: "03",
     title: "Lock in",
-    body: "Unsubmitted pins score zero when time runs out. Enter also locks.",
+    body: "If time runs out with a pin down, you keep accuracy points but lose the speed bonus. Enter also locks.",
   },
   {
     n: "04",

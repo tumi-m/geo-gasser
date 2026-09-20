@@ -5,6 +5,8 @@ import type { BadgeId, CountryCode, FeedbackId, LatLng, RoundScore } from "./typ
 export const ACCURACY_MAX = 10_000;
 export const ROUND_MAX = 20_000;
 export const ROUND4_MULTIPLIER = 1.25;
+/** Half WGS84 circumference. A missed pin must lose distance tie-breaks to any real guess. */
+export const NO_GUESS_KM = 20_015.0868;
 
 /** Country-aware exponential decay scales (km). Calibrated by simulation. */
 export const COUNTRY_SCALE_KM: Record<CountryCode, number> = {

@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { accuracyPoints, COUNTRY_SCALE_KM, rankPlayers, scoreGuess } from "./scoring.ts";
+import { accuracyPoints, COUNTRY_SCALE_KM, NO_GUESS_KM, rankPlayers, scoreGuess } from "./scoring.ts";
 
 describe("accuracyPoints", () => {
   it("is 10000 on a perfect pin", () => {
@@ -81,5 +81,12 @@ describe("rankPlayers", () => {
       { id: "b", totalScore: 10, totalDistanceKm: 1, totalResponseMs: 1000 },
     ]);
     assert.deepEqual(winnerIds.sort(), ["a", "b"]);
+  });
+  it("ranks a missed pin behind any finite guess at equal score", () => {
+    const { winnerIds } = rankPlayers([
+      { id: "miss", totalScore: 0, totalDistanceKm: NO_GUESS_KM, totalResponseMs: 45_000 },
+      { id: "far", totalScore: 0, totalDistanceKm: 1_200, totalResponseMs: 45_000 },
+    ]);
+    assert.deepEqual(winnerIds, ["far"]);
   });
 });

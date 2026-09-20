@@ -33,7 +33,7 @@ describe("match state machine", () => {
     assert.ok((s.players[0].roundScore?.roundScore ?? 0) > 0);
   });
 
-  it("scores an unlocked timeout as zero", () => {
+  it("scores a placed pin on timeout with no speed bonus", () => {
     let s = reduce(createLobbyState(), {
       type: "CREATE_SOLO",
       playerId: "p1",
@@ -42,14 +42,33 @@ describe("match state machine", () => {
       now,
     });
     s = reduce(s, { type: "INTRO_DONE", now });
+    const truth = s.truth!;
     s = reduce(s, {
       type: "PLACE_PIN",
       playerId: "p1",
-      guess: { latitude: 52.37, longitude: 4.89 },
+      guess: truth,
       now: now + 1000,
     });
     s = reduce(s, { type: "TIMEOUT", now: now + 45_000 });
+    const score = s.players[0].roundScore;
+    assert.ok(score);
+    assert.equal(score.timePoints, 0);
+    assert.ok(score.accuracyPoints > 9000);
+    assert.equal(score.roundScore, score.accuracyPoints);
+  });
+
+  it("scores a missed pin as zero and a long miss distance", () => {
+    let s = reduce(createLobbyState(), {
+      type: "CREATE_SOLO",
+      playerId: "p1",
+      name: "Ada",
+      seed: 11,
+      now,
+    });
+    s = reduce(s, { type: "INTRO_DONE", now });
+    s = reduce(s, { type: "TIMEOUT", now: now + 45_000 });
     assert.equal(s.players[0].roundScore?.roundScore, 0);
+    assert.ok((s.players[0].totalDistanceKm ?? 0) > 10_000);
   });
 
   it("requires two players before a duel can start", () => {
@@ -84,7 +103,7 @@ describe("match state machine", () => {
     s = reduce(s, {
       type: "PLACE_PIN",
       playerId: "h",
-      guess: { latitude: 52.3, longitude: 4.8 },
+      guess: s.truth!,
       now: now + 4,
     });
     s = reduce(s, { type: "LOCK", playerId: "h", now: now + 5 });
@@ -92,5 +111,9 @@ describe("match state machine", () => {
     const pub = toPublicSnapshot(s);
     assert.equal(pub.players.find((p) => p.id === "h")?.guess, undefined);
     assert.equal(pub.truth, undefined);
+    s = reduce(s, { type: "TIMEOUT", now: now + 45_000 });
+    assert.equal(s.phase, "round_expired");
+    assert.ok((s.players.find((p) => p.id === "h")?.roundScore?.roundScore ?? 0) > 0);
+    assert.equal(s.players.find((p) => p.id === "g")?.roundScore?.roundScore, 0);
   });
 });

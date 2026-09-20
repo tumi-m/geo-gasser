@@ -13,17 +13,21 @@ export function Round4Scene({ env, reducedMotion }: { env: EnvironmentSpec; redu
     let ro: ResizeObserver | undefined;
     let dragging = false;
     let lx = 0;
+    let ly = 0;
     let yaw = 0;
     let pitch = 0.18;
     const onDown = (e: PointerEvent) => {
       dragging = true;
       lx = e.clientX;
+      ly = e.clientY;
       host.setPointerCapture(e.pointerId);
     };
     const onMove = (e: PointerEvent) => {
       if (!dragging) return;
       yaw -= (e.clientX - lx) * 0.005;
+      pitch = Math.max(-0.15, Math.min(0.55, pitch + (e.clientY - ly) * 0.004));
       lx = e.clientX;
+      ly = e.clientY;
     };
     const onUp = () => {
       dragging = false;
@@ -141,10 +145,10 @@ export function Round4Scene({ env, reducedMotion }: { env: EnvironmentSpec; redu
         const dt = Math.min(0.1, (now - last) / 1000);
         last = now;
         if (!reducedMotion && !dragging) yaw += dt * 0.08;
-        pitch = Math.max(0.05, Math.min(0.45, pitch));
+        const p = Math.max(0.05, Math.min(0.5, pitch));
         camera.position.x = Math.sin(yaw) * 10;
         camera.position.z = Math.cos(yaw) * 10;
-        camera.position.y = 3.2 + pitch * 2;
+        camera.position.y = 3.2 + p * 2;
         camera.lookAt(0, 1.4, 0);
         renderer!.render(scene, camera);
         frame = requestAnimationFrame(loop);
