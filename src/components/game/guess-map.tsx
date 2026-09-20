@@ -3,46 +3,54 @@ import { Search } from "lucide-react";
 import type { LatLng } from "@/lib/game";
 import { cityDots, geodesicPoints, searchPlaces, type Place } from "@/lib/game";
 import { cn } from "@/lib/utils";
+import worldData from "@/data/world.json";
 import type { GeoJSONSource, Map as MapLibreMap, Marker, StyleSpecification } from "maplibre-gl";
 
 /**
- * Bundled Natural Earth 110m countries. External raster/vector tile hosts
- * fail in the live preview and often on mobile (blank black canvas).
+ * World polygons are inlined so the map never depends on /maps/world.json
+ * (that fetch 404s/fails on some mobile Vercel sessions, leaving a black canvas).
  */
 const CITIES = cityDots();
+const WORLD = worldData;
+
+const WATER = "#243044";
+const LAND = "#8b93a3";
+const ZA_FILL = "#3f9a70";
+const NL_FILL = "#d96a32";
 
 const MAP_STYLE = {
   version: 8 as const,
   sources: {
-    world: { type: "geojson" as const, data: "/maps/world.json", attribution: "Natural Earth" },
+    world: { type: "geojson" as const, data: WORLD, attribution: "Natural Earth" },
     cities: { type: "geojson" as const, data: CITIES },
   },
   layers: [
-    { id: "bg", type: "background" as const, paint: { "background-color": "#14141c" } },
+    { id: "bg", type: "background" as const, paint: { "background-color": WATER } },
     {
       id: "land",
       type: "fill" as const,
       source: "world",
       paint: {
-        "fill-color": ["match", ["get", "c"], "ZA", "#3d8f6e", "NL", "#c45c2a", "#2c2c34"],
+        "fill-color": ["match", ["get", "c"], "ZA", ZA_FILL, "NL", NL_FILL, LAND],
         "fill-opacity": 1,
+        "fill-antialias": true,
       },
     },
     {
       id: "borders",
       type: "line" as const,
       source: "world",
-      paint: { "line-color": "#5a5a66", "line-width": 0.7 },
+      paint: { "line-color": "#1b1c22", "line-width": 1.15, "line-opacity": 0.85 },
     },
     {
       id: "cities",
       type: "circle" as const,
       source: "cities",
-      minzoom: 3.2,
+      minzoom: 1.5,
       paint: {
-        "circle-radius": 3.2,
+        "circle-radius": ["interpolate", ["linear"], ["zoom"], 2, 2.2, 6, 4, 9, 5],
         "circle-color": "#f4f4f0",
-        "circle-stroke-width": 1,
+        "circle-stroke-width": 1.2,
         "circle-stroke-color": "#09090b",
       },
     },
@@ -350,16 +358,25 @@ export function GuessMap({
       const b = new ml.LngLatBounds();
       const pts = [truth, guess, opponent?.guess].filter(Boolean) as LatLng[];
       for (const p of pts) b.extend([p.longitude, p.latitude]);
-      map.resize();
-      map.fitBounds(b, { padding: 72, maxZoom: 8, duration: reducedMotion ? 0 : 900 });
+      const frame = () => {
+        map.resize();
+        map.fitBounds(b, {
+          padding: expanded ? 72 : 36,
+          maxZoom: pts.length > 1 ? 6.2 : 5.4,
+          duration: reducedMotion ? 0 : 700,
+        });
+      };
+      frame();
+      window.setTimeout(frame, 80);
+      window.setTimeout(frame, 360);
     })();
-  }, [reveal, truth, guess, opponent, reducedMotion]);
+  }, [reveal, truth, guess, opponent, reducedMotion, expanded]);
 
   return (
     <div
       ref={wrapRef}
       className={cn(
-        "relative overflow-hidden border border-border bg-[#14141c] shadow-[var(--shadow-panel)] transition-[width,height,inset,border-radius] duration-300",
+        "relative overflow-hidden border border-border bg-[#243044] shadow-[var(--shadow-panel)] transition-[width,height,inset,border-radius] duration-300",
         expanded
           ? "fixed inset-3 z-30 rounded-[var(--radius-xl)]"
           : reveal
