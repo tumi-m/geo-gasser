@@ -79,6 +79,8 @@ export type FeedbackId =
 export interface PlayerState {
   id: string;
   name: string;
+  avatarId: string;
+  kind: "human" | "bot";
   connected: boolean;
   totalScore: number;
   totalDistanceKm: number;
@@ -116,6 +118,8 @@ export interface MatchState {
   roundHistory: RoundRecord[];
   winnerIds: string[];
   lastEventAt: number;
+  duelKind?: "online" | "bot" | "hotseat";
+  activeSeatId?: string;
 }
 
 export interface PublicSnapshot {

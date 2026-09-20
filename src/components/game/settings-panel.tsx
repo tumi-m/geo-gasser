@@ -1,7 +1,9 @@
 import { LogOut, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import type { GameSettings } from "@/lib/game";
+import type { AvatarId, GameSettings } from "@/lib/game";
+import { sanitizeAvatar } from "@/lib/game";
+import { AvatarPicker } from "./player-avatar";
 import { cn } from "@/lib/utils";
 import { ModalShell } from "./modal-shell";
 
@@ -54,6 +56,13 @@ export function SettingsPanel({
             onChange={(e) => onChange({ ...settings, displayName: e.target.value })}
           />
         </label>
+        <div className="flex flex-col gap-2 text-sm text-muted">
+          Avatar
+          <AvatarPicker
+            value={sanitizeAvatar(settings.avatarId)}
+            onChange={(avatarId: AvatarId) => onChange({ ...settings, avatarId })}
+          />
+        </div>
         {slider("master", "Master")}
         {slider("music", "Music")}
         {slider("sfx", "Effects")}

@@ -1,6 +1,7 @@
 import { useNavigate } from "@tanstack/react-router";
 import { Button } from "@/components/ui/button";
 import { formatDistance, getLocation, type MatchState } from "@/lib/game";
+import { PlayerAvatar } from "./player-avatar";
 import { cn } from "@/lib/utils";
 
 export function FinalResults({
@@ -44,14 +45,18 @@ export function FinalResults({
     <main className="min-h-dvh bg-bg px-5 py-10 pt-[max(2.5rem,env(safe-area-inset-top))] pb-[max(2.5rem,env(safe-area-inset-bottom))]">
       <div className="mx-auto flex min-h-[calc(100dvh-5rem)] max-w-lg flex-col justify-center">
         <p className="atlas-rise text-xs uppercase tracking-[0.28em] text-muted">{kicker}</p>
-        <h1 className="atlas-rise atlas-rise-1 font-display mt-2 text-5xl leading-none tracking-tight sm:text-6xl">
-          {headline}
-        </h1>
+        <div className="atlas-rise atlas-rise-1 mt-3 flex items-center gap-3">
+          <PlayerAvatar id={you?.avatarId} size={56} />
+          <h1 className="font-display text-5xl leading-none tracking-tight sm:text-6xl">
+            {headline}
+          </h1>
+        </div>
         <p className="atlas-rise atlas-rise-2 mt-6 font-display text-6xl tabular">
           {(you?.totalScore ?? 0).toLocaleString()}
         </p>
         {other && (
-          <p className="mt-2 text-muted">
+          <p className="mt-2 flex items-center gap-2 text-muted">
+            <PlayerAvatar id={other.avatarId} size={28} />
             {other.name} {other.totalScore.toLocaleString()}
             {delta > 0 && !shared ? ` · ${delta.toLocaleString()} point margin` : ""}
           </p>

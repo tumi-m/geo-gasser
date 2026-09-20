@@ -9,14 +9,22 @@ export const TOTAL_ROUNDS = 4;
 
 export type MatchEvent =
   | { type: "HYDRATE"; state: MatchState }
-  | { type: "CREATE_SOLO"; playerId: string; name: string; seed: number; now: number }
-  | { type: "CREATE_DUEL"; playerId: string; name: string; roomCode: string; seed: number; now: number }
-  | { type: "PLAYER_JOIN"; playerId: string; name: string; now: number }
+  | { type: "CREATE_SOLO"; playerId: string; name: string; avatarId?: string; seed: number; now: number }
+  | { type: "CREATE_DUEL"; playerId: string; name: string; avatarId?: string; roomCode: string; seed: number; now: number }
+  | {
+      type: "CREATE_LOCAL_DUEL";
+      seats: Array<{ id: string; name: string; avatarId?: string; kind?: "human" | "bot" }>;
+      hotseat?: boolean;
+      seed: number;
+      now: number;
+    }
+  | { type: "PLAYER_JOIN"; playerId: string; name: string; avatarId?: string; kind?: "human" | "bot"; now: number }
   | { type: "PLAYER_LEAVE"; playerId: string; now: number }
   | { type: "START_MATCH"; now: number }
   | { type: "INTRO_DONE"; now: number }
   | { type: "PLACE_PIN"; playerId: string; guess: LatLng; now: number }
   | { type: "LOCK"; playerId: string; now: number }
+  | { type: "HANDOFF_DONE"; now: number }
   | { type: "TIMEOUT"; now: number }
   | { type: "REVEAL_DONE"; now: number }
   | { type: "CONTINUE"; now: number }
@@ -27,10 +35,17 @@ function bump(state: MatchState, phase: MatchPhase, now: number): MatchState {
   return { ...state, phase, seq: state.seq + 1, lastEventAt: now };
 }
 
-function emptyPlayer(id: string, name: string): PlayerState {
+function emptyPlayer(
+  id: string,
+  name: string,
+  avatarId = "atlas",
+  kind: "human" | "bot" = "human",
+): PlayerState {
   return {
     id,
     name,
+    avatarId,
+    kind,
     connected: true,
     totalScore: 0,
     totalDistanceKm: 0,
@@ -128,12 +143,14 @@ const ROUND4_DEFAULT = "remix_cape";
 
 function beginRound(state: MatchState, now: number): MatchState {
   const loc = locationForRound(state, state.roundIndex);
+  const firstHuman = state.players.find((p) => p.kind !== "bot") ?? state.players[0];
   return {
     ...bump(state, "round_intro", now),
     revealed: false,
     truth: loc ? { latitude: loc.latitude, longitude: loc.longitude } : undefined,
     roundStartedAtMs: undefined,
     players: resetRoundFlags(state.players),
+    activeSeatId: state.duelKind === "hotseat" ? firstHuman?.id : undefined,
   };
 }
 
@@ -155,7 +172,7 @@ export function reduce(state: MatchState, event: MatchEvent): MatchState {
           roundIndex: 0,
           locationIds: plan.locationIds,
           envId: plan.envId,
-          players: [emptyPlayer(event.playerId, event.name)],
+          players: [emptyPlayer(event.playerId, event.name, event.avatarId)],
           revealed: false,
           roundHistory: [],
           winnerIds: [],
@@ -176,12 +193,37 @@ export function reduce(state: MatchState, event: MatchEvent): MatchState {
         roundIndex: 0,
         locationIds: plan.locationIds,
         envId: plan.envId,
-        players: [emptyPlayer(event.playerId, event.name)],
+        players: [emptyPlayer(event.playerId, event.name, event.avatarId)],
         revealed: false,
         roundHistory: [],
         winnerIds: [],
         lastEventAt: event.now,
+        duelKind: "online",
       };
+    }
+    case "CREATE_LOCAL_DUEL": {
+      const plan = planMatch(event.seed);
+      const seats = event.seats.slice(0, 2).map((s) =>
+        emptyPlayer(s.id, s.name, s.avatarId, s.kind ?? "human"),
+      );
+      if (seats.length < 2) return state;
+      const next: MatchState = {
+        seq: 1,
+        phase: "waiting_for_players",
+        mode: "duel",
+        hostId: seats[0].id,
+        seed: event.seed,
+        roundIndex: 0,
+        locationIds: plan.locationIds,
+        envId: plan.envId,
+        players: seats,
+        revealed: false,
+        roundHistory: [],
+        winnerIds: [],
+        lastEventAt: event.now,
+        duelKind: event.hotseat ? "hotseat" : "bot",
+      };
+      return beginRound(next, event.now);
     }
     case "PLAYER_JOIN": {
       if (state.phase !== "waiting_for_players" && state.phase !== "rematch_pending") return state;
@@ -190,7 +232,15 @@ export function reduce(state: MatchState, event: MatchEvent): MatchState {
           ...state,
           seq: state.seq + 1,
           players: state.players.map((p) =>
-            p.id === event.playerId ? { ...p, name: event.name, connected: true } : p,
+            p.id === event.playerId
+              ? {
+                  ...p,
+                  name: event.name,
+                  avatarId: event.avatarId ?? p.avatarId,
+                  kind: event.kind ?? p.kind,
+                  connected: true,
+                }
+              : p,
           ),
           lastEventAt: event.now,
         };
@@ -199,7 +249,10 @@ export function reduce(state: MatchState, event: MatchEvent): MatchState {
       return {
         ...state,
         seq: state.seq + 1,
-        players: [...state.players, emptyPlayer(event.playerId, event.name)],
+        players: [
+          ...state.players,
+          emptyPlayer(event.playerId, event.name, event.avatarId, event.kind ?? "human"),
+        ],
         lastEventAt: event.now,
       };
     }
@@ -226,7 +279,7 @@ export function reduce(state: MatchState, event: MatchEvent): MatchState {
       if (state.mode === "duel" && state.players.length < 2) return state;
       if (!["waiting_for_players", "match_starting", "rematch_pending"].includes(state.phase)) return state;
       return beginRound({ ...state, roundIndex: 0, roundHistory: [], winnerIds: [], players: state.players.map((p) => ({
-        ...emptyPlayer(p.id, p.name),
+        ...emptyPlayer(p.id, p.name, p.avatarId, p.kind),
       })) }, event.now);
     }
     case "INTRO_DONE": {
@@ -237,7 +290,16 @@ export function reduce(state: MatchState, event: MatchEvent): MatchState {
       };
     }
     case "PLACE_PIN": {
-      if (state.phase !== "round_active" && state.phase !== "player_locked") return state;
+      if (
+        state.phase !== "round_active" &&
+        state.phase !== "player_locked" &&
+        state.phase !== "waiting_for_opponent"
+      ) {
+        return state;
+      }
+      if (state.duelKind === "hotseat" && state.activeSeatId && event.playerId !== state.activeSeatId) {
+        return state;
+      }
       return {
         ...state,
         seq: state.seq + 1,
@@ -248,9 +310,18 @@ export function reduce(state: MatchState, event: MatchEvent): MatchState {
       };
     }
     case "LOCK": {
-      if (state.phase !== "round_active" && state.phase !== "player_locked") return state;
+      if (
+        state.phase !== "round_active" &&
+        state.phase !== "player_locked" &&
+        state.phase !== "waiting_for_opponent"
+      ) {
+        return state;
+      }
       const me = state.players.find((p) => p.id === event.playerId);
       if (!me || me.locked || !me.guess) return state;
+      if (state.duelKind === "hotseat" && state.activeSeatId && event.playerId !== state.activeSeatId) {
+        return state;
+      }
       const players = state.players.map((p) =>
         p.id === event.playerId ? { ...p, locked: true, lockedAtMs: event.now } : p,
       );
@@ -258,7 +329,21 @@ export function reduce(state: MatchState, event: MatchEvent): MatchState {
       if (allLocked) {
         return applyScores({ ...state, players, phase: "round_reveal" }, event.now);
       }
+      if (state.duelKind === "hotseat") {
+        const next = players.find((p) => p.connected && !p.locked);
+        return {
+          ...bump({ ...state, players }, "waiting_for_opponent", event.now),
+          activeSeatId: next?.id,
+        };
+      }
       return bump({ ...state, players }, state.mode === "duel" ? "waiting_for_opponent" : "player_locked", event.now);
+    }
+    case "HANDOFF_DONE": {
+      if (state.phase !== "waiting_for_opponent" || state.duelKind !== "hotseat") return state;
+      return {
+        ...bump(state, "round_active", event.now),
+        roundStartedAtMs: event.now,
+      };
     }
     case "TIMEOUT": {
       if (state.phase !== "round_active" && state.phase !== "waiting_for_opponent" && state.phase !== "player_locked") {
@@ -286,7 +371,7 @@ export function reduce(state: MatchState, event: MatchEvent): MatchState {
     }
     case "REMATCH": {
       const plan = planMatch(event.seed);
-      const players = state.players.map((p) => emptyPlayer(p.id, p.name));
+      const players = state.players.map((p) => emptyPlayer(p.id, p.name, p.avatarId, p.kind));
       const next: MatchState = {
         ...state,
         seq: state.seq + 1,

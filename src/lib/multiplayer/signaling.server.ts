@@ -13,13 +13,22 @@ const signalSchema = z.object({
   }),
 });
 const leaveSchema = z.object({ op: z.literal("leave"), room: ID, peer: ID });
-const postSchema = z.discriminatedUnion("op", [signalSchema, leaveSchema]);
+const mailSchema = z.object({
+  op: z.literal("mail"),
+  room: ID,
+  from: ID,
+  to: z.string().regex(/^[a-zA-Z0-9_*-]{1,64}$/),
+  payload: z.unknown().refine((v) => v !== undefined && JSON.stringify(v).length <= 48_000, {
+    message: "payload too large",
+  }),
+});
+const postSchema = z.discriminatedUnion("op", [signalSchema, leaveSchema, mailSchema]);
 
 const PEER_TTL_MS = 30_000;
 const SIGNAL_TTL_MS = 60_000;
 
 type MemPeer = { room: string; id: string; name: string; lastSeen: number };
-type MemSignal = { id: number; room: string; to: string; from: string; kind: SignalRow["kind"]; payload: unknown; createdAt: number };
+type MemSignal = { id: number; room: string; to: string; from: string; kind: SignalRow["kind"] | "mail"; payload: unknown; createdAt: number };
 
 const mem = globalThis as typeof globalThis & {
   __atlasRtc__?: { peers: Map<string, MemPeer>; signals: MemSignal[]; seq: number };
@@ -75,10 +84,21 @@ async function handleGet(url: URL): Promise<Response> {
     .slice(0, 32)
     .map((p) => ({ id: p.id, name: p.name }));
   const signals: SignalRow[] = s.signals
-    .filter((sig) => sig.room === room && sig.to === peer && sig.id > since)
+    .filter((sig) => sig.room === room && sig.to === peer && sig.kind !== "mail" && sig.id > since)
     .slice(0, 200)
-    .map((sig) => ({ id: sig.id, from: sig.from, kind: sig.kind, payload: sig.payload }));
-  const body: RtcPollResponse = { peers, signals };
+    .map((sig) => ({ id: sig.id, from: sig.from, kind: sig.kind as SignalRow["kind"], payload: sig.payload }));
+  const mail = s.signals
+    .filter(
+      (sig) =>
+        sig.kind === "mail" &&
+        sig.room === room &&
+        sig.id > since &&
+        sig.from !== peer &&
+        (sig.to === peer || sig.to === "*"),
+    )
+    .slice(0, 80)
+    .map((sig) => ({ id: sig.id, from: sig.from, payload: sig.payload }));
+  const body: RtcPollResponse = { peers, signals, mail };
   return json(body);
 }
 
@@ -103,6 +123,16 @@ async function handlePost(request: Request): Promise<Response> {
       to: msg.to,
       from: msg.from,
       kind: msg.kind,
+      payload: msg.payload,
+      createdAt: Date.now(),
+    });
+  } else if (msg.op === "mail") {
+    s.signals.push({
+      id: s.seq++,
+      room: msg.room,
+      to: msg.to,
+      from: msg.from,
+      kind: "mail",
       payload: msg.payload,
       createdAt: Date.now(),
     });
@@ -131,9 +161,9 @@ async function sqlGet(room: string, peer: string, name: string, since: number): 
      ON CONFLICT (room, peer_id) DO UPDATE SET last_seen = now(), name = EXCLUDED.name`,
     [room, peer, name],
   );
-  const rows = await sql.query<{ id: number; from_peer: string; kind: SignalRow["kind"]; payload: unknown }>(
+  const rows = await sql.query<{ id: number; from_peer: string; kind: string; payload: unknown }>(
     `SELECT id, from_peer, kind, payload FROM webrtc_signals
-     WHERE room = $1 AND to_peer = $2 AND id > $3 ORDER BY id LIMIT 200`,
+     WHERE room = $1 AND (to_peer = $2 OR (kind = 'mail' AND to_peer = '*')) AND id > $3 ORDER BY id LIMIT 200`,
     [room, peer, since],
   );
   const roster = await sql.query<{ peer_id: string; name: string }>(
@@ -144,7 +174,12 @@ async function sqlGet(room: string, peer: string, name: string, since: number): 
   );
   const body: RtcPollResponse = {
     peers: roster.map((r) => ({ id: r.peer_id, name: r.name })),
-    signals: rows.map((r) => ({ id: r.id, from: r.from_peer, kind: r.kind, payload: r.payload })),
+    signals: rows
+      .filter((r) => r.kind === "offer" || r.kind === "answer" || r.kind === "ice")
+      .map((r) => ({ id: r.id, from: r.from_peer, kind: r.kind as SignalRow["kind"], payload: r.payload })),
+    mail: rows
+      .filter((r) => r.kind === "mail" && r.from_peer !== peer)
+      .map((r) => ({ id: r.id, from: r.from_peer, payload: r.payload })),
   };
   return json(body);
 }
@@ -152,7 +187,8 @@ async function sqlGet(room: string, peer: string, name: string, since: number): 
 async function sqlPost(
   msg:
     | z.infer<typeof signalSchema>
-    | z.infer<typeof leaveSchema>,
+    | z.infer<typeof leaveSchema>
+    | z.infer<typeof mailSchema>,
 ): Promise<Response> {
   const { getSql } = await import("@/lib/db");
   const sql = await getSql();
@@ -160,6 +196,11 @@ async function sqlPost(
     await sql.query(
       `INSERT INTO webrtc_signals (room, to_peer, from_peer, kind, payload) VALUES ($1,$2,$3,$4,$5)`,
       [msg.room, msg.to, msg.from, msg.kind, JSON.stringify(msg.payload)],
+    );
+  } else if (msg.op === "mail") {
+    await sql.query(
+      `INSERT INTO webrtc_signals (room, to_peer, from_peer, kind, payload) VALUES ($1,$2,$3,$4,$5)`,
+      [msg.room, msg.to, msg.from, "mail", JSON.stringify(msg.payload)],
     );
   } else {
     await sql.query(`DELETE FROM webrtc_peers WHERE room = $1 AND peer_id = $2`, [msg.room, msg.peer]);

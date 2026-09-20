@@ -1,7 +1,7 @@
 import type { MatchState, PublicSnapshot } from "@/lib/game";
 
 export type WireMessage =
-  | { t: "hello"; peerId: string; name: string }
+  | { t: "hello"; peerId: string; name: string; avatarId?: string }
   | { t: "snapshot"; state: PublicSnapshot }
   | { t: "event"; seq: number; payload: unknown }
   | { t: "lock"; lat: number; lng: number }
@@ -11,7 +11,8 @@ export type WireMessage =
   | { t: "continue" }
   | { t: "rematch"; seed: number }
   | { t: "intro-done" }
-  | { t: "reveal-done" };
+  | { t: "reveal-done" }
+  | { t: "handoff" };
 
 export function isWireMessage(value: unknown): value is WireMessage {
   return !!value && typeof value === "object" && "t" in value && typeof (value as { t: unknown }).t === "string";

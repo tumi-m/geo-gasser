@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { detectCountry, formatDistance, geodesicPoints, haversineKm } from "./geo.ts";
+import { detectCountry, formatDistance, geodesicPoints, haversineKm, offsetKm } from "./geo.ts";
 
 describe("haversineKm", () => {
   it("is zero for the same point", () => {
@@ -23,6 +23,16 @@ describe("haversineKm", () => {
     const a = { latitude: -33.96218, longitude: 18.409883 };
     const b = { latitude: 52.3731, longitude: 4.8928 };
     assert.ok(Math.abs(haversineKm(a, b) - haversineKm(b, a)) < 1e-9);
+  });
+});
+
+describe("offsetKm", () => {
+  it("moves about 100 km north from Cape Town", () => {
+    const ct = { latitude: -33.925, longitude: 18.424 };
+    const north = offsetKm(ct, 100, 0);
+    const d = haversineKm(ct, north);
+    assert.ok(d > 99 && d < 101, `got ${d}`);
+    assert.ok(north.latitude > ct.latitude);
   });
 });
 

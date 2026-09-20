@@ -119,3 +119,19 @@ export function formatClock(seconds: number): string {
   const s = Math.max(0, Math.ceil(seconds));
   return String(s).padStart(2, "0");
 }
+
+/** Destination point at `distanceKm` along `bearingDeg` (0 = north). */
+export function offsetKm(origin: LatLng, distanceKm: number, bearingDeg: number): LatLng {
+  const δ = distanceKm / EARTH_RADIUS_KM;
+  const θ = toRad(bearingDeg);
+  const φ1 = toRad(origin.latitude);
+  const λ1 = toRad(origin.longitude);
+  const sinφ1 = Math.sin(φ1);
+  const cosφ1 = Math.cos(φ1);
+  const sinδ = Math.sin(δ);
+  const cosδ = Math.cos(δ);
+  const φ2 = Math.asin(sinφ1 * cosδ + cosφ1 * sinδ * Math.cos(θ));
+  const λ2 =
+    λ1 + Math.atan2(Math.sin(θ) * sinδ * cosφ1, cosδ - sinφ1 * Math.sin(φ2));
+  return clampLatLng({ latitude: toDeg(φ2), longitude: toDeg(λ2) });
+}

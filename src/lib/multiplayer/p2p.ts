@@ -26,9 +26,15 @@ export interface SignalRow {
   kind: SignalKind;
   payload: unknown;
 }
+export interface MailRow {
+  id: number;
+  from: string;
+  payload: unknown;
+}
 export interface RtcPollResponse {
   peers: PeerRow[];
   signals: SignalRow[];
+  mail?: MailRow[];
 }
 
 export interface PeerInfo {
@@ -158,8 +164,32 @@ export class P2PRoom {
   send(data: unknown, peerId?: string): void {
     const wire = JSON.stringify({ t: "d", d: data });
     const targets = peerId ? [this.peers.get(peerId)] : [...this.peers.values()];
+    let delivered = false;
     for (const slot of targets) {
-      if (slot?.reliable?.readyState === "open") slot.reliable.send(wire);
+      if (slot?.reliable?.readyState === "open") {
+        slot.reliable.send(wire);
+        delivered = true;
+      }
+    }
+    if (!delivered) void this.postMail(data, peerId);
+  }
+
+  private async postMail(payload: unknown, to?: string): Promise<void> {
+    if (this.closed) return;
+    try {
+      await fetch("/api/rtc", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          op: "mail",
+          room: this.opts.room,
+          from: this.opts.selfId,
+          to: to ?? "*",
+          payload,
+        }),
+      });
+    } catch {
+      // Mail is a NAT fallback; the next snapshot/hello retries.
     }
   }
 
@@ -207,6 +237,11 @@ export class P2PRoom {
       this.cursor = Math.max(this.cursor, sig.id);
       await this.onSignal(sig.from, sig.kind, sig.payload, roster);
       if (this.closed) return;
+    }
+    for (const note of body.mail ?? []) {
+      this.cursor = Math.max(this.cursor, note.id);
+      if (note.from === this.opts.selfId) continue;
+      this.opts.onMessage?.(note.from, note.payload, "reliable");
     }
   }
 

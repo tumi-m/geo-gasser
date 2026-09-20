@@ -117,3 +117,80 @@ describe("match state machine", () => {
     assert.equal(s.players.find((p) => p.id === "g")?.roundScore?.roundScore, 0);
   });
 });
+
+describe("two-player lock and local duels", () => {
+  const now = 1_000_000;
+  it("lets the second player lock after the first, instead of freezing on wait", () => {
+    let s = reduce(createLobbyState(), {
+      type: "CREATE_DUEL",
+      playerId: "h",
+      name: "Host",
+      roomCode: "ABC123",
+      seed: 3,
+      now,
+    });
+    s = reduce(s, { type: "PLAYER_JOIN", playerId: "g", name: "Guest", now: now + 1 });
+    s = reduce(s, { type: "START_MATCH", now: now + 2 });
+    s = reduce(s, { type: "INTRO_DONE", now: now + 3 });
+    s = reduce(s, { type: "PLACE_PIN", playerId: "h", guess: s.truth!, now: now + 4 });
+    s = reduce(s, { type: "LOCK", playerId: "h", now: now + 5 });
+    assert.equal(s.phase, "waiting_for_opponent");
+    s = reduce(s, {
+      type: "PLACE_PIN",
+      playerId: "g",
+      guess: { latitude: 52.37, longitude: 4.89 },
+      now: now + 6,
+    });
+    s = reduce(s, { type: "LOCK", playerId: "g", now: now + 7 });
+    assert.equal(s.phase, "round_reveal");
+    assert.equal(s.players.filter((p) => p.locked).length, 2);
+  });
+
+  it("starts a grok bot duel without a lobby wait", () => {
+    let s = reduce(createLobbyState(), {
+      type: "CREATE_LOCAL_DUEL",
+      seed: 9,
+      now,
+      seats: [
+        { id: "p1", name: "Ada", avatarId: "atlas" },
+        { id: "grok-bot", name: "Grok", avatarId: "grok", kind: "bot" },
+      ],
+    });
+    assert.equal(s.phase, "round_intro");
+    assert.equal(s.duelKind, "bot");
+    assert.equal(s.players.length, 2);
+    s = reduce(s, { type: "INTRO_DONE", now: now + 1 });
+    s = reduce(s, { type: "PLACE_PIN", playerId: "p1", guess: s.truth!, now: now + 2 });
+    s = reduce(s, { type: "LOCK", playerId: "p1", now: now + 3 });
+    assert.equal(s.phase, "waiting_for_opponent");
+    s = reduce(s, { type: "PLACE_PIN", playerId: "grok-bot", guess: s.truth!, now: now + 4 });
+    s = reduce(s, { type: "LOCK", playerId: "grok-bot", now: now + 5 });
+    assert.equal(s.phase, "round_reveal");
+  });
+
+  it("hands a pass-and-play seat to player two", () => {
+    let s = reduce(createLobbyState(), {
+      type: "CREATE_LOCAL_DUEL",
+      hotseat: true,
+      seed: 12,
+      now,
+      seats: [
+        { id: "a", name: "One", avatarId: "veld" },
+        { id: "b", name: "Two", avatarId: "canal" },
+      ],
+    });
+    assert.equal(s.duelKind, "hotseat");
+    s = reduce(s, { type: "INTRO_DONE", now: now + 1 });
+    s = reduce(s, { type: "PLACE_PIN", playerId: "a", guess: s.truth!, now: now + 2 });
+    s = reduce(s, { type: "LOCK", playerId: "a", now: now + 3 });
+    assert.equal(s.phase, "waiting_for_opponent");
+    assert.equal(s.activeSeatId, "b");
+    const blocked = reduce(s, { type: "PLACE_PIN", playerId: "a", guess: s.truth!, now: now + 4 });
+    assert.equal(blocked.seq, s.seq);
+    s = reduce(s, { type: "HANDOFF_DONE", now: now + 5 });
+    assert.equal(s.phase, "round_active");
+    s = reduce(s, { type: "PLACE_PIN", playerId: "b", guess: s.truth!, now: now + 6 });
+    s = reduce(s, { type: "LOCK", playerId: "b", now: now + 7 });
+    assert.equal(s.phase, "round_reveal");
+  });
+});

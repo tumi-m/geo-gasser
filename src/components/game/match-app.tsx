@@ -8,6 +8,10 @@ import {
   audio,
   createLobbyState,
   getLocation,
+  grokGuess,
+  grokThinkMs,
+  GROK_BOT_ID,
+  GROK_BOT_NAME,
   isRound4,
   loadSettings,
   loadStats,
@@ -17,6 +21,7 @@ import {
   remainingSeconds,
   ROUND_DURATION_SEC,
   saveSettings,
+  sanitizeAvatar,
   toPublicSnapshot,
   type GameSettings,
   type LatLng,
@@ -25,6 +30,7 @@ import {
 } from "@/lib/game";
 import { isWireMessage, sanitizeName, useP2PRoom, type WireMessage } from "@/lib/multiplayer";
 import { GuessMap } from "./guess-map";
+import { PlayerAvatar } from "./player-avatar";
 import { RevealOverlay } from "./reveal-sequence";
 import { Round4Scene } from "./round4-scene";
 import { SettingsPanel } from "./settings-panel";
@@ -42,10 +48,12 @@ export function MatchApp({
   mode,
   roomCode,
   isCreator = false,
+  duelKind = "online",
 }: {
   mode: "solo" | "duel";
   roomCode?: string;
   isCreator?: boolean;
+  duelKind?: "online" | "bot" | "hotseat";
 }) {
   const navigate = useNavigate();
   const [settings, setSettings] = useState<GameSettings>(() => loadSettings());
@@ -60,15 +68,16 @@ export function MatchApp({
   const statsRecorded = useRef(false);
   const lastUrgentRef = useRef<number | null>(null);
   const name = sanitizeName(settings.displayName);
+  const avatarId = sanitizeAvatar(settings.avatarId);
   const selfIdRef = useRef(`solo-${Math.random().toString(36).slice(2, 8)}`);
 
   const p2p = useP2PRoom({
     room: roomCode ? `atlas-${roomCode}` : "atlas-idle",
     name,
-    enabled: mode === "duel" && Boolean(roomCode),
+    enabled: mode === "duel" && duelKind === "online" && Boolean(roomCode),
   });
-  const selfId = mode === "duel" ? p2p.selfId : selfIdRef.current;
-  const hostRef = useRef(mode === "solo" || isCreator);
+  const selfId = mode === "duel" && duelKind === "online" ? p2p.selfId : selfIdRef.current;
+  const hostRef = useRef(mode === "solo" || duelKind !== "online" || isCreator);
   const stateRef = useRef(state);
   stateRef.current = state;
 
@@ -89,43 +98,84 @@ export function MatchApp({
       type: "CREATE_SOLO",
       playerId: selfId,
       name,
+      avatarId,
       seed: randomSeed(),
       now: performance.now(),
     });
-  }, [mode, selfId, name, dispatch]);
+  }, [mode, selfId, name, avatarId, dispatch]);
 
   useEffect(() => {
-    if (mode !== "duel") return;
+    if (mode !== "duel" || bootRef.current) return;
+    if (duelKind === "bot") {
+      bootRef.current = true;
+      hostRef.current = true;
+      dispatch({
+        type: "CREATE_LOCAL_DUEL",
+        seed: randomSeed(),
+        now: Date.now(),
+        seats: [
+          { id: selfId, name, avatarId },
+          { id: GROK_BOT_ID, name: GROK_BOT_NAME, avatarId: "grok", kind: "bot" },
+        ],
+      });
+      return;
+    }
+    if (duelKind === "hotseat") {
+      bootRef.current = true;
+      hostRef.current = true;
+      let guest = { name: "Rival", avatarId: "canal" };
+      try {
+        const raw = sessionStorage.getItem("atlas-hotseat-v1");
+        if (raw) guest = { ...guest, ...JSON.parse(raw) };
+      } catch {
+        /* ignore */
+      }
+      dispatch({
+        type: "CREATE_LOCAL_DUEL",
+        hotseat: true,
+        seed: randomSeed(),
+        now: Date.now(),
+        seats: [
+          { id: selfId, name, avatarId },
+          { id: "seat-2", name: guest.name, avatarId: sanitizeAvatar(guest.avatarId) },
+        ],
+      });
+    }
+  }, [mode, duelKind, selfId, name, avatarId, dispatch]);
+
+  useEffect(() => {
+    if (mode !== "duel" || duelKind !== "online") return;
     if (isCreator && state.phase === "lobby") {
       hostRef.current = true;
       dispatch({
         type: "CREATE_DUEL",
         playerId: selfId,
         name,
+        avatarId,
         roomCode: roomCode ?? "ROOM",
         seed: randomSeed(),
         now: Date.now(),
       });
     }
-  }, [mode, isCreator, selfId, name, roomCode, dispatch, state.phase]);
+  }, [mode, duelKind, isCreator, selfId, name, avatarId, roomCode, dispatch, state.phase]);
 
   useEffect(() => {
-    if (mode !== "duel" || isCreator) return;
-    const t = window.setTimeout(() => {
-      if (stateRef.current.phase === "lobby" && p2p.peers.length === 0) {
-        hostRef.current = true;
-        dispatch({
-          type: "CREATE_DUEL",
-          playerId: selfId,
-          name,
-          roomCode: roomCode ?? "ROOM",
-          seed: randomSeed(),
-          now: Date.now(),
-        });
-      }
-    }, 2500);
-    return () => window.clearTimeout(t);
-  }, [mode, isCreator, selfId, name, roomCode, dispatch, p2p.peers.length]);
+    if (mode !== "duel" || duelKind !== "online" || isCreator) return;
+    if (p2p.peers.length === 0) return;
+    const elected = [selfId, ...p2p.peers.map((p) => p.id)].sort()[0];
+    hostRef.current = elected === selfId;
+    if (hostRef.current && stateRef.current.phase === "lobby") {
+      dispatch({
+        type: "CREATE_DUEL",
+        playerId: selfId,
+        name,
+        avatarId,
+        roomCode: roomCode ?? "ROOM",
+        seed: randomSeed(),
+        now: Date.now(),
+      });
+    }
+  }, [mode, duelKind, isCreator, p2p.peers, selfId, name, avatarId, roomCode, dispatch]);
 
   useEffect(() => {
     if (mode !== "duel") return;
@@ -150,7 +200,9 @@ export function MatchApp({
       }
       if (!hostRef.current) return;
       const now = Date.now();
-      if (msg.t === "hello") dispatch({ type: "PLAYER_JOIN", playerId: msg.peerId, name: msg.name, now });
+      if (msg.t === "hello") {
+        dispatch({ type: "PLAYER_JOIN", playerId: msg.peerId, name: msg.name, avatarId: msg.avatarId, now });
+      }
       if (msg.t === "pin") dispatch({ type: "PLACE_PIN", playerId: _from, guess: { latitude: msg.lat, longitude: msg.lng }, now });
       if (msg.t === "lock") {
         dispatch({ type: "PLACE_PIN", playerId: _from, guess: { latitude: msg.lat, longitude: msg.lng }, now });
@@ -161,6 +213,7 @@ export function MatchApp({
       if (msg.t === "reveal-done") dispatch({ type: "REVEAL_DONE", now });
       if (msg.t === "start") dispatch({ type: "START_MATCH", now });
       if (msg.t === "rematch") dispatch({ type: "REMATCH", seed: msg.seed, now });
+      if (msg.t === "handoff") dispatch({ type: "HANDOFF_DONE", now });
     });
   }, [mode, p2p.onMessage, dispatch, selfId]);
 
@@ -171,35 +224,79 @@ export function MatchApp({
   }, [mode, p2p.send, state]);
 
   useEffect(() => {
-    if (mode !== "duel" || hostRef.current) return;
-    const ping = () => p2p.send({ t: "hello", peerId: selfId, name });
+    if (mode !== "duel" || duelKind !== "online" || hostRef.current) return;
+    const ping = () => p2p.send({ t: "hello", peerId: selfId, name, avatarId });
     ping();
-    const id = setInterval(ping, 2000);
+    const id = setInterval(ping, 1500);
     return () => clearInterval(id);
-  }, [mode, p2p.send, selfId, name]);
+  }, [mode, duelKind, p2p.send, selfId, name, avatarId]);
+
+  useEffect(() => {
+    if (mode !== "duel" || duelKind !== "online" || !hostRef.current) return;
+    if (state.phase !== "waiting_for_players" && state.phase !== "rematch_pending") return;
+    for (const peer of p2p.peers) {
+      dispatch({ type: "PLAYER_JOIN", playerId: peer.id, name: peer.name || "Rival", now: Date.now() });
+    }
+  }, [mode, duelKind, p2p.peers, dispatch, state.phase]);
+
+  useEffect(() => {
+    if (mode !== "duel" || !hostRef.current) return;
+    if (state.phase !== "waiting_for_players") return;
+    if (state.players.length < 2) return;
+    const id = window.setTimeout(() => dispatch({ type: "START_MATCH", now: Date.now() }), 450);
+    return () => window.clearTimeout(id);
+  }, [mode, state.phase, state.players.length, dispatch]);
+
+  useEffect(() => {
+    if (mode !== "duel" || duelKind === "online") return;
+    const bot = state.players.find((p) => p.kind === "bot");
+    if (!bot || bot.locked) return;
+    if (state.phase !== "round_active" && state.phase !== "waiting_for_opponent") return;
+    const place = activeLocation(state);
+    if (!place) return;
+    const wait = grokThinkMs(place.difficulty, state.seed, state.roundIndex);
+    const id = window.setTimeout(() => {
+      const guess = grokGuess(place, state.seed, state.roundIndex);
+      const now = Date.now();
+      dispatch({ type: "PLACE_PIN", playerId: bot.id, guess, now });
+      dispatch({ type: "LOCK", playerId: bot.id, now: now + 1 });
+    }, wait);
+    return () => window.clearTimeout(id);
+  }, [mode, duelKind, state.phase, state.roundIndex, state.seed, state.players, dispatch]);
 
   const loc = activeLocation(state);
   const env = activeEnvironment(state);
-  const you = state.players.find((p) => p.id === selfId) ?? state.players[0];
+  const you =
+    duelKind === "hotseat"
+      ? (state.players.find((p) => p.id === state.activeSeatId) ?? state.players[0])
+      : (state.players.find((p) => p.id === selfId) ?? state.players[0]);
   const opponent = state.players.find((p) => p.id !== you?.id);
   const showingReveal = state.phase === "round_reveal" || state.phase === "round_expired" || state.phase === "round_results";
   const lastRound = state.roundIndex >= 3;
+  const canGuess =
+    Boolean(you) &&
+    !you?.locked &&
+    (state.phase === "round_active" ||
+      state.phase === "waiting_for_opponent" ||
+      state.phase === "player_locked") &&
+    (duelKind !== "hotseat" || you?.id === state.activeSeatId) &&
+    !(duelKind === "hotseat" && state.phase === "waiting_for_opponent");
 
   const finishIntro = useCallback(() => {
     if (stateRef.current.phase !== "round_intro") return;
     const now = mode === "solo" ? performance.now() : Date.now();
-    if (mode === "duel" && !hostRef.current) {
+    if (mode === "duel" && duelKind === "online" && !hostRef.current) {
       p2p.send({ t: "intro-done" });
       return;
     }
     dispatch({ type: "INTRO_DONE", now });
-  }, [mode, dispatch, p2p.send]);
+  }, [mode, duelKind, dispatch, p2p.send]);
 
   const continueRound = useCallback(() => {
     const now = mode === "solo" ? performance.now() : Date.now();
-    if (mode === "duel" && !hostRef.current) p2p.send({ t: "continue" });
+    if (mode === "duel" && duelKind === "online" && !hostRef.current) p2p.send({ t: "continue" });
     else dispatch({ type: "CONTINUE", now });
-  }, [mode, dispatch, p2p.send]);
+  }, [mode, duelKind, dispatch, p2p.send]);
 
   useEffect(() => {
     if (state.phase !== "round_intro") return;
@@ -212,8 +309,7 @@ export function MatchApp({
     const ticking =
       Boolean(state.roundStartedAtMs) &&
       (state.phase === "round_active" ||
-        state.phase === "waiting_for_opponent" ||
-        state.phase === "player_locked");
+        ((state.phase === "waiting_for_opponent" || state.phase === "player_locked") && duelKind !== "hotseat"));
     if (!ticking) return;
     let raf = 0;
     const loop = () => {
@@ -221,7 +317,7 @@ export function MatchApp({
       const rem = remainingSeconds(state.roundStartedAtMs!, clock);
       setRemaining(rem);
       if (rem <= 0) {
-        if (mode === "duel" && !hostRef.current) return;
+        if (mode === "duel" && duelKind === "online" && !hostRef.current) return;
         dispatch({ type: "TIMEOUT", now: clock });
         return;
       }
@@ -229,7 +325,7 @@ export function MatchApp({
     };
     raf = requestAnimationFrame(loop);
     return () => cancelAnimationFrame(raf);
-  }, [state.phase, state.roundStartedAtMs, mode, dispatch]);
+  }, [state.phase, state.roundStartedAtMs, mode, duelKind, dispatch]);
 
   useEffect(() => {
     if (state.phase !== "round_active") {
@@ -308,28 +404,39 @@ export function MatchApp({
   }, [state.phase, state.roundHistory, state.winnerIds, state.mode, selfId, you]);
 
   const onGuess = (p: LatLng) => {
-    if (you?.locked || state.phase !== "round_active") return;
+    if (!canGuess) return;
     audio.play("pin");
     const now = mode === "solo" ? performance.now() : Date.now();
-    dispatch({ type: "PLACE_PIN", playerId: selfId, guess: p, now });
-    if (mode === "duel" && !hostRef.current) p2p.send({ t: "pin", lat: p.latitude, lng: p.longitude });
+    const actor = you?.id ?? selfId;
+    dispatch({ type: "PLACE_PIN", playerId: actor, guess: p, now });
+    if (mode === "duel" && duelKind === "online" && !hostRef.current) {
+      p2p.send({ t: "pin", lat: p.latitude, lng: p.longitude });
+    }
   };
 
   const lock = useCallback(() => {
     const current = stateRef.current;
-    const me = current.players.find((p) => p.id === selfId) ?? current.players[0];
-    if (!me?.guess || me.locked || current.phase !== "round_active") return;
+    const me =
+      duelKind === "hotseat"
+        ? (current.players.find((p) => p.id === current.activeSeatId) ?? current.players[0])
+        : (current.players.find((p) => p.id === selfId) ?? current.players[0]);
+    const phaseOk =
+      current.phase === "round_active" ||
+      current.phase === "waiting_for_opponent" ||
+      current.phase === "player_locked";
+    if (!me?.guess || me.locked || !phaseOk) return;
+    if (duelKind === "hotseat" && current.phase === "waiting_for_opponent") return;
     audio.play("lock");
     if (settings.cameraShake && !settings.reducedMotion) {
       setShake(true);
       window.setTimeout(() => setShake(false), 420);
     }
     const now = mode === "solo" ? performance.now() : Date.now();
-    dispatch({ type: "LOCK", playerId: selfId, now });
-    if (mode === "duel" && !hostRef.current) {
+    dispatch({ type: "LOCK", playerId: me.id, now });
+    if (mode === "duel" && duelKind === "online" && !hostRef.current) {
       p2p.send({ t: "lock", lat: me.guess.latitude, lng: me.guess.longitude });
     }
-  }, [mode, dispatch, p2p.send, selfId, settings.cameraShake, settings.reducedMotion]);
+  }, [mode, duelKind, dispatch, p2p.send, selfId, settings.cameraShake, settings.reducedMotion]);
 
   const quit = () => {
     audio.stopAmbience();
@@ -339,10 +446,7 @@ export function MatchApp({
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       const el = e.target as HTMLElement | null;
-      const typing =
-        el?.tagName === "INPUT" ||
-        el?.tagName === "TEXTAREA" ||
-        el?.isContentEditable;
+      const typing = el?.tagName === "INPUT" || el?.tagName === "TEXTAREA" || el?.isContentEditable;
       if (e.key === "Escape") {
         if (showSettings) {
           setShowSettings(false);
@@ -354,7 +458,10 @@ export function MatchApp({
         finishIntro();
         return;
       }
-      if (e.key === "Enter" && state.phase === "round_active") {
+      if (
+        e.key === "Enter" &&
+        (state.phase === "round_active" || (state.phase === "waiting_for_opponent" && duelKind === "online"))
+      ) {
         lock();
         return;
       }
@@ -368,7 +475,7 @@ export function MatchApp({
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [state.phase, showSettings, lock, finishIntro, continueRound, showingReveal]);
+  }, [state.phase, showSettings, lock, finishIntro, continueRound, showingReveal, duelKind]);
 
   const shareUrl = useMemo(() => {
     if (typeof window === "undefined" || !roomCode) return "";
@@ -382,7 +489,7 @@ export function MatchApp({
         <div className="mx-auto max-w-md">
           <p className="text-xs uppercase tracking-[0.28em] text-muted">Private room</p>
           <h1 className="font-display mt-2 text-5xl tracking-tight">{roomCode}</h1>
-          <p className="mt-3 text-muted">Share this code. Host starts when both players are in.</p>
+          <p className="mt-3 text-muted">Share the code. The match starts when the second player arrives.</p>
           <div className="mt-6 flex gap-2">
             <Button
               variant="secondary"
@@ -398,14 +505,17 @@ export function MatchApp({
           </div>
           <ul className="mt-8 space-y-2">
             {state.players.map((p) => (
-              <li key={p.id} className="rounded-[var(--radius-md)] border border-border px-4 py-3">
-                {p.name} {p.id === state.hostId ? "· host" : ""}
+              <li key={p.id} className="flex items-center gap-3 rounded-[var(--radius-md)] border border-border px-3 py-3">
+                <PlayerAvatar id={p.avatarId} size={40} />
+                <span className="min-w-0 truncate">
+                  {p.name} {p.id === state.hostId ? "· host" : ""}
+                </span>
               </li>
             ))}
             {state.players.length < 2 && (
               <li className="rounded-[var(--radius-md)] border border-dashed border-border px-4 py-3 text-muted">
                 {failed
-                  ? "Connection failed — try the same network"
+                  ? "Direct link failed — keep this tab open, the room still relays through the server"
                   : p2p.joined
                     ? "Waiting for opponent"
                     : "Connecting…"}
@@ -417,6 +527,10 @@ export function MatchApp({
               {state.players.length < 2 ? "Waiting for opponent" : "Start match"}
             </Button>
           )}
+          <Button variant="secondary" className="mt-3 w-full" onClick={() => void navigate({ to: "/duel/bot" })}>
+            <PlayerAvatar id="grok" size={24} />
+            Play vs Grok instead
+          </Button>
           <Button variant="ghost" className="mt-3 w-full" onClick={quit}>
             Home
           </Button>
@@ -433,7 +547,7 @@ export function MatchApp({
         onRematch={() => {
           statsRecorded.current = false;
           const seed = randomSeed();
-          if (mode === "duel" && !hostRef.current) p2p.send({ t: "rematch", seed });
+          if (mode === "duel" && duelKind === "online" && !hostRef.current) p2p.send({ t: "rematch", seed });
           else dispatch({ type: "REMATCH", seed, now: mode === "solo" ? performance.now() : Date.now() });
         }}
         onHome={quit}
@@ -521,9 +635,12 @@ export function MatchApp({
               3D · drag
             </div>
           )}
-          <div className="rounded-[var(--radius-sm)] border border-border bg-bg/70 px-3 py-2 text-right">
-            <div className="text-[10px] uppercase tracking-wider text-subtle">Score</div>
-            <div className="font-display tabular text-lg leading-none">{(you?.totalScore ?? 0).toLocaleString()}</div>
+          <div className="flex items-center gap-2">
+            <PlayerAvatar id={you?.avatarId} size={36} />
+            <div className="rounded-[var(--radius-sm)] border border-border bg-bg/70 px-3 py-2 text-right">
+              <div className="text-[10px] uppercase tracking-wider text-subtle">Score</div>
+              <div className="font-display tabular text-lg leading-none">{(you?.totalScore ?? 0).toLocaleString()}</div>
+            </div>
           </div>
           <Button variant="ghost" size="icon" aria-label="Settings" onClick={() => setShowSettings(true)}>
             <SettingsIcon className="size-5" />
@@ -533,9 +650,21 @@ export function MatchApp({
 
       {you?.locked && !showingReveal && (
         <p className="relative z-20 mx-4 mt-1 w-fit rounded-full border border-border bg-bg/80 px-3 py-1 text-xs uppercase tracking-wider">
-          Guess locked
-          {mode === "duel" ? ` · ${Math.ceil(remaining)}s left` : ""}
+          {opponent?.kind === "bot" ? "Grok is guessing…" : "Guess locked"}
+          {mode === "duel" && duelKind === "online" ? ` · ${Math.ceil(remaining)}s left` : ""}
         </p>
+      )}
+
+      {duelKind === "hotseat" && state.phase === "waiting_for_opponent" && (
+        <div className="absolute inset-0 z-40 flex flex-col items-center justify-center bg-bg/92 px-6 text-center">
+          <PlayerAvatar id={you?.avatarId} size={72} />
+          <p className="mt-5 text-xs uppercase tracking-[0.28em] text-muted">Pass the phone</p>
+          <h2 className="font-display mt-2 text-4xl">{you?.name}</h2>
+          <p className="mt-3 max-w-sm text-muted">Same location. Fresh 45 seconds. Don’t peek at the last pin.</p>
+          <Button className="mt-8" size="lg" onClick={() => dispatch({ type: "HANDOFF_DONE", now: Date.now() })}>
+            I’m {you?.name}
+          </Button>
+        </div>
       )}
 
       {state.phase === "round_active" && !you?.guess && !you?.locked && (
@@ -548,7 +677,7 @@ export function MatchApp({
         <GuessMap
           guess={you?.guess}
           onGuess={onGuess}
-          disabled={you?.locked || state.phase !== "round_active"}
+          disabled={!canGuess}
           expanded={expanded}
           onToggleExpand={() => setExpanded((v) => !v)}
           truth={showingReveal ? state.truth : undefined}
@@ -560,7 +689,7 @@ export function MatchApp({
           reveal={showingReveal}
           reducedMotion={settings.reducedMotion}
           urgent={urgent}
-          onLock={state.phase === "round_active" && !you?.locked ? lock : undefined}
+          onLock={canGuess ? lock : undefined}
           canLock={Boolean(you?.guess)}
         />
       )}

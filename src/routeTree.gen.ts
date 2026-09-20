@@ -15,6 +15,8 @@ import { Route as PlayRouteImport } from './routes/play'
 import { Route as ApiRtcRouteImport } from './routes/api/rtc'
 import { Route as DuelIndexRouteImport } from './routes/duel.index'
 import { Route as DuelCodeRouteImport } from './routes/duel.$code'
+import { Route as DuelBotRouteImport } from './routes/duel.bot'
+import { Route as DuelHotseatRouteImport } from './routes/duel.hotseat'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -46,6 +48,16 @@ const DuelCodeRoute = DuelCodeRouteImport.update({
   path: '/$code',
   getParentRoute: () => DuelRoute,
 } as any)
+const DuelBotRoute = DuelBotRouteImport.update({
+  id: '/bot',
+  path: '/bot',
+  getParentRoute: () => DuelRoute,
+} as any)
+const DuelHotseatRoute = DuelHotseatRouteImport.update({
+  id: '/hotseat',
+  path: '/hotseat',
+  getParentRoute: () => DuelRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -53,6 +65,8 @@ export interface FileRoutesByFullPath {
   '/play': typeof PlayRoute
   '/api/rtc': typeof ApiRtcRoute
   '/duel/$code': typeof DuelCodeRoute
+  '/duel/bot': typeof DuelBotRoute
+  '/duel/hotseat': typeof DuelHotseatRoute
   '/duel/': typeof DuelIndexRoute
 }
 export interface FileRoutesByTo {
@@ -60,6 +74,8 @@ export interface FileRoutesByTo {
   '/play': typeof PlayRoute
   '/api/rtc': typeof ApiRtcRoute
   '/duel/$code': typeof DuelCodeRoute
+  '/duel/bot': typeof DuelBotRoute
+  '/duel/hotseat': typeof DuelHotseatRoute
   '/duel': typeof DuelIndexRoute
 }
 export interface FileRoutesById {
@@ -69,15 +85,40 @@ export interface FileRoutesById {
   '/play': typeof PlayRoute
   '/api/rtc': typeof ApiRtcRoute
   '/duel/$code': typeof DuelCodeRoute
+  '/duel/bot': typeof DuelBotRoute
+  '/duel/hotseat': typeof DuelHotseatRoute
   '/duel/': typeof DuelIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/duel' | '/play' | '/api/rtc' | '/duel/$code' | '/duel/'
+  fullPaths:
+    | '/'
+    | '/duel'
+    | '/play'
+    | '/api/rtc'
+    | '/duel/$code'
+    | '/duel/bot'
+    | '/duel/hotseat'
+    | '/duel/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/play' | '/api/rtc' | '/duel/$code' | '/duel'
+  to:
+    | '/'
+    | '/play'
+    | '/api/rtc'
+    | '/duel/$code'
+    | '/duel/bot'
+    | '/duel/hotseat'
+    | '/duel'
   id:
-    '__root__' | '/' | '/duel' | '/play' | '/api/rtc' | '/duel/$code' | '/duel/'
+    | '__root__'
+    | '/'
+    | '/duel'
+    | '/play'
+    | '/api/rtc'
+    | '/duel/$code'
+    | '/duel/bot'
+    | '/duel/hotseat'
+    | '/duel/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -131,16 +172,34 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DuelCodeRouteImport
       parentRoute: typeof DuelRoute
     }
+    '/duel/bot': {
+      id: '/duel/bot'
+      path: '/bot'
+      fullPath: '/duel/bot'
+      preLoaderRoute: typeof DuelBotRouteImport
+      parentRoute: typeof DuelRoute
+    }
+    '/duel/hotseat': {
+      id: '/duel/hotseat'
+      path: '/hotseat'
+      fullPath: '/duel/hotseat'
+      preLoaderRoute: typeof DuelHotseatRouteImport
+      parentRoute: typeof DuelRoute
+    }
   }
 }
 
 interface DuelRouteChildren {
   DuelCodeRoute: typeof DuelCodeRoute
+  DuelBotRoute: typeof DuelBotRoute
+  DuelHotseatRoute: typeof DuelHotseatRoute
   DuelIndexRoute: typeof DuelIndexRoute
 }
 
 const DuelRouteChildren: DuelRouteChildren = {
   DuelCodeRoute: DuelCodeRoute,
+  DuelBotRoute: DuelBotRoute,
+  DuelHotseatRoute: DuelHotseatRoute,
   DuelIndexRoute: DuelIndexRoute,
 }
 

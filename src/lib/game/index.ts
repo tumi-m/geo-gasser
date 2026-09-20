@@ -14,3 +14,5 @@ export * from "./rng.ts";
 export * from "./settings.ts";
 export * from "./stats.ts";
 export * from "./audio.ts";
+export * from "./avatars.ts";
+export * from "./bot.ts";

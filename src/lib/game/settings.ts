@@ -2,6 +2,7 @@ const KEY = "atlas-duel-settings-v1";
 
 export interface GameSettings {
   displayName: string;
+  avatarId: string;
   master: number;
   music: number;
   sfx: number;
@@ -13,6 +14,7 @@ export interface GameSettings {
 
 export const DEFAULT_SETTINGS: GameSettings = {
   displayName: "Traveler",
+  avatarId: "atlas",
   master: 0.8,
   music: 0.35,
   sfx: 0.8,

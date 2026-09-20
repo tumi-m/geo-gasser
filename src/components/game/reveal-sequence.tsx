@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { BADGE_COPY, FEEDBACK_COPY, formatDistance, type PlayerState, type RoundScore } from "@/lib/game";
 import { Button } from "@/components/ui/button";
+import { PlayerAvatar } from "./player-avatar";
 import { cn } from "@/lib/utils";
 
 /** Counts a number up from 0 over `ms`, eased; instant when motion is reduced. */
@@ -106,8 +107,8 @@ export function RevealOverlay({
         )}
         {opponent && (
           <div className="mt-3 grid grid-cols-2 gap-2 text-left text-sm">
-            <PlayerChip name={you.name} score={you.totalScore} you />
-            <PlayerChip name={opponent.name} score={opponent.totalScore} />
+            <PlayerChip name={you.name} score={you.totalScore} avatarId={you.avatarId} you />
+            <PlayerChip name={opponent.name} score={opponent.totalScore} avatarId={opponent.avatarId} />
           </div>
         )}
       </div>
@@ -124,12 +125,25 @@ function Stat({ label, value, highlight }: { label: string; value: string; highl
   );
 }
 
-function PlayerChip({ name, score, you }: { name: string; score: number; you?: boolean }) {
+function PlayerChip({
+  name,
+  score,
+  you,
+  avatarId,
+}: {
+  name: string;
+  score: number;
+  you?: boolean;
+  avatarId?: string;
+}) {
   return (
-    <div className="rounded-[var(--radius-sm)] border border-border px-3 py-2">
-      <div className="text-[11px] uppercase tracking-wider text-subtle">{you ? "You" : "Opponent"}</div>
-      <div className="truncate">{name}</div>
-      <div className="font-display tabular">{score.toLocaleString()}</div>
+    <div className="flex items-center gap-2 rounded-[var(--radius-sm)] border border-border px-3 py-2">
+      <PlayerAvatar id={avatarId} size={32} />
+      <div className="min-w-0">
+        <div className="text-[11px] uppercase tracking-wider text-subtle">{you ? "You" : "Opponent"}</div>
+        <div className="truncate">{name}</div>
+        <div className="font-display tabular">{score.toLocaleString()}</div>
+      </div>
     </div>
   );
 }
