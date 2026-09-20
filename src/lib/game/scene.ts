@@ -59,7 +59,7 @@ async function pageImage(page: string): Promise<string | null> {
     redirects: "1",
     prop: "pageimages",
     piprop: "thumbnail",
-    pithumbsize: "1280",
+    pithumbsize: "960",
     titles: page,
   });
   return firstThumb(data);
@@ -79,7 +79,7 @@ export async function resolveWikiImage(sourceUrl?: string, title?: string): Prom
     gsrlimit: "1",
     prop: "pageimages",
     piprop: "thumbnail",
-    pithumbsize: "1280",
+    pithumbsize: "960",
   });
   return firstThumb(data);
 }

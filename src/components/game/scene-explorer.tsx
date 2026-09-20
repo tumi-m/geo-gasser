@@ -106,6 +106,14 @@ export function SceneExplorer({
   }, [src, reducedMotion, fallbacks?.join("|"), sourceUrl, title]);
 
   useEffect(() => {
+    const img = imgRef.current;
+    if (img?.complete && img.naturalWidth > 0) {
+      setFailed(false);
+      onReady?.();
+    }
+  }, [current]);
+
+  useEffect(() => {
     const host = hostRef.current;
     if (!host) return;
     let frame = 0;

@@ -697,7 +697,7 @@ export function MatchApp({
             <p className="text-sm text-muted">Loading scene</p>
           </div>
         ) : null}
-        <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(180deg,rgba(9,9,11,0.45)_0%,transparent_26%,transparent_62%,rgba(9,9,11,0.5)_100%)]" />
+        <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(180deg,rgba(9,9,11,0.28)_0%,transparent_22%,transparent_72%,rgba(9,9,11,0.32)_100%)]" />
       </div>
 
       <header className="relative z-20 flex items-start justify-between gap-3 px-4 py-3 pt-[max(0.75rem,env(safe-area-inset-top))]">
@@ -803,7 +803,7 @@ export function MatchApp({
         />
       )}
 
-      {loc && loc.sceneKind === "generated-reconstruction" && !showingReveal && (
+      {loc && loc.sceneUrl.startsWith("/generated/") && !showingReveal && (
         <p className="pointer-events-none absolute left-3 bottom-[calc(var(--atlas-map-h)+0.75rem)] z-10 max-w-[52%] text-[10px] leading-snug text-subtle max-sm:max-w-[70%]">
           Reconstruction · not a live street photo
         </p>

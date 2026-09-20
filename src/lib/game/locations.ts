@@ -95,10 +95,10 @@ export const LAUNCH_LOCATIONS: GeoLocation[] = [
     difficulty: 3,
     tags: ["coastal", "urban", "promenade", "beach"],
     attribution:
-      "Cinematic reconstruction inspired by Durban's Golden Mile / North Beach. Not a live street photograph. Coordinates from Wikipedia: North Beach, Durban.",
+      "Photo: Wikimedia Commons, CC BY-SA. Wikipedia: North Beach, Durban.",
     sourceUrl: "https://en.wikipedia.org/wiki/North_Beach,_Durban",
-    sceneKind: "generated-reconstruction",
-    panoramaProvider: "generated",
+    sceneKind: "wikimedia",
+    panoramaProvider: "wikimedia",
   }),
   loc({
     id: "loc_06",
@@ -246,10 +246,10 @@ export const LAUNCH_LOCATIONS: GeoLocation[] = [
     difficulty: 4,
     tags: ["coastal", "civic", "historic", "urban"],
     attribution:
-      "Cinematic reconstruction inspired by the Donkin Reserve pyramid and lighthouse, Gqeberha. Not a live street photograph.",
+      "Photo: Wikimedia Commons, CC BY-SA. Wikipedia: Gqeberha.",
     sourceUrl: "https://en.wikipedia.org/wiki/Gqeberha",
-    sceneKind: "generated-reconstruction",
-    panoramaProvider: "generated",
+    sceneKind: "wikimedia",
+    panoramaProvider: "wikimedia",
   }),
   loc({
     id: "loc_16",
@@ -322,10 +322,10 @@ export const LAUNCH_LOCATIONS: GeoLocation[] = [
     difficulty: 4,
     tags: ["modern", "industrial", "urban", "infrastructure"],
     attribution:
-      "Cinematic reconstruction inspired by Eindhoven's Lichttoren / Strijp-S. Not a live street photograph.",
+      "Photo: Wikimedia Commons, CC BY-SA. Wikipedia: Eindhoven.",
     sourceUrl: "https://en.wikipedia.org/wiki/Eindhoven",
-    sceneKind: "generated-reconstruction",
-    panoramaProvider: "generated",
+    sceneKind: "wikimedia",
+    panoramaProvider: "wikimedia",
   }),
   loc({
     id: "loc_21",
@@ -338,10 +338,10 @@ export const LAUNCH_LOCATIONS: GeoLocation[] = [
     difficulty: 3,
     tags: ["historic", "plaza", "urban"],
     attribution:
-      "Cinematic reconstruction inspired by Groningen's Grote Markt and Martinitoren. Not a live street photograph.",
+      "Photo: Wikimedia Commons, CC BY-SA. Wikipedia: Grote Markt (Groningen).",
     sourceUrl: "https://en.wikipedia.org/wiki/Grote_Markt_(Groningen)",
-    sceneKind: "generated-reconstruction",
-    panoramaProvider: "generated",
+    sceneKind: "wikimedia",
+    panoramaProvider: "wikimedia",
   }),
   loc({
     id: "loc_22",
