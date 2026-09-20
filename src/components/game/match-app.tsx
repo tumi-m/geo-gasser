@@ -36,6 +36,7 @@ import { GuessMap } from "./guess-map";
 import { PlayerAvatar } from "./player-avatar";
 import { RevealOverlay } from "./reveal-sequence";
 import { Round4Scene } from "./round4-scene";
+import { SceneViewer } from "./scene-viewer";
 import { SettingsPanel } from "./settings-panel";
 import { QuestionMark, RoundPips, TimerRing } from "./timer-ring";
 import { FinalResults } from "./final-results";
@@ -688,23 +689,27 @@ export function MatchApp({
         ) : (
           <>
             <div className={cn("absolute inset-0 bg-bg-subtle transition-opacity duration-500", sceneReady ? "opacity-0" : "opacity-100")} />
-            <img
-              key={loc?.sceneUrl}
-              src={loc?.sceneUrl}
-              alt="Location to identify"
+            <div
               className={cn(
-                "h-full w-full object-cover transition-opacity duration-500",
+                "absolute inset-0 transition-opacity duration-500",
                 sceneReady && !sceneFailed ? "opacity-100" : "opacity-0",
               )}
-              onLoad={() => {
-                setSceneFailed(false);
-                setSceneReady(true);
-              }}
-              onError={() => {
-                setSceneFailed(true);
-                setSceneReady(true);
-              }}
-            />
+            >
+              <SceneViewer
+                key={loc?.sceneUrl}
+                src={loc?.sceneUrl}
+                alt="Location to identify"
+                reducedMotion={settings.reducedMotion}
+                onReady={() => {
+                  setSceneFailed(false);
+                  setSceneReady(true);
+                }}
+                onError={() => {
+                  setSceneFailed(true);
+                  setSceneReady(true);
+                }}
+              />
+            </div>
             {sceneFailed && (
               <div className="absolute inset-0 flex items-center justify-center bg-bg-subtle">
                 <p className="px-6 text-center text-sm text-muted">Scene unavailable — use the map</p>
@@ -712,7 +717,7 @@ export function MatchApp({
             )}
           </>
         )}
-        <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(9,9,11,0.45)_0%,transparent_26%,transparent_62%,rgba(9,9,11,0.5)_100%)]" />
+        <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(180deg,rgba(9,9,11,0.45)_0%,transparent_26%,transparent_62%,rgba(9,9,11,0.5)_100%)]" />
       </div>
 
       <header className="relative z-20 flex items-start justify-between gap-3 px-4 py-3 pt-[max(0.75rem,env(safe-area-inset-top))]">

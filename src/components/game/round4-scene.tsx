@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ATMOSPHERE_FAMILY, type AtmosphereId, type EnvironmentSpec } from "@/lib/game";
 
 /**
@@ -36,6 +36,10 @@ interface WaterPts {
 
 export function Round4Scene({ env, reducedMotion }: { env: EnvironmentSpec; reducedMotion?: boolean }) {
   const hostRef = useRef<HTMLDivElement>(null);
+  const [walking, setWalking] = useState(false);
+  const walkingRef = useRef(walking);
+  walkingRef.current = walking;
+  const joyRef = useRef({ x: 0, y: 0, active: false });
 
   useEffect(() => {
     const host = hostRef.current;
@@ -49,11 +53,24 @@ export function Round4Scene({ env, reducedMotion }: { env: EnvironmentSpec; redu
     let ly = 0;
     let yaw = 0;
     let pitch = 0.16;
+    const walk = { x: 0, z: 4 };
+    const keys = new Set<string>();
     const trash: Disposable[] = [];
     const waters: WaterPts[] = [];
     let rain: { points: import("three").Points; ys: Float32Array; speed: number } | null = null;
     let lightning: { light: import("three").PointLight; next: number; until: number } | null = null;
     let skyMaterial: import("three").MeshBasicMaterial | null = null;
+
+    const onKeyDown = (e: KeyboardEvent) => {
+      const key = e.key.toLowerCase();
+      if (["w", "a", "s", "d", "arrowup", "arrowdown", "arrowleft", "arrowright"].includes(key)) {
+        keys.add(key);
+        if (walkingRef.current) e.preventDefault();
+      }
+    };
+    const onKeyUp = (e: KeyboardEvent) => keys.delete(e.key.toLowerCase());
+    window.addEventListener("keydown", onKeyDown);
+    window.addEventListener("keyup", onKeyUp);
 
     const onDown = (e: PointerEvent) => {
       dragging = true;
@@ -202,15 +219,48 @@ export function Round4Scene({ env, reducedMotion }: { env: EnvironmentSpec; redu
         last = now;
         const t = now / 1000;
 
-        if (!reducedMotion && !dragging) yaw += dt * palette.orbitSpeed;
         const p = Math.max(0.02, Math.min(0.5, pitch));
-        const r = cam.radius;
-        camera.position.set(
-          cam.target.x + Math.sin(yaw) * r,
-          cam.height + p * cam.pitchRise,
-          cam.target.z + Math.cos(yaw) * r,
-        );
-        camera.lookAt(cam.target.x, cam.lookAtY, cam.target.z);
+        if (walkingRef.current) {
+          // First-person walk: drag looks, WASD/joystick moves.
+          let f = 0;
+          let s = 0;
+          if (keys.has("w") || keys.has("arrowup")) f += 1;
+          if (keys.has("s") || keys.has("arrowdown")) f -= 1;
+          if (keys.has("a") || keys.has("arrowleft")) s -= 1;
+          if (keys.has("d") || keys.has("arrowright")) s += 1;
+          f += -joyRef.current.y;
+          s += joyRef.current.x;
+          const len = Math.hypot(f, s);
+          if (len > 0.01) {
+            const speed = 7 * dt;
+            const sin = Math.sin(yaw);
+            const cos = Math.cos(yaw);
+            // Forward is away from the camera's orbit direction.
+            walk.x += (-sin * f + cos * s) * speed;
+            walk.z += (-cos * f - sin * s) * speed;
+            const radius = Math.hypot(walk.x, walk.z);
+            if (radius > 36) {
+              walk.x = (walk.x / radius) * 36;
+              walk.z = (walk.z / radius) * 36;
+            }
+          }
+          camera.position.set(walk.x, groundHeight(walk.x, walk.z) + 1.7, walk.z);
+          const look = new THREE.Vector3(
+            walk.x - Math.sin(yaw) * Math.cos(p),
+            camera.position.y + Math.sin(p * 0.9) - 0.2,
+            walk.z - Math.cos(yaw) * Math.cos(p),
+          );
+          camera.lookAt(look);
+        } else {
+          if (!reducedMotion && !dragging) yaw += dt * palette.orbitSpeed;
+          const r = cam.radius;
+          camera.position.set(
+            cam.target.x + Math.sin(yaw) * r,
+            cam.height + p * cam.pitchRise,
+            cam.target.z + Math.cos(yaw) * r,
+          );
+          camera.lookAt(cam.target.x, cam.lookAtY, cam.target.z);
+        }
 
         animateWater(waters, t);
         if (rain) animateRain(rain, dt);
@@ -232,6 +282,8 @@ export function Round4Scene({ env, reducedMotion }: { env: EnvironmentSpec; redu
       (window as unknown as { __round4Ready?: boolean }).__round4Ready = false;
       cancelAnimationFrame(frame);
       ro?.disconnect();
+      window.removeEventListener("keydown", onKeyDown);
+      window.removeEventListener("keyup", onKeyUp);
       host.removeEventListener("pointerdown", onDown);
       host.removeEventListener("pointermove", onMove);
       host.removeEventListener("pointerup", onUp);
@@ -248,9 +300,56 @@ export function Round4Scene({ env, reducedMotion }: { env: EnvironmentSpec; redu
     };
   }, [env, reducedMotion]);
 
+  // Virtual joystick (touch): the knob offset drives the same input as WASD.
+  const onJoy = (e: React.PointerEvent<HTMLDivElement>) => {
+    const el = e.currentTarget;
+    el.setPointerCapture(e.pointerId);
+    const rect = el.getBoundingClientRect();
+    const px = (e.clientX - (rect.x + rect.width / 2)) / (rect.width / 2);
+    const py = (e.clientY - (rect.y + rect.height / 2)) / (rect.height / 2);
+    joyRef.current = {
+      x: Math.max(-1, Math.min(1, px)),
+      y: Math.max(-1, Math.min(1, py)),
+      active: true,
+    };
+  };
+  const endJoy = () => {
+    joyRef.current = { x: 0, y: 0, active: false };
+  };
+
   return (
     <div className="absolute inset-0">
       <div ref={hostRef} className="h-full w-full touch-none" aria-label="3D reconstruction" />
+      <div className="pointer-events-none absolute inset-x-3 top-[calc(env(safe-area-inset-top)+5.75rem)] z-10 flex items-start justify-between gap-2">
+        <button
+          type="button"
+          className="pointer-events-auto inline-flex h-9 items-center rounded-full border border-border bg-bg/80 px-3 text-[11px] font-medium uppercase tracking-wider text-fg backdrop-blur-sm"
+          onClick={() => setWalking((v) => !v)}
+        >
+          {walking ? "Orbit view" : "Walk around"}
+        </button>
+        <span className="pointer-events-none rounded-full border border-border bg-bg/70 px-3 py-1.5 text-[10px] uppercase tracking-wider text-muted backdrop-blur-sm">
+          {walking ? "Drag to look · WASD / stick to move" : "Drag to orbit"}
+        </span>
+      </div>
+      {walking && (
+        <div
+          className="absolute left-4 z-10 size-24 touch-none rounded-full border border-border bg-bg/50 backdrop-blur-sm max-sm:bottom-[calc(var(--atlas-map-h)+0.75rem)] sm:bottom-4"
+          onPointerDown={onJoy}
+          onPointerMove={(e) => {
+            if (joyRef.current.active) onJoy(e);
+          }}
+          onPointerUp={endJoy}
+          onPointerCancel={endJoy}
+          aria-label="Move"
+          role="application"
+        >
+          <span
+            className="pointer-events-none absolute left-1/2 top-1/2 size-10 -translate-x-1/2 -translate-y-1/2 rounded-full border border-border bg-fg/80"
+            style={{ transform: `translate(calc(-50% + ${joyRef.current.x * 28}px), calc(-50% + ${joyRef.current.y * 28}px))` }}
+          />
+        </div>
+      )}
     </div>
   );
 }
@@ -528,6 +627,12 @@ function animateWater(waters: WaterPts[], t: number) {
     pos.needsUpdate = true;
     geo.computeVertexNormals();
   }
+}
+
+/** World-space height of the terrain mesh (matches groundPlane's displacement). */
+function groundHeight(x: number, z: number): number {
+  // The plane is rotated -90° about X, so local y maps to world -z.
+  return Math.sin(x * 0.12) * 0.25 + Math.cos(z * 0.09) * 0.3 + Math.sin((x - z) * 0.05) * 0.2;
 }
 
 function groundPlane(build: Build, color: number, size: number, rough = 0.95) {
