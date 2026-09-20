@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Globe, LocateFixed, Lock, Maximize2, Minimize2, Search } from "lucide-react";
 import type { LatLng } from "@/lib/game";
-import { formatDistance, geodesicPoints, haversineKm, searchPlaces, type Place } from "@/lib/game";
+import { atlasFocus, atlasIncludes, formatDistance, geodesicPoints, haversineKm, searchPlaces, type AtlasSpec, type Place } from "@/lib/game";
 import { cn } from "@/lib/utils";
 import worldJson from "@/data/world.json";
 import detailJson from "@/data/detail.json";
@@ -82,6 +82,7 @@ export function GuessMap({
   onLock,
   canLock,
   urgent,
+  atlas,
 }: {
   guess?: LatLng;
   onGuess: (p: LatLng) => void;
@@ -95,6 +96,7 @@ export function GuessMap({
   onLock?: () => void;
   canLock?: boolean;
   urgent?: boolean;
+  atlas?: AtlasSpec;
 }) {
   const hostRef = useRef<HTMLDivElement>(null);
   const wrapRef = useRef<HTMLDivElement>(null);
@@ -114,7 +116,7 @@ export function GuessMap({
   reducedRef.current = reducedMotion;
   const revealRef = useRef(reveal);
   revealRef.current = reveal;
-  const pendingFocus = useRef<"ZA" | "NL" | "world" | null>("world");
+  const pendingFocus = useRef<"ZA" | "NL" | "world" | null>(atlas ? atlasFocus(atlas) : "world");
   const ignoreMapClickUntil = useRef(0);
   const [status, setStatus] = useState<MapStatus>("loading");
   const [epoch, setEpoch] = useState(0);
@@ -635,12 +637,16 @@ export function GuessMap({
         </div>
         {!reveal && (
           <div className="pointer-events-auto flex flex-wrap items-center gap-1.5">
-            <button type="button" className={cn(chip, "border-transparent bg-za/90")} onClick={() => focusCountry("ZA")} aria-label="Focus map on South Africa">
-              SA
-            </button>
-            <button type="button" className={cn(chip, "border-transparent bg-nl/90")} onClick={() => focusCountry("NL")} aria-label="Focus map on the Netherlands">
-              NL
-            </button>
+            {(!atlas || atlasIncludes(atlas, "ZA")) && (
+              <button type="button" className={cn(chip, "border-transparent bg-za/90")} onClick={() => focusCountry("ZA")} aria-label="Focus map on South Africa">
+                SA
+              </button>
+            )}
+            {(!atlas || atlasIncludes(atlas, "NL")) && (
+              <button type="button" className={cn(chip, "border-transparent bg-nl/90")} onClick={() => focusCountry("NL")} aria-label="Focus map on the Netherlands">
+                NL
+              </button>
+            )}
             <button type="button" className={chip} onClick={() => focusCountry("world")} aria-label="Show the whole world">
               <Globe className="size-3.5" /> World
             </button>

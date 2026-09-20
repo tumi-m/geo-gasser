@@ -1,3 +1,5 @@
+import type { AtlasSpec } from "./atlas.ts";
+
 export type AtmosphereId =
   | "cape-dusk"
   | "amsterdam-neon"
@@ -133,6 +135,7 @@ export interface MatchState {
   totalRounds: number;
   timeDifficulty: "easy" | "medium" | "hard";
   matchLength: "standard" | "extended" | "full";
+  atlas: AtlasSpec;
   roundStartedAtMs?: number;
   players: PlayerState[];
   /** Host-only until reveal. Stripped from public snapshots. */
@@ -163,6 +166,7 @@ export interface PublicSnapshot {
   totalRounds: number;
   timeDifficulty: "easy" | "medium" | "hard";
   matchLength: "standard" | "extended" | "full";
+  atlas: AtlasSpec;
   roundStartedAtMs?: number;
   players: Array<
     Omit<PlayerState, "guess" | "roundScore"> & {

@@ -5,7 +5,7 @@ const STEPS = [
   {
     n: "01",
     title: "Study the scene",
-    body: "149 places: 50 South Africa, 50 Netherlands, 49 around the world. Drag to look around, WASD to inspect, scroll to zoom — like GeoGuessr, on a still.",
+    body: "Choose an atlas before you play: South Africa, the Netherlands, both, the world, a mix, or a custom list of countries. Then drag to look around, WASD to inspect, scroll to zoom.",
   },
   {
     n: "02",
@@ -30,7 +30,7 @@ const STEPS = [
   {
     n: "06",
     title: "Match length",
-    body: "Standard is 4 rounds / 40 questions. Extended is 7 / 70. Full game is 10 rounds / 100, drawn from the shuffled 149 so repeats are rare.",
+    body: "Standard is 4 rounds / 40 questions on a large atlas. A custom country list shrinks to the unique places you picked — never repeats.",
   },
   {
     n: "07",

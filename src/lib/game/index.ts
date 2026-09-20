@@ -6,6 +6,7 @@ export * from "./feedback.ts";
 export * from "./gazetteer.ts";
 export * from "./locations.ts";
 export * from "./validation.ts";
+export * from "./atlas.ts";
 export * from "./selection.ts";
 export * from "./environments.ts";
 export * from "./providers.ts";

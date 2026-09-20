@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import type { AvatarId, GameSettings, MatchLengthId, TimeDifficulty } from "@/lib/game";
 import { sanitizeAvatar } from "@/lib/game";
+import { AtlasPicker } from "./atlas-picker";
 import { AvatarPicker } from "./player-avatar";
 import { cn } from "@/lib/utils";
 import { ModalShell } from "./modal-shell";
@@ -62,6 +63,10 @@ export function SettingsPanel({
             value={sanitizeAvatar(settings.avatarId)}
             onChange={(avatarId: AvatarId) => onChange({ ...settings, avatarId })}
           />
+        </div>
+        <div className="flex flex-col gap-2 text-sm text-muted">
+          Atlas
+          <AtlasPicker value={settings.atlas} onChange={(atlas) => onChange({ ...settings, atlas })} />
         </div>
         <div className="flex flex-col gap-2 text-sm text-muted">
           Timer

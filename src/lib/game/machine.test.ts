@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { createLobbyState, reduce, toPublicSnapshot } from "./machine.ts";
+import { getLocation } from "./locations.ts";
 
 const now = 1_000_000;
 
@@ -236,6 +237,19 @@ describe("match options", () => {
     assert.equal(new Set(s.locationIds).size, 100);
     assert.equal(s.totalRounds, 10);
     assert.equal(s.matchLength, "full");
+  });
+  it("South Africa atlas stays inside ZA", () => {
+    const s = reduce(createLobbyState(), {
+      type: "CREATE_SOLO",
+      playerId: "p1",
+      name: "Ada",
+      seed: 5,
+      now,
+      atlas: { preset: "za", nations: ["ZA"] },
+    });
+    assert.equal(s.atlas.preset, "za");
+    assert.ok(s.locationIds.length > 0);
+    assert.ok(s.locationIds.every((id) => getLocation(id)?.country === "ZA"));
   });
 });
 

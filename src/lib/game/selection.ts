@@ -1,3 +1,9 @@
+import {
+  DEFAULT_ATLAS,
+  filterByAtlas,
+  sanitizeAtlas,
+  type AtlasSpec,
+} from "./atlas.ts";
 import { environmentForLocation, ROUND4_ENVIRONMENTS } from "./environments.ts";
 import { enabledLocations, ROUND4_LOCATIONS } from "./locations.ts";
 import { mulberry32, shuffle } from "./rng.ts";
@@ -21,11 +27,17 @@ export const REAL_ROUNDS = PHOTO_ROUNDS;
  */
 export const ROUND4_3D_LIVE = false;
 
-/** Photo-round country mix. Round 4 always appends the 10 reserved reconstructions. */
+/** Photo-round country mix for the SA × NL atlas. Round 4 appends reconstructions. */
 export const MATCH_QUOTA: Record<MatchLengthId, Record<CountryCode, number>> = {
   standard: { ZA: 15, NL: 15, WORLD: 0 },
   extended: { ZA: 25, NL: 25, WORLD: 10 },
   full: { ZA: 35, NL: 35, WORLD: 20 },
+};
+
+export const MIX_QUOTA: Record<MatchLengthId, Record<CountryCode, number>> = {
+  standard: { ZA: 10, NL: 10, WORLD: 10 },
+  extended: { ZA: 20, NL: 20, WORLD: 20 },
+  full: { ZA: 30, NL: 30, WORLD: 30 },
 };
 
 export interface MatchPlan {
@@ -33,6 +45,7 @@ export interface MatchPlan {
   locationIds: string[];
   envIds: string[];
   matchLength: MatchLengthId;
+  atlas: AtlasSpec;
   photoRounds: number;
   photoQuestions: number;
   totalRounds: number;
@@ -55,17 +68,12 @@ function take(list: GeoLocation[], n: number): GeoLocation[] {
   return list.splice(0, Math.max(0, Math.min(n, list.length)));
 }
 
-/**
- * Standard: 15 ZA + 15 NL stills, then 10 reserved reconstructions.
- * Extended / full pull extra stills from the 149-site pool, then the same 3D tail.
- * The 3D renderer is parked (`ROUND4_3D_LIVE`) — plates still play as round 4.
- */
-export function planMatch(seed: number, matchLength: MatchLengthId = "standard"): MatchPlan {
-  const cfg = MATCH_LENGTH[matchLength];
-  const quota = MATCH_QUOTA[matchLength];
-  const rand = mulberry32(seed);
-  const reserved = new Set(ROUND4_LOCATIONS.map((l) => l.id));
-  const pool = enabledLocations().filter((l) => !reserved.has(l.id));
+function dealQuota(
+  pool: GeoLocation[],
+  quota: Record<CountryCode, number>,
+  rand: () => number,
+  want: number,
+): GeoLocation[] {
   const za = shuffle(
     pool.filter((l) => l.country === "ZA"),
     rand,
@@ -78,38 +86,69 @@ export function planMatch(seed: number, matchLength: MatchLengthId = "standard")
     pool.filter((l) => l.country === "WORLD"),
     rand,
   );
-
-  const picked: GeoLocation[] = [
-    ...take(za, quota.ZA),
-    ...take(nl, quota.NL),
-    ...take(world, quota.WORLD),
-  ];
+  const picked: GeoLocation[] = [...take(za, quota.ZA), ...take(nl, quota.NL), ...take(world, quota.WORLD)];
   const used = new Set(picked.map((l) => l.id));
   const rest = shuffle(
     pool.filter((l) => !used.has(l.id)),
     rand,
   );
-  while (picked.length < cfg.photoQuestions && rest.length) {
-    picked.push(rest.shift()!);
+  while (picked.length < want && rest.length) picked.push(rest.shift()!);
+  return shuffle(picked, rand).slice(0, want);
+}
+
+/**
+ * Deal a match from the selected atlas.
+ * SA × NL keeps a balanced 15/15 + 10 reconstructions.
+ * Other atlases filter the 149-site pool and shrink the match if the map is smaller.
+ */
+export function planMatch(
+  seed: number,
+  matchLength: MatchLengthId = "standard",
+  atlas: AtlasSpec = DEFAULT_ATLAS,
+): MatchPlan {
+  const spec = sanitizeAtlas(atlas);
+  const cfg = MATCH_LENGTH[matchLength];
+  const rand = mulberry32(seed);
+  const reserved = new Set(ROUND4_LOCATIONS.map((l) => l.id));
+  const photoPool = filterByAtlas(
+    enabledLocations().filter((l) => !reserved.has(l.id)),
+    spec,
+  );
+  const r4Pool = filterByAtlas(ROUND4_LOCATIONS, spec);
+  const available = photoPool.length + r4Pool.length;
+  const target = Math.max(1, Math.min(cfg.totalQuestions, available || 1));
+
+  let photos: GeoLocation[];
+  if (spec.preset === "sa-nl") {
+    photos = dealQuota(photoPool, MATCH_QUOTA[matchLength], rand, Math.min(cfg.photoQuestions, photoPool.length));
+  } else if (spec.preset === "mix") {
+    photos = dealQuota(photoPool, MIX_QUOTA[matchLength], rand, Math.min(cfg.photoQuestions, photoPool.length));
+  } else {
+    photos = shuffle([...photoPool], rand);
   }
 
-  const photoIds = shuffle(picked, rand)
-    .slice(0, cfg.photoQuestions)
-    .map((l) => l.id);
-
-  const reconstructions = shuffle([...ROUND4_LOCATIONS], rand);
-  const locationIds = [...photoIds, ...reconstructions.map((l) => l.id)].slice(0, cfg.totalQuestions);
+  const r4Take = Math.min(r4Pool.length, Math.max(0, target - Math.min(photos.length, cfg.photoQuestions)));
+  const photoTake = Math.min(photos.length, target - r4Take);
+  const photoIds = (photos.length === photoTake ? photos : photos.slice(0, photoTake)).map((l) => l.id);
+  const reconstructions = shuffle([...r4Pool], rand).slice(0, r4Take);
+  const locationIds = [...photoIds, ...reconstructions.map((l) => l.id)];
   const envIds = reconstructions.map(
     (l, i) => environmentForLocation(l.id)?.id ?? ROUND4_ENVIRONMENTS[i % ROUND4_ENVIRONMENTS.length].id,
   );
 
+  const totalQuestions = locationIds.length;
+  const photoQuestions = photoIds.length;
+  const totalRounds = Math.max(1, Math.ceil(totalQuestions / QUESTIONS_PER_ROUND));
+  const photoRounds = Math.max(0, Math.ceil(photoQuestions / QUESTIONS_PER_ROUND));
+
   return {
     seed,
     matchLength,
-    photoRounds: cfg.photoRounds,
-    photoQuestions: cfg.photoQuestions,
-    totalRounds: cfg.totalRounds,
-    totalQuestions: cfg.totalQuestions,
+    atlas: spec,
+    photoRounds,
+    photoQuestions,
+    totalRounds,
+    totalQuestions,
     locationIds,
     envIds,
   };
@@ -126,3 +165,4 @@ export function currentEnvId(
   if (!isRound4Question(questionIndex, plan.photoQuestions)) return undefined;
   return plan.envIds[questionIndex - plan.photoQuestions];
 }
+

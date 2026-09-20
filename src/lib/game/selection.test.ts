@@ -40,19 +40,24 @@ describe("planMatch", () => {
     assert.equal(plan.envIds.length, 10);
     assert.ok(plan.locationIds.every((id) => getLocation(id)));
   });
-  it("extended match uses 60 unique stills plus the 10 reconstructions", () => {
+  it("extended match stays on SA and NL plus reconstructions", () => {
     const plan = planMatch(11, "extended");
     assert.equal(plan.locationIds.length, 70);
     assert.equal(new Set(plan.locationIds).size, 70);
-    assert.deepEqual(counts(plan.locationIds.slice(0, 60)), MATCH_QUOTA.extended);
+    assert.equal(counts(plan.locationIds.slice(0, 60)).WORLD, 0);
     assert.equal(plan.envIds.length, 10);
   });
-  it("full game uses 90 unique stills plus the 10 reconstructions", () => {
+  it("full game stays on SA and NL plus reconstructions", () => {
     const plan = planMatch(3, "full");
     assert.equal(plan.locationIds.length, 100);
     assert.equal(new Set(plan.locationIds).size, 100);
     assert.equal(plan.totalRounds, 10);
-    assert.deepEqual(counts(plan.locationIds.slice(0, 90)), MATCH_QUOTA.full);
+    assert.equal(counts(plan.locationIds.slice(0, 90)).WORLD, 0);
+  });
+  it("mix atlas pulls world sites into the photo rounds", () => {
+    const plan = planMatch(8, "standard", { preset: "mix", nations: [] });
+    assert.equal(plan.atlas.preset, "mix");
+    assert.ok(counts(plan.locationIds.slice(0, plan.photoQuestions)).WORLD > 0);
   });
   it("varies across seeds so the photo pool is hard to memorise", () => {
     const plans = Array.from({ length: 12 }, (_, i) => planMatch(i + 1).locationIds.slice(0, 30).join(","));

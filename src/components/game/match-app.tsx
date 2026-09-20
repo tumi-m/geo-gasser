@@ -3,6 +3,7 @@ import { useNavigate } from "@tanstack/react-router";
 import { Settings as SettingsIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
+  atlasLabel,
   activeEnvironment,
   activeLocation,
   audio,
@@ -107,9 +108,9 @@ export function MatchApp({
       seed: randomSeed(),
       now: performance.now(),
       difficulty: settings.difficulty,
-      matchLength: settings.matchLength,
+      matchLength: settings.matchLength, atlas: settings.atlas,
     });
-  }, [mode, selfId, name, avatarId, dispatch, settings.difficulty, settings.matchLength]);
+  }, [mode, selfId, name, avatarId, dispatch, settings.difficulty, settings.matchLength, settings.atlas]);
 
   useEffect(() => {
     if (mode !== "duel" || bootRef.current) return;
@@ -121,7 +122,7 @@ export function MatchApp({
         seed: randomSeed(),
         now: Date.now(),
         difficulty: settings.difficulty,
-        matchLength: settings.matchLength,
+        matchLength: settings.matchLength, atlas: settings.atlas,
         seats: [
           { id: selfId, name, avatarId },
           { id: GROK_BOT_ID, name: GROK_BOT_NAME, avatarId: "grok", kind: "bot" },
@@ -145,7 +146,7 @@ export function MatchApp({
         seed: randomSeed(),
         now: Date.now(),
         difficulty: settings.difficulty,
-        matchLength: settings.matchLength,
+        matchLength: settings.matchLength, atlas: settings.atlas,
         seats: [
           { id: selfId, name, avatarId },
           { id: "seat-2", name: guest.name, avatarId: sanitizeAvatar(guest.avatarId) },
@@ -167,7 +168,7 @@ export function MatchApp({
         seed: randomSeed(),
         now: Date.now(),
         difficulty: settings.difficulty,
-        matchLength: settings.matchLength,
+        matchLength: settings.matchLength, atlas: settings.atlas,
       });
     }
   }, [mode, duelKind, isCreator, selfId, name, avatarId, roomCode, dispatch, state.phase]);
@@ -194,11 +195,11 @@ export function MatchApp({
         seed: randomSeed(),
         now: Date.now(),
         difficulty: settings.difficulty,
-        matchLength: settings.matchLength,
+        matchLength: settings.matchLength, atlas: settings.atlas,
       });
     }, 2500);
     return () => window.clearTimeout(t);
-  }, [mode, duelKind, isCreator, state.hostId, p2p.peers, selfId, name, avatarId, roomCode, dispatch, settings.difficulty, settings.matchLength]);
+  }, [mode, duelKind, isCreator, state.hostId, p2p.peers, selfId, name, avatarId, roomCode, dispatch, settings.difficulty, settings.matchLength, settings.atlas]);
 
   useEffect(() => {
     if (mode !== "duel") return;
@@ -630,7 +631,7 @@ export function MatchApp({
           statsRecorded.current = false;
           const seed = randomSeed();
           if (mode === "duel" && duelKind === "online" && !hostRef.current) p2p.send({ t: "rematch", seed });
-          else dispatch({ type: "REMATCH", seed, now: mode === "solo" ? performance.now() : Date.now(), difficulty: settings.difficulty, matchLength: settings.matchLength });
+          else dispatch({ type: "REMATCH", seed, now: mode === "solo" ? performance.now() : Date.now(), difficulty: settings.difficulty, matchLength: settings.matchLength, atlas: settings.atlas });
         }}
         onHome={quit}
       />
@@ -655,7 +656,9 @@ export function MatchApp({
           tabIndex={0}
           aria-label="Start round"
         >
-          <p className="atlas-rise text-xs uppercase tracking-[0.28em] text-muted">{roundLabel}</p>
+          <p className="atlas-rise text-xs uppercase tracking-[0.28em] text-muted">
+            {atlasLabel(state.atlas)} · {roundLabel}
+          </p>
           <h1 className="atlas-rise atlas-rise-1 font-display mt-3 text-5xl sm:text-7xl">Locate this</h1>
           <p className="atlas-rise atlas-rise-2 mt-4 max-w-sm text-sm text-muted">
             {reconstructionRound
@@ -766,6 +769,7 @@ export function MatchApp({
           urgent={urgent}
           onLock={canGuess ? lock : undefined}
           canLock={Boolean(you?.guess)}
+          atlas={state.atlas}
         />
       )}
 

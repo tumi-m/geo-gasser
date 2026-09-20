@@ -5,7 +5,20 @@ import { Button } from "@/components/ui/button";
 import { Globe } from "./globe";
 import { SettingsPanel } from "./settings-panel";
 import { Tutorial } from "./tutorial";
-import { audio, DIFFICULTY_SECONDS, formatDistance, loadSettings, loadStats, saveSettings, type GameSettings, type PlayerStats } from "@/lib/game";
+import { AtlasPicker } from "./atlas-picker";
+import {
+  atlasLabel,
+  atlasPoolSize,
+  audio,
+  DIFFICULTY_SECONDS,
+  formatDistance,
+  loadSettings,
+  loadStats,
+  MATCH_LENGTH,
+  saveSettings,
+  type GameSettings,
+  type PlayerStats,
+} from "@/lib/game";
 import { cn } from "@/lib/utils";
 
 const VIGNETTES = [
@@ -48,7 +61,7 @@ export function HomeScreen() {
   };
 
   return (
-    <main className="relative min-h-dvh overflow-hidden bg-bg">
+    <main className="relative min-h-dvh overflow-x-hidden bg-bg">
       <Globe reducedMotion={reduced} />
       <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(9,9,11,0.2)_0%,rgba(9,9,11,0.72)_55%,rgba(9,9,11,0.92)_100%)]" />
       {VIGNETTES.map((src, i) => (
@@ -63,7 +76,7 @@ export function HomeScreen() {
         />
       ))}
       <header className="relative z-10 flex items-center justify-between px-5 py-4 pt-[max(1rem,env(safe-area-inset-top))]">
-        <p className="text-[11px] uppercase tracking-[0.28em] text-muted">SA · NL · World</p>
+        <p className="text-[11px] uppercase tracking-[0.28em] text-muted">Pick your atlas</p>
         <div className="flex gap-2">
           <Button variant="ghost" size="icon" aria-label="How to play" onClick={() => setShowHelp(true)}>
             <CircleHelp className="size-5" />
@@ -73,16 +86,20 @@ export function HomeScreen() {
           </Button>
         </div>
       </header>
-      <section className="relative z-10 mx-auto flex min-h-[calc(100dvh-4.5rem)] max-w-xl flex-col justify-end px-5 pb-[max(2.5rem,env(safe-area-inset-bottom))] pt-10 sm:justify-center">
+      <section className="relative z-10 mx-auto flex min-h-[calc(100dvh-4.5rem)] max-w-xl flex-col justify-start px-5 pb-[max(2.5rem,env(safe-area-inset-bottom))] pt-6 sm:justify-center">
         <p className="atlas-rise text-xs uppercase tracking-[0.32em] text-muted">Competitive geography</p>
         <h1 className="atlas-rise atlas-rise-1 font-display mt-3 text-6xl leading-[0.9] tracking-[-0.04em] sm:text-8xl">
           ATLAS DUEL
         </h1>
         <p className="atlas-rise atlas-rise-2 mt-4 text-sm uppercase tracking-[0.22em] text-muted">
-          South Africa · Netherlands · the world
+          {atlasLabel(settings.atlas)}
         </p>
         <p className="atlas-rise atlas-rise-3 mt-5 max-w-md text-lg text-fg/90">Where in the world are you?</p>
-        <div className="atlas-rise atlas-rise-4 mt-7 grid grid-cols-3 gap-2">
+        <div className="atlas-rise atlas-rise-4 mt-7">
+          <p className="mb-2 text-[11px] uppercase tracking-wider text-subtle">Atlas</p>
+          <AtlasPicker value={settings.atlas} onChange={(atlas) => setSettings({ ...settings, atlas })} compact />
+        </div>
+        <div className="atlas-rise atlas-rise-4 mt-3 grid grid-cols-3 gap-2">
           {(
             [
               ["easy", "Easy", "60s"],
@@ -158,7 +175,7 @@ export function HomeScreen() {
           </dl>
         ) : null}
         <p className="mt-6 text-sm text-subtle">
-          15 South Africa · 15 Netherlands · 10 reconstructions · {DIFFICULTY_SECONDS[settings.difficulty]}s
+          {atlasLabel(settings.atlas)} · {atlasPoolSize(settings.atlas)} places · {MATCH_LENGTH[settings.matchLength].totalRounds} rounds · {DIFFICULTY_SECONDS[settings.difficulty]}s
         </p>
       </section>
       {showSettings && (

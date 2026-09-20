@@ -1,8 +1,9 @@
 # ATLAS DUEL — South Africa · Netherlands
 
-A geo-guessing duel. Study a scene, look around it, drop a pin, lock in. Accuracy and speed both score.
+A geo-guessing duel. Pick an atlas, study a scene, drop a pin, lock in. Accuracy and speed both score.
 
-- **Standard** — 4 rounds / 40 questions (15 South Africa, 15 Netherlands, 10 reconstructions)
+- **Atlas** — South Africa, the Netherlands, SA × NL, world, mix, or a custom country list
+- **Standard** — 4 rounds / 40 questions (shrinks if your map is smaller)
 - **Extended** — 7 rounds / 70 questions
 - **Full game** — 10 rounds / 100 questions
 
