@@ -222,6 +222,21 @@ describe("match options", () => {
     assert.equal(new Set(s.locationIds).size, 70);
     assert.equal(s.totalRounds, 7);
   });
+  it("full game deals 100 unique questions across 10 rounds", () => {
+    const s = reduce(createLobbyState(), {
+      type: "CREATE_SOLO",
+      playerId: "p1",
+      name: "Ada",
+      seed: 19,
+      now,
+      matchLength: "full",
+    });
+    assert.equal(s.totalQuestions, 100);
+    assert.equal(s.locationIds.length, 100);
+    assert.equal(new Set(s.locationIds).size, 100);
+    assert.equal(s.totalRounds, 10);
+    assert.equal(s.matchLength, "full");
+  });
 });
 
 describe("forty-question match", () => {

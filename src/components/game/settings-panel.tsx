@@ -85,18 +85,24 @@ export function SettingsPanel({
         </div>
         <div className="flex flex-col gap-2 text-sm text-muted">
           Match length
-          <div className="grid grid-cols-2 gap-2">
+          <div className="grid grid-cols-3 gap-2">
             <Choice
               label="Standard"
-              hint="4 rounds · 40 questions"
+              hint="4 rounds · 40"
               active={settings.matchLength === "standard"}
               onClick={() => onChange({ ...settings, matchLength: "standard" as MatchLengthId })}
             />
             <Choice
               label="Extended"
-              hint="7 rounds · 70 questions"
+              hint="7 rounds · 70"
               active={settings.matchLength === "extended"}
               onClick={() => onChange({ ...settings, matchLength: "extended" as MatchLengthId })}
+            />
+            <Choice
+              label="Full game"
+              hint="10 rounds · 100"
+              active={settings.matchLength === "full"}
+              onClick={() => onChange({ ...settings, matchLength: "full" as MatchLengthId })}
             />
           </div>
           {onQuit ? <p className="text-[11px] text-subtle">Timer and length apply on the next match.</p> : null}

@@ -1,13 +1,21 @@
-# ATLAS DUEL — South Africa × Netherlands
+# ATLAS DUEL — South Africa · Netherlands · the world
 
-A four-round geo-guessing duel. Study a scene, drop a pin, lock in within 45 seconds. Accuracy and speed both score. Rounds 1–3 use real geography from a 30-location launch pack. Round 4 is a labelled 3D reconstruction.
+A geo-guessing duel. Study a scene, look around it, drop a pin, lock in. Accuracy and speed both score. The pool is 149 places (50 South Africa, 50 Netherlands, 49 world). Matches shuffle the pack so it is hard to memorise.
+
+- **Standard** — 4 rounds / 40 questions
+- **Extended** — 7 rounds / 70 questions
+- **Full game** — 10 rounds / 100 questions
+
+Timer: Easy 60s, Medium 45s, Hard 30s.
+
+The old 3D reconstruction round is parked until generation credits return — see `docs/round4-later.md`. Those ten sites still appear as labelled stills in the photo pool.
 
 ## Play
 
-- **Play solo** — four rounds, personal best stored on this device.
-- **Two player duel** — create a room, share the code, host starts when both players are in.
+- **Play solo** — personal best stored on this device.
+- **Two player duel** — Grok, pass-and-play, or a private room.
 
-Unsubmitted pins score zero when the timer ends. South Africa uses a wider distance curve than the Netherlands so a miss in the Karoo is not treated like a miss in Utrecht.
+Drag the scene to look around, WASD to inspect, scroll to zoom. Unsubmitted pins score zero when the timer ends. South Africa uses a wider distance curve than the Netherlands; world sites are wider still.
 
 ## Setup
 
@@ -26,7 +34,7 @@ See `docs/architecture.md`. Game rules live in `src/lib/game` so they can be tes
 
 ## Providers
 
-See `docs/providers.md`. Map: bundled Natural Earth countries (no live tile API). Location plates: Wikimedia Commons (CC BY-SA) or labelled reconstructions. Round 4 is generated/procedural — never presented as a live photograph.
+See `docs/providers.md`. Map: bundled Natural Earth countries (no live tile API). Location plates: Wikimedia Commons (CC BY-SA) or labelled reconstructions.
 
 ## Testing
 
@@ -35,7 +43,7 @@ npm test
 npm run locations:validate
 ```
 
-Unit tests cover the timer contract (10,000 points at 45s, 1,000 at 1s), haversine pairs, country-aware scoring, tie-breaks, launch-pool validation, round selection, and the match state machine (including hidden answers before reveal).
+Unit tests cover the timer contract, haversine pairs, country-aware scoring, the 149-site pool, shuffled match deals, and the match state machine (including hidden answers before reveal).
 
 ## Deployment
 
@@ -44,7 +52,7 @@ The app builds with the workspace Vite / Vercel pipeline. Optional `VITE_STUN_UR
 ## Known limitations
 
 - Duel is host-authoritative P2P, not a dedicated game server. Private rooms only.
-- Higgsfield MCP is not available; Round 4 uses the procedural fallback.
+- The 3D reconstruction round is parked (`docs/round4-later.md`) until generation credits return.
 - A few launch plates are cinematic reconstructions where a Commons file could not be fetched at pack time.
 - External map lookup cannot be fully prevented in a browser client.
 

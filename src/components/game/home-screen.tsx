@@ -63,7 +63,7 @@ export function HomeScreen() {
         />
       ))}
       <header className="relative z-10 flex items-center justify-between px-5 py-4 pt-[max(1rem,env(safe-area-inset-top))]">
-        <p className="text-[11px] uppercase tracking-[0.28em] text-muted">SA × NL</p>
+        <p className="text-[11px] uppercase tracking-[0.28em] text-muted">SA · NL · World</p>
         <div className="flex gap-2">
           <Button variant="ghost" size="icon" aria-label="How to play" onClick={() => setShowHelp(true)}>
             <CircleHelp className="size-5" />
@@ -79,7 +79,7 @@ export function HomeScreen() {
           ATLAS DUEL
         </h1>
         <p className="atlas-rise atlas-rise-2 mt-4 text-sm uppercase tracking-[0.22em] text-muted">
-          South Africa × Netherlands
+          South Africa · Netherlands · the world
         </p>
         <p className="atlas-rise atlas-rise-3 mt-5 max-w-md text-lg text-fg/90">Where in the world are you?</p>
         <div className="atlas-rise atlas-rise-4 mt-7 grid grid-cols-3 gap-2">
@@ -104,7 +104,7 @@ export function HomeScreen() {
             </button>
           ))}
         </div>
-        <div className="atlas-rise atlas-rise-4 mt-2 grid grid-cols-2 gap-2">
+        <div className="atlas-rise atlas-rise-4 mt-2 grid grid-cols-3 gap-2">
           <button
             type="button"
             onClick={() => setSettings({ ...settings, matchLength: "standard" })}
@@ -114,7 +114,7 @@ export function HomeScreen() {
             )}
           >
             <span className="block text-sm font-medium">Standard</span>
-            <span className="text-[11px] text-muted">4 rounds · 40 questions</span>
+            <span className="text-[11px] text-muted">4 rounds · 40</span>
           </button>
           <button
             type="button"
@@ -125,7 +125,18 @@ export function HomeScreen() {
             )}
           >
             <span className="block text-sm font-medium">Extended</span>
-            <span className="text-[11px] text-muted">7 rounds · 70 questions</span>
+            <span className="text-[11px] text-muted">7 rounds · 70</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setSettings({ ...settings, matchLength: "full" })}
+            className={cn(
+              "rounded-[var(--radius-md)] border px-3 py-2 text-left",
+              settings.matchLength === "full" ? "border-accent bg-accent/15" : "border-border bg-bg/40",
+            )}
+          >
+            <span className="block text-sm font-medium">Full game</span>
+            <span className="text-[11px] text-muted">10 rounds · 100</span>
           </button>
         </div>
         <div className="atlas-rise atlas-rise-4 mt-6 flex flex-col gap-3 sm:flex-row">
@@ -147,7 +158,7 @@ export function HomeScreen() {
           </dl>
         ) : null}
         <p className="mt-6 text-sm text-subtle">
-          60 places · {MATCH_LENGTH[settings.matchLength].totalRounds} rounds · {DIFFICULTY_SECONDS[settings.difficulty]}s
+          149 places · {MATCH_LENGTH[settings.matchLength].totalRounds} rounds · {DIFFICULTY_SECONDS[settings.difficulty]}s
         </p>
       </section>
       {showSettings && (

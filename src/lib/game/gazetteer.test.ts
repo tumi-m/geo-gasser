@@ -18,6 +18,8 @@ describe("gazetteer", () => {
     assert.equal(searchPlaces("ams")[0]?.name, "Amsterdam");
     assert.ok(searchPlaces("ams").some((p) => p.name === "Amstelveen"));
     assert.equal(searchPlaces("cape")[0]?.name, "Cape Town");
+    assert.equal(searchPlaces("tokyo")[0]?.name, "Tokyo");
+    assert.equal(searchPlaces("eiffel")[0]?.name, "Paris");
   });
 
   it("returns nothing for empty or unknown queries", () => {

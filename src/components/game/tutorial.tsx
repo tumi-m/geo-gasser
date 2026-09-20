@@ -5,12 +5,12 @@ const STEPS = [
   {
     n: "01",
     title: "Study the scene",
-    body: "Photo rounds use 30 South Africa and 30 Netherlands sites. The last round is 10 labelled 3D reconstructions.",
+    body: "149 places: 50 South Africa, 50 Netherlands, 49 around the world. Drag to look around, WASD to inspect, scroll to zoom — like GeoGuessr, on a still.",
   },
   {
     n: "02",
     title: "Drop a pin",
-    body: "Tap the map. Use SA or NL to jump to a country. Drag the pin to fine-tune. The timer depends on Easy / Medium / Hard.",
+    body: "Tap the map. Use SA, NL, or World to jump. Search any city. Drag the pin to fine-tune.",
   },
   {
     n: "03",
@@ -20,7 +20,7 @@ const STEPS = [
   {
     n: "04",
     title: "Accuracy plus speed",
-    body: "South Africa uses a wider distance scale than the Netherlands so both feel fair.",
+    body: "South Africa uses a wider distance scale than the Netherlands. World sites use a wider scale still, so a miss in Patagonia is not treated like a miss in Utrecht.",
   },
   {
     n: "05",
@@ -29,8 +29,8 @@ const STEPS = [
   },
   {
     n: "06",
-    title: "Standard or extended",
-    body: "Standard is 4 rounds / 40 questions. Extended is 7 rounds / 70 questions from the full 60-place pack, then the 3D round.",
+    title: "Match length",
+    body: "Standard is 4 rounds / 40 questions. Extended is 7 / 70. Full game is 10 rounds / 100, drawn from the shuffled 149 so repeats are rare.",
   },
   {
     n: "07",

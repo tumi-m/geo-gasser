@@ -11,7 +11,7 @@ export type AtmosphereId =
   | "island-light"
   | "fynbos-wind";
 
-export type CountryCode = "ZA" | "NL";
+export type CountryCode = "ZA" | "NL" | "WORLD";
 export type Difficulty = 1 | 2 | 3 | 4 | 5;
 export type GameMode = "solo" | "duel";
 
@@ -39,6 +39,8 @@ export interface LatLng {
 export interface GeoLocation {
   id: string;
   country: CountryCode;
+  /** ISO 3166-1 alpha-2 for WORLD sites (e.g. JP, US). */
+  nation?: string;
   title: string;
   city?: string;
   region?: string;
@@ -130,7 +132,7 @@ export interface MatchState {
   totalQuestions: number;
   totalRounds: number;
   timeDifficulty: "easy" | "medium" | "hard";
-  matchLength: "standard" | "extended";
+  matchLength: "standard" | "extended" | "full";
   roundStartedAtMs?: number;
   players: PlayerState[];
   /** Host-only until reveal. Stripped from public snapshots. */
@@ -160,7 +162,7 @@ export interface PublicSnapshot {
   totalQuestions: number;
   totalRounds: number;
   timeDifficulty: "easy" | "medium" | "hard";
-  matchLength: "standard" | "extended";
+  matchLength: "standard" | "extended" | "full";
   roundStartedAtMs?: number;
   players: Array<
     Omit<PlayerState, "guess" | "roundScore"> & {

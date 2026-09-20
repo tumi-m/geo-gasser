@@ -1,4 +1,4 @@
-import { detectCountry, haversineKm } from "./geo.ts";
+import { detectCountry, haversineKm, isInsideNation } from "./geo.ts";
 import { timePoints } from "./timer.ts";
 import type { BadgeId, CountryCode, FeedbackId, LatLng, RoundScore } from "./types.ts";
 
@@ -12,11 +12,13 @@ export const NO_GUESS_KM = 20_015.0868;
 export const COUNTRY_SCALE_KM: Record<CountryCode, number> = {
   ZA: 220,
   NL: 45,
+  WORLD: 850,
 };
 
 export const REGION_KM: Record<CountryCode, number> = {
   ZA: 150,
   NL: 40,
+  WORLD: 250,
 };
 
 export function accuracyPoints(distanceKm: number, country: CountryCode): number {
@@ -68,6 +70,7 @@ export function scoreGuess(opts: {
   truth: LatLng;
   guess: LatLng | null;
   country: CountryCode;
+  nation?: string;
   remainingSec: number;
   responseMs: number;
   isRound4?: boolean;
@@ -89,7 +92,10 @@ export function scoreGuess(opts: {
     };
   }
   const distanceKm = haversineKm(opts.truth, opts.guess);
-  const countryCorrect = detectCountry(opts.guess) === opts.country;
+  const countryCorrect =
+    opts.country === "WORLD" && opts.nation
+      ? isInsideNation(opts.guess, opts.nation)
+      : detectCountry(opts.guess) === opts.country;
   const acc = accuracyPoints(distanceKm, opts.country);
   const time = timePoints(opts.remainingSec, opts.durationSec);
   const roundScore = Math.round((acc + time) * multiplier);

@@ -1,8 +1,17 @@
-# Launch location manifest (30)
+# Location pool (149)
 
-Verified 2026-09-20. Opaque ids. Scene files at `/locations/{id}.jpg`.
+Verified 2026-09-20 (launch) and 2026-09-21 (pack). Opaque ids. Launch plates at `/locations/{id}.jpg`. Pack plates use Wikimedia Commons FilePath.
 
-## South Africa (15)
+| Slice | Count | Ids |
+| --- | --- | --- |
+| South Africa | 50 | loc_01–15, 31–35, 41–55, 71–85 |
+| Netherlands | 50 | loc_16–30, 36–40, 56–70, 86–100 |
+| World | 49 | loc_101–149 |
+
+Matches shuffle this pool. Full game deals 33 ZA + 33 NL + 34 world. The ten labelled reconstructions (`loc_31`–`loc_40`) stay in the photo pool; the separate 3D round is parked.
+
+## Launch South Africa (15)
+
 
 | Id | Title | City | Lat | Lng | Source |
 | --- | --- | --- | --- | --- | --- |

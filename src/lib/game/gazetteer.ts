@@ -1,7 +1,7 @@
 export type Place = {
   name: string;
   aliases: string[];
-  country: "ZA" | "NL";
+  country: "ZA" | "NL" | "WORLD";
   region: string;
   latitude: number;
   longitude: number;
@@ -11,7 +11,7 @@ export type Place = {
 
 function p(
   name: string,
-  country: "ZA" | "NL",
+  country: "ZA" | "NL" | "WORLD",
   region: string,
   latitude: number,
   longitude: number,
@@ -116,6 +116,56 @@ export const PLACES: Place[] = [
   p("Hoorn", "NL", "North Holland", 52.6425, 5.0597),
   p("Keukenhof", "NL", "South Holland", 52.271, 4.546, ["lisse"], false, 12),
   p("Schiphol", "NL", "North Holland", 52.3105, 4.7683, ["amsterdam airport"]),
+
+  p("Paris", "WORLD", "France", 48.8566, 2.3522, ["eiffel"], true, 10),
+  p("Rome", "WORLD", "Italy", 41.8902, 12.4922, ["colosseum"], true, 10),
+  p("London", "WORLD", "United Kingdom", 51.5007, -0.1246, ["big ben", "westminster"], true, 10),
+  p("New York", "WORLD", "United States", 40.758, -73.9855, ["nyc", "times square"], true, 10),
+  p("San Francisco", "WORLD", "United States", 37.8199, -122.4783, ["golden gate"], true, 10),
+  p("Rio de Janeiro", "WORLD", "Brazil", -22.9519, -43.2105, ["rio", "christ the redeemer"], true, 9),
+  p("Machu Picchu", "WORLD", "Peru", -13.1631, -72.545, ["cusco"], true, 10),
+  p("Sydney", "WORLD", "Australia", -33.8568, 151.2153, ["opera house"], true, 10),
+  p("Agra", "WORLD", "India", 27.1751, 78.0421, ["taj mahal"], true, 10),
+  p("Petra", "WORLD", "Jordan", 30.3285, 35.4444, ["treasury"], true, 10),
+  p("Beijing", "WORLD", "China", 40.4319, 116.5704, ["great wall", "jinshanling"], true, 7),
+  p("Mount Fuji", "WORLD", "Japan", 35.3606, 138.7274, ["fuji", "tokyo"], true, 8),
+  p("Tokyo", "WORLD", "Japan", 35.6762, 139.6503, [], true, 9),
+  p("Santorini", "WORLD", "Greece", 36.4618, 25.3753, ["oia"], true, 11),
+  p("Barcelona", "WORLD", "Spain", 41.4036, 2.1744, ["sagrada"], true, 10),
+  p("Lisbon", "WORLD", "Portugal", 38.6916, -9.216, ["belem"], true, 10),
+  p("Prague", "WORLD", "Czechia", 50.091, 14.401, ["castle"], true, 10),
+  p("Neuschwanstein", "WORLD", "Germany", 47.5576, 10.7498, ["bavaria"], false, 11),
+  p("Zermatt", "WORLD", "Switzerland", 45.9763, 7.6586, ["matterhorn"], true, 10),
+  p("Reykjavik", "WORLD", "Iceland", 64.147, -21.94, ["hallgrimskirkja"], true, 10),
+  p("Tromsø", "WORLD", "Norway", 69.6492, 18.9553, ["tromso"], true, 9),
+  p("Stockholm", "WORLD", "Sweden", 59.325, 18.071, ["gamla stan"], true, 10),
+  p("Helsinki", "WORLD", "Finland", 60.1708, 24.9525, [], true, 10),
+  p("Dubrovnik", "WORLD", "Croatia", 42.6407, 18.1103, [], true, 11),
+  p("Budapest", "WORLD", "Hungary", 47.507, 19.0456, ["parliament"], true, 10),
+  p("Dublin", "WORLD", "Ireland", 53.3463, -6.2591, ["ha penny"], true, 10),
+  p("Edinburgh", "WORLD", "United Kingdom", 55.9486, -3.1999, [], true, 10),
+  p("Banff", "WORLD", "Canada", 51.3273, -116.1773, ["moraine lake"], true, 9),
+  p("Chichen Itza", "WORLD", "Mexico", 20.6843, -88.5678, ["yucatan"], true, 10),
+  p("Iguazu Falls", "WORLD", "Argentina", -25.6953, -54.4367, ["iguazu"], true, 9),
+  p("Torres del Paine", "WORLD", "Chile", -50.9423, -73.4068, ["patagonia"], true, 8),
+  p("Angkor Wat", "WORLD", "Cambodia", 13.4125, 103.867, ["angkor", "siem reap"], true, 10),
+  p("Ha Long Bay", "WORLD", "Vietnam", 20.9101, 107.1839, ["halong"], true, 8),
+  p("Bangkok", "WORLD", "Thailand", 13.7436, 100.4887, ["wat arun"], true, 10),
+  p("Bali", "WORLD", "Indonesia", -8.621, 115.0868, ["tanah lot"], true, 9),
+  p("Seoul", "WORLD", "South Korea", 37.5788, 126.977, ["gyeongbokgung"], true, 10),
+  p("Singapore", "WORLD", "Singapore", 1.2834, 103.8607, ["marina bay"], true, 11),
+  p("Hong Kong", "WORLD", "Hong Kong", 22.294, 114.1722, ["victoria harbour"], true, 10),
+  p("Giza", "WORLD", "Egypt", 29.9792, 31.1342, ["pyramids", "cairo"], true, 10),
+  p("Marrakesh", "WORLD", "Morocco", 31.6258, -7.9891, ["marrakech", "jemaa"], true, 10),
+  p("Serengeti", "WORLD", "Tanzania", -2.3333, 34.8333, [], true, 6),
+  p("Victoria Falls", "WORLD", "Zambia", -17.9243, 25.8572, ["mosi oa tunya"], true, 10),
+  p("Uluru", "WORLD", "Australia", -25.3444, 131.0369, ["ayers rock"], true, 9),
+  p("Milford Sound", "WORLD", "New Zealand", -44.641, 167.896, ["fiordland"], true, 9),
+  p("Cappadocia", "WORLD", "Turkey", 38.6431, 34.8289, ["goreme"], true, 9),
+  p("Istanbul", "WORLD", "Turkey", 41.0054, 28.9768, ["blue mosque"], true, 10),
+  p("Athens", "WORLD", "Greece", 37.9715, 23.7267, ["acropolis"], true, 10),
+  p("Venice", "WORLD", "Italy", 45.4378, 12.3358, ["grand canal"], true, 11),
+  p("Grand Canyon", "WORLD", "United States", 36.0544, -112.1401, [], true, 8),
 ];
 
 function normalize(value: string) {

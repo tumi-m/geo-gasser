@@ -7,7 +7,6 @@ import worldJson from "@/data/world.json";
 import detailJson from "@/data/detail.json";
 import { describePoint, type RegionCollection } from "@/lib/map/lookup";
 import {
-  BOTH_BOUNDS,
   cityLayers,
   detailCountryLayer,
   graticuleLayer,
@@ -18,6 +17,7 @@ import {
   textMarker,
   toLatLngs,
   worldLayer,
+  WORLD_BOUNDS,
   ZA_BOUNDS,
   ZoomGate,
 } from "@/lib/map/layers";
@@ -114,7 +114,8 @@ export function GuessMap({
   reducedRef.current = reducedMotion;
   const revealRef = useRef(reveal);
   revealRef.current = reveal;
-  const pendingFocus = useRef<"ZA" | "NL" | "both" | null>("both");
+  const pendingFocus = useRef<"ZA" | "NL" | "world" | null>("world");
+  const ignoreMapClickUntil = useRef(0);
   const [status, setStatus] = useState<MapStatus>("loading");
   const [epoch, setEpoch] = useState(0);
   const [query, setQuery] = useState("");
@@ -203,6 +204,7 @@ export function GuessMap({
 
         map.on("click", (e: import("leaflet").LeafletMouseEvent) => {
           if (disabledRef.current) return;
+          if (performance.now() < ignoreMapClickUntil.current) return;
           buzz(12);
           onGuessRef.current({ latitude: e.latlng.lat, longitude: e.latlng.lng });
         });
@@ -215,7 +217,7 @@ export function GuessMap({
           if (box.x < 80 || box.y < 80) return;
           pendingFocus.current = null;
           const pad = framePad();
-          if (next === "both") map.fitBounds(BOTH_BOUNDS, { ...pad, animate: false, maxZoom: 3 });
+          if (next === "world") map.fitBounds(WORLD_BOUNDS, { ...pad, animate: false, maxZoom: 2.2 });
           else if (next === "ZA") map.fitBounds(ZA_BOUNDS, { ...pad, animate: !reducedRef.current, maxZoom: 5.5 });
           else map.fitBounds(NL_BOUNDS, { ...pad, animate: !reducedRef.current, maxZoom: 7.5 });
         };
@@ -317,15 +319,15 @@ export function GuessMap({
     pins.current[key] = marker;
   }
 
-  function focusCountry(which: "ZA" | "NL" | "both") {
+  function focusCountry(which: "ZA" | "NL" | "world") {
     const map = mapRef.current;
     if (!map) {
       pendingFocus.current = which;
       return;
     }
     const pad = framePad();
-    const bounds = which === "ZA" ? ZA_BOUNDS : which === "NL" ? NL_BOUNDS : BOTH_BOUNDS;
-    const maxZoom = which === "ZA" ? 5.5 : which === "NL" ? 7.5 : 3;
+    const bounds = which === "ZA" ? ZA_BOUNDS : which === "NL" ? NL_BOUNDS : WORLD_BOUNDS;
+    const maxZoom = which === "ZA" ? 5.5 : which === "NL" ? 7.5 : 2.2;
     if (reducedRef.current) map.fitBounds(bounds, { ...pad, animate: false, maxZoom });
     else map.flyToBounds(bounds, { ...pad, maxZoom, duration: 0.7 });
   }
@@ -343,6 +345,7 @@ export function GuessMap({
     const map = mapRef.current;
     setQuery("");
     setActiveHit(0);
+    ignoreMapClickUntil.current = performance.now() + 500;
     if (!disabledRef.current && !revealRef.current) {
       buzz(12);
       onGuessRef.current({ latitude: place.latitude, longitude: place.longitude });
@@ -376,9 +379,9 @@ export function GuessMap({
       delete pins.current.you;
     }
     if (!guess) {
-      pendingFocus.current = "both";
+      pendingFocus.current = "world";
       if (map) {
-        map.fitBounds(BOTH_BOUNDS, { ...framePad(), animate: false, maxZoom: 3 });
+        map.fitBounds(WORLD_BOUNDS, { ...framePad(), animate: false, maxZoom: 2.2 });
         pendingFocus.current = null;
       }
     }
@@ -516,7 +519,7 @@ export function GuessMap({
               className="pointer-events-auto h-11 rounded-[var(--radius-sm)] border border-border bg-bg px-4 text-xs font-medium uppercase tracking-wider"
               onClick={() => {
                 setStatus("loading");
-                pendingFocus.current = "both";
+                pendingFocus.current = "world";
                 setEpoch((n) => n + 1);
               }}
             >
@@ -540,7 +543,7 @@ export function GuessMap({
                 autoCorrect="off"
                 spellCheck={false}
                 enterKeyHint="go"
-                aria-label="Search a city in South Africa or the Netherlands"
+                aria-label="Search a city to drop a pin"
                 aria-autocomplete="list"
                 className="h-11 w-full rounded-[var(--radius-sm)] border border-border bg-bg/90 pl-9 pr-3 text-sm text-fg outline-none backdrop-blur-sm placeholder:text-subtle"
                 onFocus={() => {
@@ -582,8 +585,13 @@ export function GuessMap({
                           "flex w-full items-center justify-between gap-3 px-3 py-2 text-left text-sm",
                           i === activeHit ? "bg-bg-subtle" : "hover:bg-bg-subtle",
                         )}
+                        onPointerDown={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          goToPlace(place);
+                        }}
                         onMouseDown={(e) => e.preventDefault()}
-                        onClick={() => goToPlace(place)}
+                        onClick={(e) => e.stopPropagation()}
                       >
                         <span className="min-w-0">
                           <span className="block truncate font-medium">{place.name}</span>
@@ -592,10 +600,14 @@ export function GuessMap({
                         <span
                           className={cn(
                             "shrink-0 rounded-full px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider",
-                            place.country === "ZA" ? "bg-za text-fg" : "bg-nl text-fg",
+                            place.country === "ZA"
+                              ? "bg-za text-fg"
+                              : place.country === "NL"
+                                ? "bg-nl text-fg"
+                                : "border border-border bg-bg-subtle text-fg",
                           )}
                         >
-                          {place.country === "ZA" ? "SA" : "NL"}
+                          {place.country === "ZA" ? "SA" : place.country === "NL" ? "NL" : "World"}
                         </span>
                       </button>
                     </li>
@@ -604,7 +616,7 @@ export function GuessMap({
               )}
               {query.trim() && hits.length === 0 && (
                 <p className="absolute top-[calc(100%+4px)] z-20 w-full rounded-[var(--radius-sm)] border border-border bg-bg px-3 py-2 text-xs text-muted">
-                  No match in SA or NL
+                  No matching city
                 </p>
               )}
             </div>
@@ -629,7 +641,7 @@ export function GuessMap({
             <button type="button" className={cn(chip, "border-transparent bg-nl/90")} onClick={() => focusCountry("NL")} aria-label="Focus map on the Netherlands">
               NL
             </button>
-            <button type="button" className={chip} onClick={() => focusCountry("both")} aria-label="Show both countries">
+            <button type="button" className={chip} onClick={() => focusCountry("world")} aria-label="Show the whole world">
               <Globe className="size-3.5" /> World
             </button>
             {guess && (

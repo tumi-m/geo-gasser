@@ -32,6 +32,10 @@ export const NL_BOUNDS: [[number, number], [number, number]] = [
   [50.75, 3.32],
   [53.55, 7.23],
 ];
+export const WORLD_BOUNDS: [[number, number], [number, number]] = [
+  [-56, -160],
+  [72, 170],
+];
 
 /** A marker that is only on the map inside a zoom window. */
 export interface GatedMarker {

@@ -1,6 +1,6 @@
 import { useNavigate } from "@tanstack/react-router";
 import { Button } from "@/components/ui/button";
-import { formatDistance, getLocation, type MatchState } from "@/lib/game";
+import { formatDistance, getLocation, locationCountryLabel, type MatchState } from "@/lib/game";
 import { PlayerAvatar } from "./player-avatar";
 import { cn } from "@/lib/utils";
 
@@ -65,12 +65,10 @@ export function FinalResults({
           {Array.from({ length: state.totalRounds || 4 }, (_, round) => {
             const rows = state.roundHistory.filter((r) => Math.floor(r.index / 10) === round);
             if (!rows.length) return null;
-            const last = round === (state.totalRounds || 4) - 1;
             return (
               <li key={round}>
                 <p className="mb-2 text-[11px] uppercase tracking-[0.2em] text-subtle">
                   Round {round + 1}
-                  {last ? " · 3D" : ""}
                 </p>
                 <ol className="space-y-1.5">
                   {rows.map((r) => {
@@ -82,18 +80,15 @@ export function FinalResults({
                         className="flex items-center justify-between gap-3 rounded-[var(--radius-md)] border border-border px-3 py-2 text-sm"
                       >
                         <span className="min-w-0">
-                          <span className="block truncate text-fg">
-                            {loc?.title ?? `Q${r.index + 1}`}
-                            {r.isRound4 ? " · 3D" : ""}
-                          </span>
+                          <span className="block truncate text-fg">{loc?.title ?? `Q${r.index + 1}`}</span>
                           <span className="mt-0.5 flex items-center gap-2 text-xs text-muted">
                             <span
                               className={cn(
                                 "inline-block size-1.5 rounded-full",
-                                loc?.country === "NL" ? "bg-nl" : "bg-za",
+                                loc?.country === "NL" ? "bg-nl" : loc?.country === "WORLD" ? "bg-accent" : "bg-za",
                               )}
                             />
-                            {loc?.city ?? (loc?.country === "NL" ? "Netherlands" : "South Africa")}
+                            {loc?.city ?? (loc ? locationCountryLabel(loc) : "")}
                           </span>
                         </span>
                         <span className="shrink-0 tabular text-xs sm:text-sm">

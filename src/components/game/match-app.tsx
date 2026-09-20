@@ -3,7 +3,6 @@ import { useNavigate } from "@tanstack/react-router";
 import { Settings as SettingsIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
-  activeEnvironment,
   activeLocation,
   audio,
   createLobbyState,
@@ -12,7 +11,7 @@ import {
   grokThinkMs,
   GROK_BOT_ID,
   GROK_BOT_NAME,
-  isRound4,
+  locationCountryLabel,
   QUESTIONS_PER_ROUND,
   questionInRound,
   TOTAL_QUESTIONS,
@@ -35,8 +34,7 @@ import { isWireMessage, sanitizeName, useP2PRoom, type WireMessage } from "@/lib
 import { GuessMap } from "./guess-map";
 import { PlayerAvatar } from "./player-avatar";
 import { RevealOverlay } from "./reveal-sequence";
-import { Round4Scene } from "./round4-scene";
-import { SceneViewer } from "./scene-viewer";
+import { SceneExplorer } from "./scene-explorer";
 import { SettingsPanel } from "./settings-panel";
 import { QuestionMark, RoundPips, TimerRing } from "./timer-ring";
 import { FinalResults } from "./final-results";
@@ -68,7 +66,6 @@ export function MatchApp({
   const [copied, setCopied] = useState(false);
   const [shake, setShake] = useState(false);
   const [sceneReady, setSceneReady] = useState(false);
-  const [sceneFailed, setSceneFailed] = useState(false);
   const statsRecorded = useRef(false);
   const lastUrgentRef = useRef<number | null>(null);
   const name = sanitizeName(settings.displayName);
@@ -349,7 +346,6 @@ export function MatchApp({
   useEffect(() => () => window.clearTimeout(grokTimer.current), []);
 
   const loc = activeLocation(state);
-  const env = activeEnvironment(state);
   const you =
     duelKind === "hotseat"
       ? (state.players.find((p) => p.id === state.activeSeatId) ?? state.players[0])
@@ -426,7 +422,6 @@ export function MatchApp({
   useEffect(() => {
     if (state.phase === "round_intro") {
       setSceneReady(false);
-      setSceneFailed(false);
       setRemaining(state.durationSec || ROUND_DURATION_SEC);
     }
     if (state.phase === "round_active") {
@@ -450,22 +445,6 @@ export function MatchApp({
 
   useEffect(() => {
     setSceneReady(false);
-    setSceneFailed(false);
-    if (!loc?.sceneUrl) return;
-    const img = new Image();
-    img.src = loc.sceneUrl;
-    img.onload = () => {
-      setSceneFailed(false);
-      setSceneReady(true);
-    };
-    img.onerror = () => {
-      setSceneFailed(true);
-      setSceneReady(true);
-    };
-    if (img.complete && img.naturalWidth > 0) {
-      setSceneFailed(false);
-      setSceneReady(true);
-    }
   }, [loc?.sceneUrl, state.questionIndex]);
 
   useEffect(() => {
@@ -477,11 +456,12 @@ export function MatchApp({
       .filter((d) => d != null) as number[];
     const za = { n: 0, hits: 0 };
     const nl = { n: 0, hits: 0 };
+    const world = { n: 0, hits: 0 };
     for (const r of state.roundHistory) {
       const g = r.guesses[selfId];
       if (!g) continue;
       const country = getLocation(r.locationId)?.country;
-      const bucket = country === "NL" ? nl : za;
+      const bucket = country === "NL" ? nl : country === "WORLD" ? world : za;
       bucket.n += 1;
       if (g.score.countryCorrect) bucket.hits += 1;
     }
@@ -493,7 +473,7 @@ export function MatchApp({
       score: you?.totalScore ?? 0,
       won: state.mode === "duel" && state.winnerIds.includes(selfId),
       distances,
-      countryHits: { ZA: za, NL: nl },
+      countryHits: { ZA: za, NL: nl, WORLD: world },
       fastestAccurateMs: fastest.length ? Math.min(...fastest) : null,
     });
   }, [state.phase, state.roundHistory, state.winnerIds, state.mode, selfId, you]);
@@ -652,9 +632,7 @@ export function MatchApp({
 
   const qNum = questionInRound(state.questionIndex) + 1;
   const rounds = state.totalRounds || 4;
-  const roundLabel = isRound4(state)
-    ? `Round ${rounds} of ${rounds} · 3D · Q${qNum}/${QUESTIONS_PER_ROUND}`
-    : `Round ${state.roundIndex + 1} of ${rounds} · Q${qNum}/${QUESTIONS_PER_ROUND}`;
+  const roundLabel = `Round ${state.roundIndex + 1} of ${rounds} · Q${qNum}/${QUESTIONS_PER_ROUND}`;
   const urgent = remaining <= 10 && state.phase === "round_active" && !you?.locked;
 
   return (
@@ -671,52 +649,29 @@ export function MatchApp({
           aria-label="Start round"
         >
           <p className="atlas-rise text-xs uppercase tracking-[0.28em] text-muted">{roundLabel}</p>
-          <h1 className="atlas-rise atlas-rise-1 font-display mt-3 text-5xl sm:text-7xl">
-            {isRound4(state) ? "Reality remix" : "Locate this"}
-          </h1>
+          <h1 className="atlas-rise atlas-rise-1 font-display mt-3 text-5xl sm:text-7xl">Locate this</h1>
           <p className="atlas-rise atlas-rise-2 mt-4 max-w-sm text-sm text-muted">
-            {isRound4(state)
-              ? "10 reconstructions · 1.25× score"
-              : `${QUESTIONS_PER_ROUND} questions this round · ${state.durationSec || 45}s`}
+            {QUESTIONS_PER_ROUND} questions this round · {state.durationSec || 45}s · drag to look around
           </p>
           <p className="atlas-rise atlas-rise-3 mt-8 text-xs uppercase tracking-[0.2em] text-subtle">Tap or Enter to start</p>
         </div>
       )}
 
       <div className="absolute inset-0">
-        {isRound4(state) && env ? (
-          <Round4Scene key={env.id} env={env} reducedMotion={settings.reducedMotion} />
+        {loc?.sceneUrl ? (
+          <SceneExplorer
+            key={loc.sceneUrl}
+            src={loc.sceneUrl}
+            alt="Location to identify"
+            reducedMotion={settings.reducedMotion}
+            interactive={canGuess && !showSettings && !showingReveal}
+            onReady={() => setSceneReady(true)}
+            onError={() => setSceneReady(true)}
+          />
         ) : (
-          <>
-            <div className={cn("absolute inset-0 bg-bg-subtle transition-opacity duration-500", sceneReady ? "opacity-0" : "opacity-100")} />
-            <div
-              className={cn(
-                "absolute inset-0 transition-opacity duration-500",
-                sceneReady && !sceneFailed ? "opacity-100" : "opacity-0",
-              )}
-            >
-              <SceneViewer
-                key={loc?.sceneUrl}
-                src={loc?.sceneUrl}
-                alt="Location to identify"
-                reducedMotion={settings.reducedMotion}
-                onReady={() => {
-                  setSceneFailed(false);
-                  setSceneReady(true);
-                }}
-                onError={() => {
-                  setSceneFailed(true);
-                  setSceneReady(true);
-                }}
-              />
-            </div>
-            {sceneFailed && (
-              <div className="absolute inset-0 flex items-center justify-center bg-bg-subtle">
-                <p className="px-6 text-center text-sm text-muted">Scene unavailable — use the map</p>
-              </div>
-            )}
-          </>
+          <div className="absolute inset-0 bg-bg-subtle" />
         )}
+        {!sceneReady && <div className="absolute inset-0 bg-bg-subtle" />}
         <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(180deg,rgba(9,9,11,0.45)_0%,transparent_26%,transparent_62%,rgba(9,9,11,0.5)_100%)]" />
       </div>
 
@@ -734,11 +689,9 @@ export function MatchApp({
           <QuestionMark current={qNum} />
         </div>
         <div className="flex items-center gap-2">
-          {isRound4(state) && (
-            <div className="hidden rounded-[var(--radius-sm)] border border-border bg-bg/70 px-3 py-2 text-[10px] uppercase tracking-wider text-muted sm:block">
-              3D · drag
-            </div>
-          )}
+          <div className="hidden rounded-[var(--radius-sm)] border border-border bg-bg/70 px-3 py-2 text-[10px] uppercase tracking-wider text-muted sm:block">
+            Drag · WASD
+          </div>
           <div className="flex items-center gap-2">
             <PlayerAvatar id={you?.avatarId} size={36} />
             <div className="rounded-[var(--radius-sm)] border border-border bg-bg/70 px-3 py-2 text-right">
@@ -805,7 +758,7 @@ export function MatchApp({
           opponent={opponent}
           locationTitle={loc.title}
           city={loc.city}
-          country={loc.country === "ZA" ? "South Africa" : "Netherlands"}
+          country={loc ? locationCountryLabel(loc) : ""}
           roundLabel={roundLabel}
           lastRound={lastRound}
           expanded={expanded}
@@ -818,11 +771,6 @@ export function MatchApp({
       {loc && loc.sceneKind === "generated-reconstruction" && !showingReveal && (
         <p className="pointer-events-none absolute left-3 bottom-[calc(var(--atlas-map-h)+0.75rem)] z-10 max-w-[52%] text-[10px] leading-snug text-subtle max-sm:max-w-[70%]">
           Reconstruction · not a live street photo
-        </p>
-      )}
-      {loc && isRound4(state) && env && !showingReveal && (
-        <p className="pointer-events-none absolute right-3 bottom-[calc(var(--atlas-map-h)+0.75rem)] z-10 max-w-[46%] text-right text-[10px] leading-snug text-subtle max-sm:max-w-[70%]">
-          {env.disclosure}
         </p>
       )}
 

@@ -87,6 +87,7 @@ function applyScores(state: MatchState, now: number): MatchState {
       truth: state.truth!,
       guess: p.guess ?? null,
       country: loc.country,
+      nation: loc.nation,
       remainingSec: remaining,
       responseMs,
       isRound4,

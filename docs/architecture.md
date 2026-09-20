@@ -13,10 +13,11 @@ Scoring, geodesic math, timers, location selection and the match state machine l
 
 There is no dedicated multiplayer game server in this deployment target. Ranked play would need one.
 
-## Round 4
+## Round 4 (parked)
 
-`GeneratedEnvironmentProvider` is the extension point for Higgsfield MCP. That MCP is not available here, so `FallbackEnvironmentProvider` assembles a procedural Three.js scene around a generated cinematic plate. The HUD labels it as a reconstruction.
+3D reconstructions are parked in `docs/round4-later.md` until generation credits return. The ten labelled plates still live in the photo pool. Look-around for every question is `SceneExplorer` (drag / WASD / zoom on the still), not a separate 3D round.
 
 ## Imagery
 
-Rounds 1–3 use Wikimedia/Wikipedia-sourced plates (or clearly labelled reconstructions when a Commons file was unavailable). The guessing map is MapLibre with a bundled Natural Earth country layer so it never depends on live tiles. No Google Maps scraping. No map-provider API keys.
+Questions use Wikimedia/Wikipedia-sourced plates (or clearly labelled reconstructions when a Commons file was unavailable). The guessing map is Leaflet with a bundled Natural Earth country layer so it never depends on live tiles. No Google Maps scraping. No map-provider API keys. The World chip frames the true globe; SA and NL chips jump to those countries.
+

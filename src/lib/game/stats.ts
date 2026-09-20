@@ -12,6 +12,8 @@ export interface PlayerStats {
   zaCountryHits: number;
   nlGuesses: number;
   nlCountryHits: number;
+  worldGuesses: number;
+  worldCountryHits: number;
   fastestAccurateMs: number | null;
   closestKm: number | null;
 }
@@ -28,6 +30,8 @@ export const EMPTY_STATS: PlayerStats = {
   zaCountryHits: 0,
   nlGuesses: 0,
   nlCountryHits: 0,
+  worldGuesses: 0,
+  worldCountryHits: 0,
   fastestAccurateMs: null,
   closestKm: null,
 };
@@ -51,7 +55,11 @@ export function recordMatch(stats: PlayerStats, input: {
   score: number;
   won: boolean;
   distances: number[];
-  countryHits: { ZA: { n: number; hits: number }; NL: { n: number; hits: number } };
+  countryHits: {
+    ZA: { n: number; hits: number };
+    NL: { n: number; hits: number };
+    WORLD?: { n: number; hits: number };
+  };
   fastestAccurateMs: number | null;
 }): PlayerStats {
   const closest = input.distances.filter((d) => Number.isFinite(d));
@@ -68,6 +76,8 @@ export function recordMatch(stats: PlayerStats, input: {
     zaCountryHits: stats.zaCountryHits + input.countryHits.ZA.hits,
     nlGuesses: stats.nlGuesses + input.countryHits.NL.n,
     nlCountryHits: stats.nlCountryHits + input.countryHits.NL.hits,
+    worldGuesses: (stats.worldGuesses ?? 0) + (input.countryHits.WORLD?.n ?? 0),
+    worldCountryHits: (stats.worldCountryHits ?? 0) + (input.countryHits.WORLD?.hits ?? 0),
     fastestAccurateMs:
       input.fastestAccurateMs == null
         ? stats.fastestAccurateMs

@@ -1,4 +1,5 @@
 import { EXTRA_LOCATIONS } from "./extra-locations.ts";
+import { PACK_LOCATIONS } from "./pack-locations.ts";
 import type { GeoLocation } from "./types.ts";
 
 const V = "2026-09-20";
@@ -480,7 +481,7 @@ export const LAUNCH_LOCATIONS: GeoLocation[] = [
   ...EXTRA_LOCATIONS,
 ];
 
-/** Ten extra reconstructed sites used only in round 4 (5 ZA + 5 NL). */
+/** Ten reconstructions now live in the photo pool (3D round is parked). */
 export const ROUND4_LOCATIONS: GeoLocation[] = [
   loc({
     id: "loc_31",
@@ -634,12 +635,18 @@ export const ROUND4_LOCATIONS: GeoLocation[] = [
   }),
 ];
 
-const byId = new Map([...LAUNCH_LOCATIONS, ...ROUND4_LOCATIONS].map((l) => [l.id, l]));
+const byId = new Map([...LAUNCH_LOCATIONS, ...ROUND4_LOCATIONS, ...PACK_LOCATIONS].map((l) => [l.id, l]));
 
 export function getLocation(id: string): GeoLocation | undefined {
   return byId.get(id);
 }
 
 export function enabledLocations(): GeoLocation[] {
-  return LAUNCH_LOCATIONS.filter((l) => l.enabled);
+  return [...LAUNCH_LOCATIONS, ...ROUND4_LOCATIONS, ...PACK_LOCATIONS].filter((l) => l.enabled);
+}
+
+export function locationCountryLabel(loc: Pick<GeoLocation, "country" | "region" | "nation">): string {
+  if (loc.country === "ZA") return "South Africa";
+  if (loc.country === "NL") return "Netherlands";
+  return loc.region?.trim() || loc.nation || "World";
 }

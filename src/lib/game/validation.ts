@@ -1,5 +1,5 @@
-import { haversineKm, isInsideCountry } from "./geo.ts";
-import { LAUNCH_LOCATIONS, ROUND4_LOCATIONS } from "./locations.ts";
+import { haversineKm, isInsideCountry, isInsideNation } from "./geo.ts";
+import { enabledLocations, LAUNCH_LOCATIONS, ROUND4_LOCATIONS } from "./locations.ts";
 import type { GeoLocation } from "./types.ts";
 
 export interface ValidationIssue {
@@ -10,17 +10,27 @@ export interface ValidationIssue {
 const DUP_KM = 0.5;
 const STALE_MS = 1000 * 60 * 60 * 24 * 400;
 
+export const POOL_TARGET = { total: 149, ZA: 50, NL: 50, WORLD: 49 } as const;
+
 export function validateLocation(loc: GeoLocation, now = Date.now()): ValidationIssue[] {
   const issues: ValidationIssue[] = [];
-  if (!/^loc_\d{2}$/.test(loc.id)) issues.push({ id: loc.id, message: "id must match loc_NN" });
-  if (loc.country !== "ZA" && loc.country !== "NL") {
-    issues.push({ id: loc.id, message: "country must be ZA or NL" });
+  if (!/^loc_\d{2,3}$/.test(loc.id)) issues.push({ id: loc.id, message: "id must match loc_NN or loc_NNN" });
+  if (loc.country !== "ZA" && loc.country !== "NL" && loc.country !== "WORLD") {
+    issues.push({ id: loc.id, message: "country must be ZA, NL, or WORLD" });
+  }
+  if (loc.country === "WORLD" && !/^[A-Z]{2}$/.test(loc.nation ?? "")) {
+    issues.push({ id: loc.id, message: "WORLD sites need a 2-letter nation code" });
   }
   if (!Number.isFinite(loc.latitude) || !Number.isFinite(loc.longitude)) {
     issues.push({ id: loc.id, message: "coordinates must be finite" });
   } else if (loc.country === "ZA" || loc.country === "NL") {
     if (!isInsideCountry({ latitude: loc.latitude, longitude: loc.longitude }, loc.country)) {
       issues.push({ id: loc.id, message: `coordinates fall outside ${loc.country} bounds` });
+    }
+  } else if (loc.country === "WORLD" && loc.nation) {
+    const pin = { latitude: loc.latitude, longitude: loc.longitude };
+    if (!isInsideNation(pin, loc.nation)) {
+      issues.push({ id: loc.id, message: `coordinates fall outside ${loc.nation} bounds` });
     }
   }
   if (!loc.title?.trim()) issues.push({ id: loc.id, message: "missing title" });
@@ -38,8 +48,7 @@ export function validateLocation(loc: GeoLocation, now = Date.now()): Validation
   return issues;
 }
 
-export function validateLaunchPool(pool: GeoLocation[] = LAUNCH_LOCATIONS): ValidationIssue[] {
-  const issues: ValidationIssue[] = [];
+function dupes(pool: GeoLocation[], issues: ValidationIssue[]) {
   const ids = new Set<string>();
   for (const loc of pool) {
     if (ids.has(loc.id)) issues.push({ id: loc.id, message: "duplicate id" });
@@ -57,6 +66,11 @@ export function validateLaunchPool(pool: GeoLocation[] = LAUNCH_LOCATIONS): Vali
       }
     }
   }
+}
+
+export function validateLaunchPool(pool: GeoLocation[] = LAUNCH_LOCATIONS): ValidationIssue[] {
+  const issues: ValidationIssue[] = [];
+  dupes(pool, issues);
   const za = pool.filter((l) => l.country === "ZA" && l.enabled).length;
   const nl = pool.filter((l) => l.country === "NL" && l.enabled).length;
   if (pool.length !== 60) issues.push({ message: `expected 60 launch locations, got ${pool.length}` });
@@ -79,5 +93,22 @@ export function validateRound4Pool(pool: GeoLocation[] = ROUND4_LOCATIONS): Vali
   const nl = pool.filter((l) => l.country === "NL").length;
   if (pool.length !== 10) issues.push({ message: `expected 10 round-4 locations, got ${pool.length}` });
   if (za !== 5 || nl !== 5) issues.push({ message: `expected 5/5 round-4 split, got ZA ${za} NL ${nl}` });
+  return issues;
+}
+
+export function validateFullPool(pool: GeoLocation[] = enabledLocations()): ValidationIssue[] {
+  const issues: ValidationIssue[] = [];
+  dupes(pool, issues);
+  const za = pool.filter((l) => l.country === "ZA" && l.enabled).length;
+  const nl = pool.filter((l) => l.country === "NL" && l.enabled).length;
+  const world = pool.filter((l) => l.country === "WORLD" && l.enabled).length;
+  if (pool.length !== POOL_TARGET.total) {
+    issues.push({ message: `expected ${POOL_TARGET.total} locations, got ${pool.length}` });
+  }
+  if (za !== POOL_TARGET.ZA || nl !== POOL_TARGET.NL || world !== POOL_TARGET.WORLD) {
+    issues.push({
+      message: `expected ${POOL_TARGET.ZA}/${POOL_TARGET.NL}/${POOL_TARGET.WORLD} split, got ZA ${za} NL ${nl} WORLD ${world}`,
+    });
+  }
   return issues;
 }

@@ -55,6 +55,27 @@ describe("scoreGuess", () => {
     assert.equal(s.timePoints, 0);
     assert.equal(s.accuracyPoints, 0);
   });
+  it("treats WORLD country-correct as the site nation, not ZA/NL", () => {
+    const fuji = { latitude: 35.3606, longitude: 138.7274 };
+    const tokyo = scoreGuess({
+      truth: fuji,
+      guess: { latitude: 35.68, longitude: 139.77 },
+      country: "WORLD",
+      nation: "JP",
+      remainingSec: 30,
+      responseMs: 8000,
+    });
+    assert.equal(tokyo.countryCorrect, true);
+    const cape = scoreGuess({
+      truth: fuji,
+      guess: { latitude: -33.92, longitude: 18.42 },
+      country: "WORLD",
+      nation: "JP",
+      remainingSec: 30,
+      responseMs: 8000,
+    });
+    assert.equal(cape.countryCorrect, false);
+  });
 });
 
 describe("rankPlayers", () => {
