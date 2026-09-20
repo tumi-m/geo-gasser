@@ -6,6 +6,7 @@ import {
   atlasLabel,
   activeEnvironment,
   activeLocation,
+  activeScene,
   audio,
   createLobbyState,
   getLocation,
@@ -26,7 +27,6 @@ import {
   reduce,
   remainingSeconds,
   ROUND_DURATION_SEC,
-  sceneCandidates,
   saveSettings,
   sanitizeAvatar,
   toPublicSnapshot,
@@ -35,7 +35,7 @@ import {
   type MatchEvent,
   type MatchState,
 } from "@/lib/game";
-import { isWireMessage, sanitizeName, useP2PRoom, type WireMessage } from "@/lib/multiplayer";
+import { isWireMessage, sanitizeName, useMatchRoom, useP2PRoom, type WireMessage } from "@/lib/multiplayer";
 import { GuessMap } from "./guess-map";
 import { PlayerAvatar } from "./player-avatar";
 import { RevealOverlay } from "./reveal-sequence";
@@ -77,13 +77,40 @@ export function MatchApp({
   const name = sanitizeName(settings.displayName);
   const avatarId = sanitizeAvatar(settings.avatarId);
   const selfIdRef = useRef(`solo-${Math.random().toString(36).slice(2, 8)}`);
+  const matchServerUrl = (import.meta.env.VITE_MATCH_SERVER_URL as string | undefined)?.trim() || "";
+  const serverMode = mode === "duel" && duelKind === "online" && Boolean(matchServerUrl);
+  const playerIdRef = useRef<string>("");
+  if (!playerIdRef.current && typeof window !== "undefined") {
+    const key = "atlas-player-id";
+    playerIdRef.current = sessionStorage.getItem(key) ?? "";
+    if (!playerIdRef.current) {
+      playerIdRef.current = `p-${Math.random().toString(36).slice(2, 10)}`;
+      sessionStorage.setItem(key, playerIdRef.current);
+    }
+  }
 
   const p2p = useP2PRoom({
     room: roomCode ? `atlas-${roomCode}` : "atlas-idle",
     name,
-    enabled: mode === "duel" && duelKind === "online" && Boolean(roomCode),
+    enabled: mode === "duel" && duelKind === "online" && Boolean(roomCode) && !serverMode,
   });
-  const selfId = mode === "duel" && duelKind === "online" ? p2p.selfId : selfIdRef.current;
+  const socket = useMatchRoom({
+    url: matchServerUrl || undefined,
+    room: roomCode,
+    name,
+    avatarId,
+    playerId: playerIdRef.current,
+    difficulty: settings.difficulty,
+    matchLength: settings.matchLength,
+    atlas: settings.atlas,
+    enabled: serverMode,
+  });
+  const selfId =
+    mode === "duel" && duelKind === "online"
+      ? serverMode
+        ? socket.selfId || playerIdRef.current
+        : p2p.selfId
+      : selfIdRef.current;
   const hostRef = useRef(mode === "solo" || duelKind !== "online" || isCreator);
   const stateRef = useRef(state);
   stateRef.current = state;
@@ -157,7 +184,7 @@ export function MatchApp({
   }, [mode, duelKind, selfId, name, avatarId, dispatch]);
 
   useEffect(() => {
-    if (mode !== "duel" || duelKind !== "online") return;
+    if (mode !== "duel" || duelKind !== "online" || serverMode) return;
     if (isCreator && state.phase === "lobby") {
       hostRef.current = true;
       dispatch({
@@ -172,10 +199,10 @@ export function MatchApp({
         matchLength: settings.matchLength, atlas: settings.atlas,
       });
     }
-  }, [mode, duelKind, isCreator, selfId, name, avatarId, roomCode, dispatch, state.phase]);
+  }, [mode, duelKind, serverMode, isCreator, selfId, name, avatarId, roomCode, dispatch, state.phase]);
 
   useEffect(() => {
-    if (mode !== "duel" || duelKind !== "online" || isCreator) return;
+    if (mode !== "duel" || duelKind !== "online" || isCreator || serverMode) return;
     // Never self-host while a host already exists; otherwise wait a grace
     // period and only the smallest peer id in the room claims the room.
     // Without the grace period a joiner can self-host before the creator's
@@ -202,8 +229,36 @@ export function MatchApp({
     return () => window.clearTimeout(t);
   }, [mode, duelKind, isCreator, state.hostId, p2p.peers, selfId, name, avatarId, roomCode, dispatch, settings.difficulty, settings.matchLength, settings.atlas]);
 
+  const adoptSnapshot = useCallback(
+    (incoming: MatchState, fromServer = false) => {
+      setState((prev) => {
+        // A stale or re-ordered packet must not rewind a live round. The
+        // server is authoritative, so its snapshots always win.
+        const inRound =
+          prev.phase === "round_active" ||
+          prev.phase === "waiting_for_opponent" ||
+          prev.phase === "player_locked" ||
+          prev.phase === "round_reveal" ||
+          prev.phase === "round_expired" ||
+          prev.phase === "round_results";
+        if (!fromServer && inRound && incoming.seq <= prev.seq) return prev;
+        if (incoming.revealed) return incoming;
+        const mine = prev.players.find((p) => p.id === selfId);
+        return {
+          ...incoming,
+          players: incoming.players.map((p) =>
+            p.id === selfId && mine
+              ? { ...p, guess: mine.guess ?? p.guess, locked: mine.locked || p.locked, lockedAtMs: mine.lockedAtMs ?? p.lockedAtMs }
+              : p,
+          ),
+        };
+      });
+    },
+    [selfId],
+  );
+
   useEffect(() => {
-    if (mode !== "duel") return;
+    if (mode !== "duel" || serverMode) return;
     return p2p.onMessage((_from, data) => {
       if (!isWireMessage(data)) return;
       const msg = data as WireMessage;
@@ -244,54 +299,38 @@ export function MatchApp({
       if (msg.t === "rematch") dispatch({ type: "REMATCH", seed: msg.seed, now });
       if (msg.t === "handoff") dispatch({ type: "HANDOFF_DONE", now });
     });
-
-    function adoptSnapshot(incoming: MatchState) {
-      setState((prev) => {
-        // A stale or re-ordered packet must not rewind a live round.
-        const inRound =
-          prev.phase === "round_active" ||
-          prev.phase === "waiting_for_opponent" ||
-          prev.phase === "player_locked" ||
-          prev.phase === "round_reveal" ||
-          prev.phase === "round_expired" ||
-          prev.phase === "round_results";
-        if (inRound && incoming.seq <= prev.seq) return prev;
-        if (incoming.revealed) return incoming;
-        const mine = prev.players.find((p) => p.id === selfId);
-        return {
-          ...incoming,
-          players: incoming.players.map((p) =>
-            p.id === selfId && mine
-              ? { ...p, guess: mine.guess ?? p.guess, locked: mine.locked || p.locked, lockedAtMs: mine.lockedAtMs ?? p.lockedAtMs }
-              : p,
-          ),
-        };
-      });
-    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [mode, p2p.onMessage, p2p.send, dispatch, selfId]);
+  }, [mode, serverMode, p2p.onMessage, p2p.send, dispatch, adoptSnapshot]);
 
   useEffect(() => {
-    if (mode !== "duel" || !hostRef.current) return;
+    if (!serverMode) return;
+    return socket.onMessage({
+      onWelcome: (_id, snapshot) => adoptSnapshot(snapshot as MatchState, true),
+      onSnapshot: (snapshot) => adoptSnapshot(snapshot as MatchState, true),
+    });
+  }, [serverMode, socket.onMessage, adoptSnapshot]);
+
+  useEffect(() => {
+    if (mode !== "duel" || !hostRef.current || serverMode) return;
     if (state.seq === 0) return;
     p2p.send({ t: "snapshot", state: toPublicSnapshot(state) });
-  }, [mode, p2p.send, state]);
+  }, [mode, serverMode, p2p.send, state]);
 
   // While the room is filling there is no other state change to trigger a
   // resend, yet the data channel often opens AFTER CREATE_DUEL was
   // broadcast. Re-announce on a timer so a late joiner can never miss the
   // only snapshot that ever carried the room.
   useEffect(() => {
-    if (mode !== "duel" || duelKind !== "online" || !hostRef.current) return;
+    if (mode !== "duel" || duelKind !== "online" || !hostRef.current || serverMode) return;
     if (state.phase !== "waiting_for_players" && state.phase !== "rematch_pending" && state.phase !== "lobby") return;
     const send = () => p2p.send({ t: "snapshot", state: toPublicSnapshot(stateRef.current) });
     send();
     const id = window.setInterval(send, 2500);
     return () => window.clearInterval(id);
-  }, [mode, duelKind, p2p.send, state.phase]);
+  }, [mode, duelKind, serverMode, p2p.send, state.phase]);
 
   useEffect(() => {
-    if (mode !== "duel" || duelKind !== "online") return;
+    if (mode !== "duel" || duelKind !== "online" || serverMode) return;
     // Keep announcing until this player is IN the host's game — not merely
     // until a peer is visible. A host that received our hello may have had
     // its reply lost; a resend costs nothing and unsticks the room.
@@ -303,23 +342,23 @@ export function MatchApp({
     ping();
     const id = window.setInterval(ping, 1500);
     return () => window.clearInterval(id);
-  }, [mode, duelKind, p2p.send, selfId, name, avatarId, state.phase, state.players, state.hostId]);
+  }, [mode, duelKind, serverMode, p2p.send, selfId, name, avatarId, state.phase, state.players, state.hostId]);
 
   useEffect(() => {
-    if (mode !== "duel" || duelKind !== "online" || !hostRef.current) return;
+    if (mode !== "duel" || duelKind !== "online" || !hostRef.current || serverMode) return;
     if (state.phase !== "waiting_for_players" && state.phase !== "rematch_pending") return;
     for (const peer of p2p.peers) {
       dispatch({ type: "PLAYER_JOIN", playerId: peer.id, name: peer.name || "Rival", now: Date.now() });
     }
-  }, [mode, duelKind, p2p.peers, dispatch, state.phase]);
+  }, [mode, duelKind, serverMode, p2p.peers, dispatch, state.phase]);
 
   useEffect(() => {
-    if (mode !== "duel" || !hostRef.current) return;
+    if (mode !== "duel" || !hostRef.current || serverMode) return;
     if (state.phase !== "waiting_for_players") return;
     if (state.players.length < 2) return;
     const id = window.setTimeout(() => dispatch({ type: "START_MATCH", now: Date.now() }), 450);
     return () => window.clearTimeout(id);
-  }, [mode, state.phase, state.players.length, dispatch]);
+  }, [mode, serverMode, state.phase, state.players.length, dispatch]);
 
   const grokTimer = useRef(0);
   const grokQ = useRef(-1);
@@ -352,6 +391,7 @@ export function MatchApp({
   useEffect(() => () => window.clearTimeout(grokTimer.current), []);
 
   const loc = activeLocation(state);
+  const scene = activeScene(state);
   const env = activeEnvironment(state);
   const reconstructionRound = isRound4(state);
   const live3d = ROUND4_3D_LIVE && reconstructionRound && Boolean(env);
@@ -374,18 +414,27 @@ export function MatchApp({
   const finishIntro = useCallback(() => {
     if (stateRef.current.phase !== "round_intro") return;
     const now = mode === "solo" ? performance.now() : Date.now();
+    if (serverMode) {
+      socket.send({ t: "intro" });
+      dispatch({ type: "INTRO_DONE", now });
+      return;
+    }
     if (mode === "duel" && duelKind === "online" && !hostRef.current) {
       p2p.send({ t: "intro-done" });
       return;
     }
     dispatch({ type: "INTRO_DONE", now });
-  }, [mode, duelKind, dispatch, p2p.send]);
+  }, [mode, duelKind, serverMode, dispatch, p2p.send, socket.send]);
 
   const continueRound = useCallback(() => {
     const now = mode === "solo" ? performance.now() : Date.now();
+    if (serverMode) {
+      socket.send({ t: "continue" });
+      return;
+    }
     if (mode === "duel" && duelKind === "online" && !hostRef.current) p2p.send({ t: "continue" });
     else dispatch({ type: "CONTINUE", now });
-  }, [mode, duelKind, dispatch, p2p.send]);
+  }, [mode, duelKind, serverMode, dispatch, p2p.send, socket.send]);
 
   useEffect(() => {
     if (state.phase !== "round_intro") return;
@@ -406,7 +455,7 @@ export function MatchApp({
       const rem = remainingSeconds(state.roundStartedAtMs!, clock, state.durationSec || ROUND_DURATION_SEC);
       setRemaining(rem);
       if (rem <= 0) {
-        if (mode === "duel" && duelKind === "online" && !hostRef.current) return;
+        if (serverMode || (mode === "duel" && duelKind === "online" && !hostRef.current)) return;
         dispatch({ type: "TIMEOUT", now: clock });
         return;
       }
@@ -488,7 +537,9 @@ export function MatchApp({
     const now = mode === "solo" ? performance.now() : Date.now();
     const actor = you?.id ?? selfId;
     dispatch({ type: "PLACE_PIN", playerId: actor, guess: p, now });
-    if (mode === "duel" && duelKind === "online" && !hostRef.current) {
+    if (serverMode) {
+      socket.send({ t: "pin", lat: p.latitude, lng: p.longitude });
+    } else if (mode === "duel" && duelKind === "online" && !hostRef.current) {
       p2p.send({ t: "pin", lat: p.latitude, lng: p.longitude });
     }
   };
@@ -511,11 +562,15 @@ export function MatchApp({
       window.setTimeout(() => setShake(false), 420);
     }
     const now = mode === "solo" ? performance.now() : Date.now();
+    if (serverMode) {
+      socket.send({ t: "lock", lat: me.guess.latitude, lng: me.guess.longitude });
+      return;
+    }
     dispatch({ type: "LOCK", playerId: me.id, now });
     if (mode === "duel" && duelKind === "online" && !hostRef.current) {
       p2p.send({ t: "lock", lat: me.guess.latitude, lng: me.guess.longitude });
     }
-  }, [mode, duelKind, dispatch, p2p.send, selfId, settings.cameraShake, settings.reducedMotion]);
+  }, [mode, duelKind, serverMode, dispatch, p2p.send, socket.send, selfId, settings.cameraShake, settings.reducedMotion]);
 
   const quit = () => {
     audio.stopAmbience();
@@ -595,13 +650,13 @@ export function MatchApp({
               <li className="rounded-[var(--radius-md)] border border-dashed border-border px-4 py-3 text-muted">
                 {failed
                   ? "Direct link failed — keep this tab open, the room still relays through the server"
-                  : p2p.joined
+                  : (serverMode ? socket.joined : p2p.joined)
                     ? "Waiting for opponent"
                     : "Connecting…"}
               </li>
             )}
           </ul>
-          {hostRef.current && (
+          {hostRef.current && !serverMode && (
             <Button className="mt-8 w-full" disabled={state.players.length < 2} onClick={() => dispatch({ type: "START_MATCH", now: Date.now() })}>
               {state.players.length < 2 ? "Waiting for opponent" : "Start match"}
             </Button>
@@ -626,6 +681,10 @@ export function MatchApp({
         onRematch={() => {
           statsRecorded.current = false;
           const seed = randomSeed();
+          if (serverMode) {
+            socket.send({ t: "rematch" });
+            return;
+          }
           if (mode === "duel" && duelKind === "online" && !hostRef.current) p2p.send({ t: "rematch", seed });
           else dispatch({ type: "REMATCH", seed, now: mode === "solo" ? performance.now() : Date.now(), difficulty: settings.difficulty, matchLength: settings.matchLength, atlas: settings.atlas });
         }}
@@ -670,13 +729,13 @@ export function MatchApp({
       <div className="absolute inset-0">
         {live3d && env ? (
           <Round4Scene key={env.id} env={env} reducedMotion={settings.reducedMotion} />
-        ) : loc?.sceneUrl ? (
+        ) : scene ? (
           <SceneExplorer
-            key={loc.id}
-            src={sceneCandidates(loc)[0]}
-            fallbacks={sceneCandidates(loc).slice(1)}
-            sourceUrl={loc.sourceUrl}
-            title={loc.title}
+            key={scene.src}
+            src={scene.src}
+            fallbacks={scene.fallbacks}
+            sourceUrl={loc?.sourceUrl}
+            title={loc?.title}
             alt="Location to identify"
             reducedMotion={settings.reducedMotion}
             interactive={canGuess && !showSettings && !showingReveal}
@@ -751,7 +810,7 @@ export function MatchApp({
         </p>
       )}
 
-      {loc && (
+      {(loc || scene) && (
         <GuessMap
           guess={you?.guess}
           onGuess={onGuess}
@@ -790,7 +849,7 @@ export function MatchApp({
         />
       )}
 
-      {loc && loc.sceneUrl.startsWith("/generated/") && !showingReveal && (
+      {scene?.kind === "generated" && !showingReveal && (
         <p className="pointer-events-none absolute left-3 bottom-[calc(var(--atlas-map-h)+0.75rem)] z-10 max-w-[52%] text-[10px] leading-snug text-subtle max-sm:max-w-[70%]">
           Reconstruction · not a live street photo
         </p>

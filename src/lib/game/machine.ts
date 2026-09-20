@@ -1,10 +1,11 @@
 import { DEFAULT_ATLAS, type AtlasSpec } from "./atlas.ts";
 import { environmentById } from "./environments.ts";
 import { getLocation } from "./locations.ts";
+import { sceneCandidates } from "./scene.ts";
 import { NO_GUESS_KM, rankPlayers, scoreGuess } from "./scoring.ts";
 import { currentEnvId, currentLocationId, isRound4Question, planMatch, PHOTO_QUESTIONS, QUESTIONS_PER_ROUND, ROUND4_3D_LIVE, roundOf, TOTAL_QUESTIONS } from "./selection.ts";
 import { DIFFICULTY_SECONDS, MATCH_LENGTH, remainingSeconds, ROUND_DURATION_SEC, type MatchLengthId, type TimeDifficulty } from "./timer.ts";
-import type { LatLng, MatchPhase, MatchState, PlayerState, PublicSnapshot, RoundRecord } from "./types.ts";
+import type { LatLng, MatchPhase, MatchState, PlayerState, PublicSnapshot, RoundRecord, SceneInfo } from "./types.ts";
 
 export { TOTAL_ROUNDS, TOTAL_QUESTIONS, QUESTIONS_PER_ROUND } from "./selection.ts";
 
@@ -460,8 +461,36 @@ export function reduce(state: MatchState, event: MatchEvent): MatchState {
   }
 }
 
+/**
+ * Build the guest-safe scene descriptor for the current question. This is the
+ * only scene information a joiner ever receives before the reveal: plate URLs,
+ * fallbacks and credit. No id, title, source URL or coordinate.
+ */
+export function sceneInfoFor(state: MatchState): SceneInfo | undefined {
+  const loc = locationForQuestion(state, state.questionIndex);
+  if (!loc) return undefined;
+  const candidates = sceneCandidates(loc);
+  const generated =
+    loc.sceneKind === "generated-reconstruction" || loc.sceneUrl.startsWith("/generated/");
+  return {
+    kind: generated ? "generated" : "photo",
+    src: candidates[0] ?? loc.sceneUrl,
+    fallbacks: candidates.slice(1),
+    provider: loc.panoramaProvider,
+    heading: loc.heading,
+  };
+}
+
+/** Current scene: the guest descriptor when present, host derivation otherwise. */
+export function activeScene(state: MatchState): SceneInfo | undefined {
+  if (state.scene) return state.scene;
+  if (!state.truth) return undefined;
+  return sceneInfoFor(state);
+}
+
 export function toPublicSnapshot(state: MatchState): PublicSnapshot {
-  const hideGuesses = !state.revealed &&
+  const hideAnswers =
+    !state.revealed &&
     (state.phase === "round_active" ||
       state.phase === "player_locked" ||
       state.phase === "waiting_for_opponent" ||
@@ -473,12 +502,14 @@ export function toPublicSnapshot(state: MatchState): PublicSnapshot {
     mode: state.mode,
     roomCode: state.roomCode,
     hostId: state.hostId,
-    seed: state.seed,
+    // Seed + deck decode to coordinates, so they stay host-side until reveal.
+    seed: hideAnswers ? undefined : state.seed,
     roundIndex: state.roundIndex,
     questionIndex: state.questionIndex,
-    locationIds: hideGuesses ? state.locationIds : state.locationIds,
-    envId: state.envId,
-    envIds: state.envIds,
+    locationIds: hideAnswers ? [] : state.locationIds,
+    envId: hideAnswers ? "" : state.envId,
+    envIds: hideAnswers ? [] : state.envIds,
+    scene: state.truth ? sceneInfoFor(state) : undefined,
     durationSec: state.durationSec,
     photoQuestions: state.photoQuestions,
     totalQuestions: state.totalQuestions,
@@ -489,12 +520,12 @@ export function toPublicSnapshot(state: MatchState): PublicSnapshot {
     roundStartedAtMs: state.roundStartedAtMs,
     players: state.players.map((p) => ({
       ...p,
-      guess: hideGuesses ? undefined : p.guess,
-      roundScore: hideGuesses ? undefined : p.roundScore,
+      guess: hideAnswers ? undefined : p.guess,
+      roundScore: hideAnswers ? undefined : p.roundScore,
     })),
-    truth: hideGuesses ? undefined : state.truth,
+    truth: hideAnswers ? undefined : state.truth,
     revealed: state.revealed,
-    roundHistory: hideGuesses ? [] : state.roundHistory,
+    roundHistory: hideAnswers ? [] : state.roundHistory,
     winnerIds: state.winnerIds,
   };
 }

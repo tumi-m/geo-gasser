@@ -1,0 +1,33 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": ["ES2022"],
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "strict": true,
+    "isolatedModules": true,
+    "skipLibCheck": true,
+    "noEmit": true,
+    "allowImportingTsExtensions": true,
+    "types": ["@cloudflare/workers-types"]
+  },
+  "include": [
+    "src",
+    "../../src/lib/game/machine.ts",
+    "../../src/lib/game/atlas.ts",
+    "../../src/lib/game/locations.ts",
+    "../../src/lib/game/extra-locations.ts",
+    "../../src/lib/game/pack-locations.ts",
+    "../../src/lib/game/environments.ts",
+    "../../src/lib/game/selection.ts",
+    "../../src/lib/game/scoring.ts",
+    "../../src/lib/game/scene.ts",
+    "../../src/lib/game/timer.ts",
+    "../../src/lib/game/types.ts",
+    "../../src/lib/game/geo.ts",
+    "../../src/lib/game/rng.ts",
+    "../../src/lib/game/feedback.ts",
+    "../../src/lib/multiplayer/room.ts",
+    "../../src/lib/multiplayer/wire.ts"
+  ]
+}
