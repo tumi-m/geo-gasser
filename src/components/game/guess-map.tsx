@@ -1,6 +1,7 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { Search } from "lucide-react";
 import type { LatLng } from "@/lib/game";
-import { geodesicPoints } from "@/lib/game";
+import { cityDots, geodesicPoints, searchPlaces, type Place } from "@/lib/game";
 import { cn } from "@/lib/utils";
 import type { GeoJSONSource, Map as MapLibreMap, Marker, StyleSpecification } from "maplibre-gl";
 
@@ -8,22 +9,7 @@ import type { GeoJSONSource, Map as MapLibreMap, Marker, StyleSpecification } fr
  * Bundled Natural Earth 110m countries. External raster/vector tile hosts
  * fail in the live preview and often on mobile (blank black canvas).
  */
-const CITIES = {
-  type: "FeatureCollection" as const,
-  features: [
-    { type: "Feature", properties: { n: "Cape Town" }, geometry: { type: "Point", coordinates: [18.42, -33.93] } },
-    { type: "Feature", properties: { n: "Johannesburg" }, geometry: { type: "Point", coordinates: [28.05, -26.2] } },
-    { type: "Feature", properties: { n: "Durban" }, geometry: { type: "Point", coordinates: [31.05, -29.86] } },
-    { type: "Feature", properties: { n: "Pretoria" }, geometry: { type: "Point", coordinates: [28.19, -25.75] } },
-    { type: "Feature", properties: { n: "Gqeberha" }, geometry: { type: "Point", coordinates: [25.6, -33.96] } },
-    { type: "Feature", properties: { n: "Amsterdam" }, geometry: { type: "Point", coordinates: [4.89, 52.37] } },
-    { type: "Feature", properties: { n: "Rotterdam" }, geometry: { type: "Point", coordinates: [4.48, 51.92] } },
-    { type: "Feature", properties: { n: "The Hague" }, geometry: { type: "Point", coordinates: [4.3, 52.08] } },
-    { type: "Feature", properties: { n: "Utrecht" }, geometry: { type: "Point", coordinates: [5.12, 52.09] } },
-    { type: "Feature", properties: { n: "Eindhoven" }, geometry: { type: "Point", coordinates: [5.47, 51.44] } },
-    { type: "Feature", properties: { n: "Groningen" }, geometry: { type: "Point", coordinates: [6.57, 53.22] } },
-  ],
-};
+const CITIES = cityDots();
 
 const MAP_STYLE = {
   version: 8 as const,
@@ -136,6 +122,9 @@ export function GuessMap({
   const pendingFocus = useRef<"ZA" | "NL" | "both" | null>("both");
   const [status, setStatus] = useState<MapStatus>("loading");
   const [epoch, setEpoch] = useState(0);
+  const [query, setQuery] = useState("");
+  const [activeHit, setActiveHit] = useState(0);
+  const hits = useMemo(() => searchPlaces(query, expanded ? 8 : 5), [query, expanded]);
 
   useEffect(() => {
     const host = hostRef.current;
@@ -273,6 +262,19 @@ export function GuessMap({
     });
   }
 
+  function goToPlace(place: Place) {
+    const map = mapRef.current;
+    setQuery(place.name);
+    setActiveHit(0);
+    if (!map) return;
+    map.flyTo({
+      center: [place.longitude, place.latitude],
+      zoom: Math.min(place.zoom, 10),
+      duration: reducedRef.current ? 0 : 800,
+      essential: true,
+    });
+  }
+
   useEffect(() => {
     if (!guess) return;
     void placePin("you", guess, "you", reveal ? "YOU" : undefined);
@@ -385,33 +387,105 @@ export function GuessMap({
           )}
         </div>
       )}
-      <div className="absolute left-3 top-3 z-10 flex flex-wrap items-center gap-2">
-        <button
-          type="button"
-          className="h-11 rounded-[var(--radius-sm)] border border-border bg-bg/80 px-3 text-xs font-medium uppercase tracking-wider"
-          onClick={onToggleExpand}
-        >
-          {expanded ? "Shrink map" : "Expand map"}
-        </button>
+      <div className="absolute left-3 top-3 z-10 flex max-w-[calc(100%-4.5rem)] flex-col gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            type="button"
+            className="h-11 rounded-[var(--radius-sm)] border border-border bg-bg/80 px-3 text-xs font-medium uppercase tracking-wider"
+            onClick={onToggleExpand}
+          >
+            {expanded ? "Shrink map" : "Expand map"}
+          </button>
+          {!reveal && (
+            <>
+              <button
+                type="button"
+                className="h-11 min-w-11 rounded-[var(--radius-sm)] bg-za px-3 text-xs font-medium uppercase tracking-wider text-fg"
+                onClick={() => focusCountry("ZA")}
+                aria-label="Focus map on South Africa"
+              >
+                SA
+              </button>
+              <button
+                type="button"
+                className="h-11 min-w-11 rounded-[var(--radius-sm)] bg-nl px-3 text-xs font-medium uppercase tracking-wider text-fg"
+                onClick={() => focusCountry("NL")}
+                aria-label="Focus map on the Netherlands"
+              >
+                NL
+              </button>
+            </>
+          )}
+        </div>
         {!reveal && (
-          <>
-            <button
-              type="button"
-              className="h-11 min-w-11 rounded-[var(--radius-sm)] bg-za px-3 text-xs font-medium uppercase tracking-wider text-fg"
-              onClick={() => focusCountry("ZA")}
-              aria-label="Focus map on South Africa"
-            >
-              SA
-            </button>
-            <button
-              type="button"
-              className="h-11 min-w-11 rounded-[var(--radius-sm)] bg-nl px-3 text-xs font-medium uppercase tracking-wider text-fg"
-              onClick={() => focusCountry("NL")}
-              aria-label="Focus map on the Netherlands"
-            >
-              NL
-            </button>
-          </>
+          <div className="relative w-[min(100%,280px)]">
+            <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted" />
+            <input
+              type="search"
+              value={query}
+              placeholder="Search a city"
+              autoComplete="off"
+              autoCorrect="off"
+              spellCheck={false}
+              aria-label="Search a city in South Africa or the Netherlands"
+              aria-autocomplete="list"
+              className="h-11 w-full rounded-[var(--radius-sm)] border border-border bg-bg/90 pl-9 pr-3 text-sm text-fg outline-none placeholder:text-subtle"
+              onFocus={() => {
+                if (!expanded) onToggleExpand();
+              }}
+              onChange={(e) => {
+                setQuery(e.target.value);
+                setActiveHit(0);
+              }}
+              onKeyDown={(e) => {
+                if (e.key === "ArrowDown") {
+                  e.preventDefault();
+                  setActiveHit((i) => Math.min(i + 1, Math.max(hits.length - 1, 0)));
+                } else if (e.key === "ArrowUp") {
+                  e.preventDefault();
+                  setActiveHit((i) => Math.max(i - 1, 0));
+                } else if (e.key === "Enter" && hits[activeHit]) {
+                  e.preventDefault();
+                  goToPlace(hits[activeHit]);
+                } else if (e.key === "Escape") {
+                  setQuery("");
+                  (e.target as HTMLInputElement).blur();
+                }
+              }}
+            />
+            {query && hits.length > 0 && (
+              <ul
+                role="listbox"
+                className="absolute top-[calc(100%+4px)] z-20 max-h-64 w-full overflow-auto rounded-[var(--radius-sm)] border border-border bg-bg py-1 shadow-[var(--shadow-panel)]"
+              >
+                {hits.map((place, i) => (
+                  <li key={`${place.country}-${place.name}`}>
+                    <button
+                      type="button"
+                      role="option"
+                      aria-selected={i === activeHit}
+                      className={cn(
+                        "flex w-full flex-col items-start px-3 py-2 text-left text-sm",
+                        i === activeHit ? "bg-bg-subtle" : "hover:bg-bg-subtle",
+                      )}
+                      onMouseDown={(e) => e.preventDefault()}
+                      onClick={() => goToPlace(place)}
+                    >
+                      <span className="font-medium">{place.name}</span>
+                      <span className="text-[10px] uppercase tracking-wider text-muted">
+                        {place.region} · {place.country === "ZA" ? "South Africa" : "Netherlands"}
+                      </span>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+            {query.trim() && hits.length === 0 && (
+              <p className="absolute top-[calc(100%+4px)] z-20 w-full rounded-[var(--radius-sm)] border border-border bg-bg px-3 py-2 text-xs text-muted">
+                No match in SA or NL
+              </p>
+            )}
+          </div>
         )}
       </div>
       {onLock && !reveal && (

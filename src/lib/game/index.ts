@@ -3,6 +3,7 @@ export * from "./geo.ts";
 export * from "./timer.ts";
 export * from "./scoring.ts";
 export * from "./feedback.ts";
+export * from "./gazetteer.ts";
 export * from "./locations.ts";
 export * from "./validation.ts";
 export * from "./selection.ts";
