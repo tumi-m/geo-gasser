@@ -40,6 +40,7 @@ export function Round4Scene({ env, reducedMotion }: { env: EnvironmentSpec; redu
   const walkingRef = useRef(walking);
   walkingRef.current = walking;
   const joyRef = useRef({ x: 0, y: 0, active: false });
+  const [knob, setKnob] = useState({ x: 0, y: 0 });
 
   useEffect(() => {
     const host = hostRef.current;
@@ -62,6 +63,16 @@ export function Round4Scene({ env, reducedMotion }: { env: EnvironmentSpec; redu
     let skyMaterial: import("three").MeshBasicMaterial | null = null;
 
     const onKeyDown = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement | null;
+      if (
+        target &&
+        (target.tagName === "INPUT" ||
+          target.tagName === "TEXTAREA" ||
+          target.tagName === "SELECT" ||
+          target.isContentEditable)
+      ) {
+        return; // typing (settings, name) must not steer the camera
+      }
       const key = e.key.toLowerCase();
       if (["w", "a", "s", "d", "arrowup", "arrowdown", "arrowleft", "arrowright"].includes(key)) {
         keys.add(key);
@@ -307,14 +318,14 @@ export function Round4Scene({ env, reducedMotion }: { env: EnvironmentSpec; redu
     const rect = el.getBoundingClientRect();
     const px = (e.clientX - (rect.x + rect.width / 2)) / (rect.width / 2);
     const py = (e.clientY - (rect.y + rect.height / 2)) / (rect.height / 2);
-    joyRef.current = {
-      x: Math.max(-1, Math.min(1, px)),
-      y: Math.max(-1, Math.min(1, py)),
-      active: true,
-    };
+    const x = Math.max(-1, Math.min(1, px));
+    const y = Math.max(-1, Math.min(1, py));
+    joyRef.current = { x, y, active: true };
+    setKnob({ x, y });
   };
   const endJoy = () => {
     joyRef.current = { x: 0, y: 0, active: false };
+    setKnob({ x: 0, y: 0 });
   };
 
   return (
@@ -346,7 +357,7 @@ export function Round4Scene({ env, reducedMotion }: { env: EnvironmentSpec; redu
         >
           <span
             className="pointer-events-none absolute left-1/2 top-1/2 size-10 -translate-x-1/2 -translate-y-1/2 rounded-full border border-border bg-fg/80"
-            style={{ transform: `translate(calc(-50% + ${joyRef.current.x * 28}px), calc(-50% + ${joyRef.current.y * 28}px))` }}
+            style={{ transform: `translate(calc(-50% + ${knob.x * 28}px), calc(-50% + ${knob.y * 28}px))` }}
           />
         </div>
       )}

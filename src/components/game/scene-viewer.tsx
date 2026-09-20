@@ -36,6 +36,8 @@ export function SceneViewer({
   const pointers = useRef(new Map<number, { x: number; y: number }>());
   const pinchStart = useRef<{ dist: number; zoom: number } | null>(null);
   const lastTap = useRef(0);
+  /** Where the current single-pointer gesture started + how far it has moved. */
+  const gesture = useRef<{ x: number; y: number; moved: number } | null>(null);
   const offsetRef = useRef(offset);
   offsetRef.current = offset;
   const zoomRef = useRef(zoom);
@@ -89,14 +91,34 @@ export function SceneViewer({
     setTouched(false);
   }, [src, reset]);
 
+  // Rotation / window resize changes the clamp window; re-clamp so the
+  // frame never shows past the image edge.
+  useEffect(() => {
+    const onResize = () => {
+      const next = clamp(offsetRef.current, zoomRef.current);
+      offsetRef.current = next;
+      setOffset(next);
+    };
+    window.addEventListener("resize", onResize);
+    window.addEventListener("orientationchange", onResize);
+    return () => {
+      window.removeEventListener("resize", onResize);
+      window.removeEventListener("orientationchange", onResize);
+    };
+  }, [clamp]);
+
   const onPointerDown = (e: React.PointerEvent) => {
     const host = hostRef.current;
     if (!host) return;
-    if (pointers.current.size === 0) host.setPointerCapture(e.pointerId);
+    if (pointers.current.size === 0) {
+      host.setPointerCapture(e.pointerId);
+      gesture.current = { x: e.clientX, y: e.clientY, moved: 0 };
+    }
     pointers.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
     if (pointers.current.size === 2) {
       const [a, b] = [...pointers.current.values()];
       pinchStart.current = { dist: Math.hypot(a.x - b.x, a.y - b.y), zoom: zoomRef.current };
+      gesture.current = null;
     }
     setDragging(true);
     setTouched(true);
@@ -116,6 +138,7 @@ export function SceneViewer({
     if (pointers.current.size === 1) {
       const dx = e.clientX - prev.x;
       const dy = e.clientY - prev.y;
+      if (gesture.current) gesture.current.moved += Math.hypot(dx, dy);
       setOffset((o) => clamp({ x: o.x + dx, y: o.y + dy }, zoomRef.current));
     }
   };
@@ -125,17 +148,22 @@ export function SceneViewer({
     if (pointers.current.size < 2) pinchStart.current = null;
     if (pointers.current.size === 0) {
       setDragging(false);
-      // Double-tap/double-click alternates zoom levels.
+      // Double-tap alternates zoom levels — but only for TAPS, never after
+      // a drag: two quick pans must not zoom the scene.
+      const moved = gesture.current?.moved ?? Number.POSITIVE_INFINITY;
       const now = performance.now();
-      if (now - lastTap.current < 300) {
+      if (moved < 8 && now - lastTap.current < 300) {
         const host = hostRef.current;
         if (host) {
           const rect = host.getBoundingClientRect();
           const focus = { x: e.clientX - rect.x, y: e.clientY - rect.y };
           applyZoom(zoomRef.current > 1.3 ? 1.15 : 2.4, focus);
         }
+        lastTap.current = 0; // consume so a third tap cannot re-trigger
+      } else {
+        lastTap.current = moved < 8 ? now : 0;
       }
-      lastTap.current = now;
+      gesture.current = null;
     }
   };
 
@@ -179,12 +207,6 @@ export function SceneViewer({
       onPointerCancel={onPointerUp}
       onWheel={onWheel}
       onKeyDown={onKeyDown}
-      onDoubleClick={(e) => {
-        const host = hostRef.current;
-        if (!host) return;
-        const rect = host.getBoundingClientRect();
-        applyZoom(zoomRef.current > 1.3 ? 1.15 : 2.4, { x: e.clientX - rect.x, y: e.clientY - rect.y });
-      }}
     >
       <img
         src={src}
