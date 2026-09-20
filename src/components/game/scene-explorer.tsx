@@ -17,9 +17,9 @@ declare global {
 
 const LOOK_RATE = 1.65;
 const ZOOM_RATE = 0.85;
-const ZOOM_MIN = 1.08;
-const ZOOM_MAX = 3.6;
-const ZOOM_START = 1.42;
+const ZOOM_MIN = 1.0;
+const ZOOM_MAX = 2.8;
+const ZOOM_START = 1.08;
 const DRAG_YAW = 0.0048;
 const DRAG_PITCH = 0.0034;
 
