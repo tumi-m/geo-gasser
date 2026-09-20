@@ -34,7 +34,7 @@ describe("match state machine", () => {
     assert.ok((s.players[0].roundScore?.roundScore ?? 0) > 0);
   });
 
-  it("scores a placed pin on timeout with no speed bonus", () => {
+  it("scores an unsubmitted pin as zero on timeout", () => {
     let s = reduce(createLobbyState(), {
       type: "CREATE_SOLO",
       playerId: "p1",
@@ -54,7 +54,7 @@ describe("match state machine", () => {
     const score = s.players[0].roundScore;
     assert.ok(score);
     assert.equal(score.timePoints, 0);
-    assert.ok(score.accuracyPoints > 9000);
+    assert.equal(score.accuracyPoints, 0);
     assert.equal(score.roundScore, score.accuracyPoints);
   });
 
@@ -112,7 +112,7 @@ describe("match state machine", () => {
     const pub = toPublicSnapshot(s);
     assert.equal(pub.players.find((p) => p.id === "h")?.guess, undefined);
     assert.equal(pub.truth, undefined);
-    s = reduce(s, { type: "TIMEOUT", now: now + 45_000 });
+    s = reduce(s, { type: "TIMEOUT", now: now + 45_003 });
     assert.equal(s.phase, "round_expired");
     assert.ok((s.players.find((p) => p.id === "h")?.roundScore?.roundScore ?? 0) > 0);
     assert.equal(s.players.find((p) => p.id === "g")?.roundScore?.roundScore, 0);

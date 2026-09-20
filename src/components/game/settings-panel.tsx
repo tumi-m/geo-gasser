@@ -74,7 +74,8 @@ export function SettingsPanel({
         </div>
         <div className="flex flex-col gap-2 text-sm text-muted">
           Match length
-          <div className="grid grid-cols-3 gap-2">
+          <div className="grid grid-cols-2 gap-2">
+            <Choice label="Quick escape" hint="5 places · world finale*" active={settings.matchLength === "quick"} onClick={() => onChange({...settings,matchLength:"quick"})}/>
             <Choice
               label="Standard"
               hint="4 rounds · 40"
@@ -94,6 +95,7 @@ export function SettingsPanel({
               onClick={() => onChange({ ...settings, matchLength: "full" as MatchLengthId })}
             />
           </div>
+          <p className="text-xs text-subtle">*SA × NL quick games finish with a world wildcard. Smaller maps use all available places.</p>
           {onQuit ? <p className="text-xs text-subtle">Timer and length apply on the next match.</p> : null}
         </div>
         <label className="flex flex-col gap-2 text-sm text-muted">
@@ -168,6 +170,7 @@ function Choice({
     <button
       type="button"
       onClick={onClick}
+      aria-pressed={active}
       className={cn(
         "rounded-[var(--radius-md)] border px-3 py-2 text-left transition-colors",
         active ? "border-accent bg-accent/15 text-fg" : "border-border bg-bg-subtle text-muted",

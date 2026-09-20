@@ -48,7 +48,7 @@ export function loadStats(): PlayerStats {
 
 export function saveStats(stats: PlayerStats) {
   if (typeof window === "undefined") return;
-  localStorage.setItem(KEY, JSON.stringify(stats));
+  try { localStorage.setItem(KEY, JSON.stringify(stats)); } catch { /* Keep playing when storage is unavailable. */ }
 }
 
 export function recordMatch(stats: PlayerStats, input: {

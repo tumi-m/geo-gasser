@@ -105,6 +105,8 @@ export interface PlayerState {
   locked: boolean;
   guess?: LatLng;
   lockedAtMs?: number;
+  /** Captured per seat, so a hotseat handoff cannot change the first score. */
+  responseMs?: number;
   roundScore?: RoundScore;
 }
 
@@ -134,7 +136,7 @@ export interface MatchState {
   totalQuestions: number;
   totalRounds: number;
   timeDifficulty: "easy" | "medium" | "hard";
-  matchLength: "standard" | "extended" | "full";
+  matchLength: "quick" | "standard" | "extended" | "full";
   atlas: AtlasSpec;
   roundStartedAtMs?: number;
   players: PlayerState[];
@@ -165,7 +167,7 @@ export interface PublicSnapshot {
   totalQuestions: number;
   totalRounds: number;
   timeDifficulty: "easy" | "medium" | "hard";
-  matchLength: "standard" | "extended" | "full";
+  matchLength: "quick" | "standard" | "extended" | "full";
   atlas: AtlasSpec;
   roundStartedAtMs?: number;
   players: Array<

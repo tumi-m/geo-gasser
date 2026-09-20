@@ -54,7 +54,7 @@ export function RevealOverlay({
   reducedMotion?: boolean;
 }) {
   const hasPin = Number.isFinite(score.distanceKm);
-  const headline = !hasPin ? "NO PIN — TIME RAN OUT" : timedOut ? `${FEEDBACK_COPY[score.feedback]} · TIMED OUT` : FEEDBACK_COPY[score.feedback];
+  const headline = !hasPin ? "TIME’S UP" : timedOut ? `${FEEDBACK_COPY[score.feedback]} · TIMED OUT` : FEEDBACK_COPY[score.feedback];
   const shownKm = useCountUp(hasPin ? score.distanceKm : 0, 900, Boolean(reducedMotion));
   const shownRound = useCountUp(score.roundScore, 900, Boolean(reducedMotion));
   return (
@@ -84,7 +84,7 @@ export function RevealOverlay({
           </p>
           <div className="flex gap-4 text-right text-[11px] uppercase tracking-wider text-muted">
             <Stat label="Acc" value={score.accuracyPoints.toLocaleString()} />
-            <Stat label="Time" value={timedOut ? "0 · clock" : score.timePoints.toLocaleString()} />
+            <Stat label="Time" value={score.timePoints.toLocaleString()} />
             <Stat label="Round" value={Math.round(shownRound).toLocaleString()} highlight />
           </div>
         </div>

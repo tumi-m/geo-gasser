@@ -3,7 +3,7 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { AvatarPicker, PlayerAvatar } from "@/components/game/player-avatar";
-import { Globe } from "@/components/game/globe";
+
 import {
   atlasLabel,
   DEFAULT_AVATAR,
@@ -23,7 +23,7 @@ const HOTSEAT_KEY = "atlas-hotseat-v1";
 function DuelLobby() {
   const navigate = useNavigate();
   const initial = loadSettings();
-  const reduced = initial.reducedMotion;
+
   const [name, setName] = useState(initial.displayName);
   const [avatarId, setAvatarId] = useState<AvatarId>(sanitizeAvatar(initial.avatarId));
   const [guestName, setGuestName] = useState("Rival");
@@ -45,13 +45,13 @@ function DuelLobby() {
   };
 
   return (
-    <main className="relative min-h-dvh overflow-hidden bg-bg">
-      <Globe reducedMotion={reduced} />
+    <main className="duel-lobby relative min-h-dvh overflow-hidden">
+
       <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(9,9,11,0.35)_0%,rgba(9,9,11,0.88)_55%,rgba(9,9,11,0.96)_100%)]" />
       <div className="relative z-10 mx-auto flex min-h-dvh max-w-md flex-col justify-center px-5 py-10 pt-[max(2.5rem,env(safe-area-inset-top))] pb-[max(2.5rem,env(safe-area-inset-bottom))]">
         <p className="text-xs uppercase tracking-[0.28em] text-muted">Two player</p>
         <h1 className="font-display mt-2 text-5xl">Duel</h1>
-        <p className="mt-3 text-muted">Name yourself, pick a face, then duel Grok, pass the phone, or invite a friend.</p>
+        <p className="mt-3 text-muted">Good friends. Better rivals.</p>
         <p className="mt-2 text-xs uppercase tracking-wider text-subtle">
           {atlasLabel(initial.atlas)} · {initial.difficulty} · {DIFFICULTY_SECONDS[initial.difficulty]}s · {MATCH_LENGTH[initial.matchLength].totalRounds} rounds
         </p>
@@ -108,13 +108,13 @@ function DuelLobby() {
               className="mt-4 w-full"
               onClick={() => {
                 persistMe();
-                sessionStorage.setItem(
+                try { sessionStorage.setItem(
                   HOTSEAT_KEY,
                   JSON.stringify({
                     name: sanitizeName(guestName),
                     avatarId: guestAvatar || DEFAULT_AVATAR,
                   }),
-                );
+                ); } catch { /* Guest defaults remain available. */ }
                 void navigate({ to: "/duel/hotseat" });
               }}
             >
@@ -133,7 +133,7 @@ function DuelLobby() {
             value={code}
             onChange={(e) => setCode(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, ""))}
             onKeyDown={(e) => {
-              if (e.key === "Enter" && code.trim().length >= 4) goOnline(code.trim().toUpperCase());
+              if (e.key === "Enter" && code.trim().length === 6) goOnline(code.trim().toUpperCase());
             }}
             maxLength={6}
             placeholder="Enter code"
@@ -144,7 +144,7 @@ function DuelLobby() {
           />
           <Button
             variant="secondary"
-            disabled={code.trim().length < 4}
+            disabled={code.trim().length !== 6}
             onClick={() => goOnline(code.trim().toUpperCase())}
           >
             Join

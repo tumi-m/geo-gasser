@@ -29,12 +29,14 @@ export const ROUND4_3D_LIVE = false;
 
 /** Photo-round country mix for the SA × NL atlas. Round 4 appends reconstructions. */
 export const MATCH_QUOTA: Record<MatchLengthId, Record<CountryCode, number>> = {
+  quick: { ZA: 2, NL: 2, WORLD: 1 },
   standard: { ZA: 15, NL: 15, WORLD: 0 },
   extended: { ZA: 25, NL: 25, WORLD: 10 },
   full: { ZA: 35, NL: 35, WORLD: 20 },
 };
 
 export const MIX_QUOTA: Record<MatchLengthId, Record<CountryCode, number>> = {
+  quick: { ZA: 2, NL: 2, WORLD: 1 },
   standard: { ZA: 10, NL: 10, WORLD: 10 },
   extended: { ZA: 20, NL: 20, WORLD: 20 },
   full: { ZA: 30, NL: 30, WORLD: 30 },
@@ -109,6 +111,23 @@ export function planMatch(
   const spec = sanitizeAtlas(atlas);
   const cfg = MATCH_LENGTH[matchLength];
   const rand = mulberry32(seed);
+  if (matchLength === "quick") {
+    const pool = filterByAtlas(enabledLocations(), spec);
+    let picked: GeoLocation[];
+    if (spec.preset === "sa-nl" && !spec.cities?.length) {
+      picked = dealQuota(pool, {ZA:2, NL:2, WORLD:0}, rand, 4);
+      const finale = shuffle(enabledLocations().filter(l => l.country === "WORLD"), rand)[0];
+      if (finale) picked.push(finale);
+    } else {
+      const remaining = shuffle([...pool], rand);
+      picked = [];
+      while (picked.length < 5 && remaining.length) {
+        const fresh = remaining.findIndex(l => !picked.some(p => (p.nation ?? p.country) === (l.nation ?? l.country) && p.city === l.city));
+        picked.push(remaining.splice(fresh < 0 ? 0 : fresh, 1)[0]);
+      }
+    }
+    return {seed, matchLength, atlas:spec, locationIds:picked.map(l=>l.id), envIds:[], photoQuestions:picked.length, totalQuestions:picked.length, photoRounds:picked.length, totalRounds:picked.length};
+  }
   const reserved = new Set(ROUND4_LOCATIONS.map((l) => l.id));
   const photoPool = filterByAtlas(
     enabledLocations().filter((l) => !reserved.has(l.id)),

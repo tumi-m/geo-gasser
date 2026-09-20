@@ -42,7 +42,7 @@ export function FinalResults({
         : "Runner up";
 
   return (
-    <main className="min-h-dvh bg-bg px-5 py-10 pt-[max(2.5rem,env(safe-area-inset-top))] pb-[max(2.5rem,env(safe-area-inset-bottom))]">
+    <main className="result-shell min-h-dvh px-5 py-10 pt-[max(2.5rem,env(safe-area-inset-top))] pb-[max(2.5rem,env(safe-area-inset-bottom))]">
       <div className="mx-auto flex min-h-[calc(100dvh-5rem)] max-w-lg flex-col justify-center">
         <p className="atlas-rise text-xs uppercase tracking-[0.28em] text-muted">{kicker}</p>
         <div className="atlas-rise atlas-rise-1 mt-3 flex items-center gap-3">
@@ -51,7 +51,7 @@ export function FinalResults({
             {headline}
           </h1>
         </div>
-        <p className="atlas-rise atlas-rise-2 mt-6 font-display text-6xl tabular">
+        <p className="atlas-rise atlas-rise-2 mt-6 result-score tabular">
           {(you?.totalScore ?? 0).toLocaleString()}
         </p>
         {other && (
@@ -63,7 +63,7 @@ export function FinalResults({
         )}
         <ol className="atlas-rise atlas-rise-3 mt-8 space-y-5">
           {Array.from({ length: state.totalRounds || 4 }, (_, round) => {
-            const rows = state.roundHistory.filter((r) => Math.floor(r.index / 10) === round);
+            const rows = state.roundHistory.filter((r) => (state.matchLength === "quick" ? r.index : Math.floor(r.index / 10)) === round);
             if (!rows.length) return null;
             return (
               <li key={round}>
@@ -75,7 +75,7 @@ export function FinalResults({
                     const g = r.guesses[selfId];
                     const loc = getLocation(r.locationId);
                     return (
-                      <div
+                      <li
                         key={r.index}
                         className="flex items-center justify-between gap-3 rounded-[var(--radius-md)] border border-border px-3 py-2 text-sm"
                       >
@@ -94,7 +94,7 @@ export function FinalResults({
                         <span className="shrink-0 tabular text-xs sm:text-sm">
                           {g ? `${g.score.roundScore.toLocaleString()} · ${formatDistance(g.score.distanceKm)}` : "—"}
                         </span>
-                      </div>
+                      </li>
                     );
                   })}
                 </ol>

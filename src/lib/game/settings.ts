@@ -29,7 +29,7 @@ export const DEFAULT_SETTINGS: GameSettings = {
   cameraShake: true,
   highContrast: false,
   difficulty: "medium",
-  matchLength: "standard",
+  matchLength: "quick",
   atlas: DEFAULT_ATLAS,
 };
 
@@ -59,5 +59,5 @@ export function loadSettings(): GameSettings {
 
 export function saveSettings(settings: GameSettings) {
   if (typeof window === "undefined") return;
-  localStorage.setItem(KEY, JSON.stringify(settings));
+  try { localStorage.setItem(KEY, JSON.stringify(settings)); } catch { /* Private browsing can disable storage. */ }
 }

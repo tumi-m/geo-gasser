@@ -58,6 +58,7 @@ export interface P2PRoomOptions {
   onMessage?: (from: string, data: unknown, channel: "state" | "reliable") => void;
   /** Fires once, on the first successful signaling poll (registration). */
   onConnected?: () => void;
+  onError?: (error: string | null) => void;
 }
 
 interface PeerSlot {
@@ -126,6 +127,7 @@ export class P2PRoom {
     try {
       await this.pollOnce();
     } catch {
+      this.opts.onError?.("Room service is unavailable. Retrying…");
       // First poll can fail transiently; the scheduled loop below retries.
     }
     if (this.closed) return;
@@ -164,20 +166,20 @@ export class P2PRoom {
   send(data: unknown, peerId?: string): void {
     const wire = JSON.stringify({ t: "d", d: data });
     const targets = peerId ? [this.peers.get(peerId)] : [...this.peers.values()];
-    let delivered = false;
+    if (!targets.length) { void this.postMail(data, peerId); return; }
     for (const slot of targets) {
       if (slot?.reliable?.readyState === "open") {
-        slot.reliable.send(wire);
-        delivered = true;
+        try { slot.reliable.send(wire); continue; } catch { /* Fall back to relay. */ }
       }
+      void this.postMail(data, slot?.info.id ?? peerId);
     }
-    if (!delivered) void this.postMail(data, peerId);
   }
 
   private async postMail(payload: unknown, to?: string): Promise<void> {
     if (this.closed) return;
     try {
-      await fetch("/api/rtc", {
+      const response = await fetch("/api/rtc", {
+        signal: AbortSignal.timeout(10000),
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({
@@ -188,6 +190,7 @@ export class P2PRoom {
           payload,
         }),
       });
+      if (!response.ok) this.opts.onError?.("Room relay interrupted. Reconnecting…");
     } catch {
       // Mail is a NAT fallback; the next snapshot/hello retries.
     }
@@ -222,9 +225,10 @@ export class P2PRoom {
       name: this.opts.name ?? "",
       since: String(this.cursor),
     });
-    const res = await fetch(`/api/rtc?${params}`);
+    const res = await fetch(`/api/rtc?${params}`, {signal: AbortSignal.timeout(10000)});
     if (this.closed) return;
     if (!res.ok) throw new Error(`signaling poll failed: ${res.status}`);
+    this.opts.onError?.(null);
     const body = (await res.json()) as RtcPollResponse;
     if (this.closed) return;
     if (!this.everPolled) {
@@ -250,6 +254,7 @@ export class P2PRoom {
     try {
       await this.pollOnce();
     } catch {
+      this.opts.onError?.("Connection interrupted. Reconnecting…");
       // Transient poll failures are expected (tab sleep, deploy roll); retry.
     }
     this.schedulePoll(this.anyPairConnecting() ? FAST_POLL_MS : IDLE_POLL_MS);

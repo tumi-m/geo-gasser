@@ -64,6 +64,7 @@ function resetRoundFlags(players: PlayerState[]): PlayerState[] {
     locked: false,
     guess: undefined,
     lockedAtMs: undefined,
+    responseMs: undefined,
     roundScore: undefined,
   }));
 }
@@ -75,19 +76,18 @@ function locationForQuestion(state: MatchState, questionIndex: number) {
 
 function applyScores(state: MatchState, now: number): MatchState {
   const loc = locationForQuestion(state, state.questionIndex);
-  if (!loc || !state.truth || !state.roundStartedAtMs) return state;
+  if (!loc || !state.truth || state.roundStartedAtMs == null) return state;
   const slotIsRound4 = isRound4Question(state.questionIndex, state.photoQuestions || PHOTO_QUESTIONS);
   const durationSec = state.durationSec || ROUND_DURATION_SEC;
   const players = state.players.map((p) => {
-    const remaining =
-      p.locked && p.lockedAtMs ? remainingSeconds(state.roundStartedAtMs!, p.lockedAtMs, durationSec) : 0;
+    const remaining = p.locked && p.responseMs != null ? Math.max(0, durationSec - p.responseMs / 1000) : 0;
     const responseMs =
-      p.locked && p.lockedAtMs
-        ? Math.max(0, p.lockedAtMs - state.roundStartedAtMs!)
+      p.locked && p.lockedAtMs != null
+        ? p.responseMs ?? Math.max(0, p.lockedAtMs - state.roundStartedAtMs!)
         : durationSec * 1000;
     const roundScore = scoreGuess({
       truth: state.truth!,
-      guess: p.guess ?? null,
+      guess: p.locked ? p.guess ?? null : null,
       country: loc.country,
       nation: loc.nation,
       remainingSec: remaining,
@@ -113,7 +113,7 @@ function applyScores(state: MatchState, now: number): MatchState {
     guesses: Object.fromEntries(
       players.map((p) => [
         p.id,
-        { guess: p.guess ?? null, score: p.roundScore! },
+        { guess: p.locked ? p.guess ?? null : null, score: p.roundScore! },
       ]),
     ),
   };
@@ -190,7 +190,7 @@ function beginQuestion(state: MatchState, now: number, intro: boolean): MatchSta
     truth: loc ? { latitude: loc.latitude, longitude: loc.longitude } : undefined,
     players: resetRoundFlags(state.players),
     activeSeatId: state.duelKind === "hotseat" ? firstHuman?.id : undefined,
-    roundIndex: roundOf(state.questionIndex),
+    roundIndex: state.matchLength === "quick" ? state.questionIndex : roundOf(state.questionIndex),
   };
   if (intro) {
     return { ...bump(next, "round_intro", now), roundStartedAtMs: undefined };
@@ -280,7 +280,7 @@ export function reduce(state: MatchState, event: MatchEvent): MatchState {
       return beginRound(next, event.now);
     }
     case "PLAYER_JOIN": {
-      if (state.phase !== "waiting_for_players" && state.phase !== "rematch_pending") return state;
+      if (state.phase !== "waiting_for_players" && state.phase !== "rematch_pending" && !state.players.some(p => p.id === event.playerId)) return state;
       if (state.players.some((p) => p.id === event.playerId)) {
         return {
           ...state,
@@ -344,6 +344,10 @@ export function reduce(state: MatchState, event: MatchEvent): MatchState {
       };
     }
     case "PLACE_PIN": {
+      if (!Number.isFinite(event.guess.latitude) || !Number.isFinite(event.guess.longitude) || Math.abs(event.guess.latitude)>90 || Math.abs(event.guess.longitude)>180) return state;
+      if (state.roundStartedAtMs == null || event.now < state.roundStartedAtMs || remainingSeconds(state.roundStartedAtMs,event.now,state.durationSec)<=0) return state;
+      if (state.duelKind === "hotseat" && state.phase !== "round_active") return state;
+
       if (
         state.phase !== "round_active" &&
         state.phase !== "player_locked" &&
@@ -364,6 +368,9 @@ export function reduce(state: MatchState, event: MatchEvent): MatchState {
       };
     }
     case "LOCK": {
+      if (state.roundStartedAtMs == null || event.now < state.roundStartedAtMs || remainingSeconds(state.roundStartedAtMs,event.now,state.durationSec)<=0) return state;
+      if (state.duelKind === "hotseat" && state.phase !== "round_active") return state;
+
       if (
         state.phase !== "round_active" &&
         state.phase !== "player_locked" &&
@@ -377,7 +384,7 @@ export function reduce(state: MatchState, event: MatchEvent): MatchState {
         return state;
       }
       const players = state.players.map((p) =>
-        p.id === event.playerId ? { ...p, locked: true, lockedAtMs: event.now } : p,
+        p.id === event.playerId ? { ...p, locked: true, lockedAtMs: event.now, responseMs: Math.max(0,event.now-state.roundStartedAtMs!) } : p,
       );
       const allLocked = players.filter((p) => p.connected).every((p) => p.locked);
       if (allLocked) {
@@ -400,8 +407,17 @@ export function reduce(state: MatchState, event: MatchEvent): MatchState {
       };
     }
     case "TIMEOUT": {
+      if (state.roundStartedAtMs == null || remainingSeconds(state.roundStartedAtMs,event.now,state.durationSec)>0) return state;
+      if (state.duelKind === "hotseat" && state.phase !== "round_active") return state;
+
       if (state.phase !== "round_active" && state.phase !== "waiting_for_opponent" && state.phase !== "player_locked") {
         return state;
+      }
+      if (state.duelKind === "hotseat") {
+        const players = state.players.map(p=>p.id===state.activeSeatId ? {...p,locked:true,guess:undefined,responseMs:state.durationSec*1000,lockedAtMs:event.now} : p);
+        const next = players.find(p=>!p.locked);
+        if (next) return {...bump({...state,players},"waiting_for_opponent",event.now),activeSeatId:next.id};
+        return applyScores({...state,players,phase:"round_expired"},event.now);
       }
       return applyScores({ ...state, phase: "round_expired" }, event.now);
     }
@@ -425,13 +441,14 @@ export function reduce(state: MatchState, event: MatchEvent): MatchState {
       const advancing: MatchState = {
         ...state,
         questionIndex: nextQ,
-        roundIndex: roundOf(nextQ),
+        roundIndex: state.matchLength === "quick" ? nextQ : roundOf(nextQ),
         phase: "next_round",
       };
-      const newRound = nextQ % QUESTIONS_PER_ROUND === 0;
+      const newRound = state.matchLength === "quick" || nextQ % QUESTIONS_PER_ROUND === 0;
       return beginQuestion(advancing, event.now, newRound);
     }
     case "REMATCH": {
+      if (!["final_reveal","match_complete"].includes(state.phase)) return state;
       const plan = planMatch(event.seed, event.matchLength ?? state.matchLength, event.atlas ?? state.atlas);
       const opts = matchOptions(event.difficulty ?? state.timeDifficulty, event.matchLength ?? state.matchLength);
       const players = state.players.map((p) => emptyPlayer(p.id, p.name, p.avatarId, p.kind));
@@ -452,7 +469,7 @@ export function reduce(state: MatchState, event: MatchEvent): MatchState {
         roundStartedAtMs: undefined,
         lastEventAt: event.now,
       };
-      if (state.mode === "solo") return beginRound(next, event.now);
+      if (state.mode === "solo" || state.duelKind === "bot" || state.duelKind === "hotseat") return beginRound(next, event.now);
       return next;
     }
     default:
@@ -494,7 +511,7 @@ export function toPublicSnapshot(state: MatchState): PublicSnapshot {
     })),
     truth: hideGuesses ? undefined : state.truth,
     revealed: state.revealed,
-    roundHistory: hideGuesses ? [] : state.roundHistory,
+    roundHistory: state.roundHistory,
     winnerIds: state.winnerIds,
   };
 }

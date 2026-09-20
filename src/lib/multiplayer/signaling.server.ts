@@ -18,7 +18,7 @@ const mailSchema = z.object({
   room: ID,
   from: ID,
   to: z.string().regex(/^[a-zA-Z0-9_*-]{1,64}$/),
-  payload: z.unknown().refine((v) => v !== undefined && JSON.stringify(v).length <= 48_000, {
+  payload: z.unknown().refine((v) => v !== undefined && JSON.stringify(v).length <= 256_000, {
     message: "payload too large",
   }),
 });
@@ -83,21 +83,11 @@ async function handleGet(url: URL): Promise<Response> {
     .sort((a, b) => a.id.localeCompare(b.id))
     .slice(0, 32)
     .map((p) => ({ id: p.id, name: p.name }));
-  const signals: SignalRow[] = s.signals
-    .filter((sig) => sig.room === room && sig.to === peer && sig.kind !== "mail" && sig.id > since)
-    .slice(0, 200)
-    .map((sig) => ({ id: sig.id, from: sig.from, kind: sig.kind as SignalRow["kind"], payload: sig.payload }));
-  const mail = s.signals
-    .filter(
-      (sig) =>
-        sig.kind === "mail" &&
-        sig.room === room &&
-        sig.id > since &&
-        sig.from !== peer &&
-        (sig.to === peer || sig.to === "*"),
-    )
-    .slice(0, 80)
-    .map((sig) => ({ id: sig.id, from: sig.from, payload: sig.payload }));
+  // One ordered page for both channels: separate limits can skip older mail.
+  const page = s.signals.filter(sig => sig.room === room && sig.id > since && sig.from !== peer &&
+    (sig.to === peer || sig.kind === "mail" && sig.to === "*")).slice(0,200);
+  const signals = page.filter(sig=>sig.kind !== "mail").map(sig=>({id:sig.id,from:sig.from,kind:sig.kind as SignalRow["kind"],payload:sig.payload}));
+  const mail = page.filter(sig=>sig.kind === "mail").map(sig=>({id:sig.id,from:sig.from,payload:sig.payload}));
   const body: RtcPollResponse = { peers, signals, mail };
   return json(body);
 }
@@ -142,9 +132,9 @@ async function handlePost(request: Request): Promise<Response> {
   return json({ ok: true });
 }
 
-async function sqlGet(room: string, peer: string, name: string, since: number): Promise<Response> {
-  const { getSql } = await import("@/lib/db");
-  const sql = await getSql();
+let tableSetup: Promise<void> | undefined;
+function ensureTables(sql: import("../db").Sql): Promise<void> {
+  tableSetup ??= (async () => {
   await sql.query(
     `CREATE TABLE IF NOT EXISTS webrtc_peers (
        room TEXT NOT NULL, peer_id TEXT NOT NULL, name TEXT NOT NULL DEFAULT '',
@@ -156,6 +146,15 @@ async function sqlGet(room: string, peer: string, name: string, since: number): 
        from_peer TEXT NOT NULL, kind TEXT NOT NULL, payload JSONB NOT NULL,
        created_at TIMESTAMPTZ NOT NULL DEFAULT now())`,
   );
+  await sql.query(`CREATE INDEX IF NOT EXISTS webrtc_signals_delivery ON webrtc_signals (room, id)`);
+  })().catch(error => {tableSetup=undefined; throw error;});
+  return tableSetup;
+}
+
+async function sqlGet(room: string, peer: string, name: string, since: number): Promise<Response> {
+  const { getSql } = await import("@/lib/db");
+  const sql = await getSql();
+  await ensureTables(sql);
   await sql.query(
     `INSERT INTO webrtc_peers (room, peer_id, name, last_seen) VALUES ($1,$2,$3,now())
      ON CONFLICT (room, peer_id) DO UPDATE SET last_seen = now(), name = EXCLUDED.name`,
@@ -163,7 +162,7 @@ async function sqlGet(room: string, peer: string, name: string, since: number): 
   );
   const rows = await sql.query<{ id: number; from_peer: string; kind: string; payload: unknown }>(
     `SELECT id, from_peer, kind, payload FROM webrtc_signals
-     WHERE room = $1 AND (to_peer = $2 OR (kind = 'mail' AND to_peer = '*')) AND id > $3 ORDER BY id LIMIT 200`,
+     WHERE room = $1 AND (to_peer = $2 OR (kind = 'mail' AND to_peer = '*')) AND from_peer <> $2 AND created_at > now() - interval '60 seconds' AND id > $3 ORDER BY id LIMIT 200`,
     [room, peer, since],
   );
   const roster = await sql.query<{ peer_id: string; name: string }>(
@@ -192,6 +191,10 @@ async function sqlPost(
 ): Promise<Response> {
   const { getSql } = await import("@/lib/db");
   const sql = await getSql();
+  await ensureTables(sql);
+  // Bound transient signaling storage. Never keep game payloads indefinitely.
+  await sql.query(`DELETE FROM webrtc_signals WHERE created_at < now() - interval '2 minutes'`);
+  await sql.query(`DELETE FROM webrtc_peers WHERE last_seen < now() - interval '2 minutes'`);
   if (msg.op === "signal") {
     await sql.query(
       `INSERT INTO webrtc_signals (room, to_peer, from_peer, kind, payload) VALUES ($1,$2,$3,$4,$5)`,

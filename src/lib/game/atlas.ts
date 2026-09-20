@@ -7,6 +7,8 @@ export interface AtlasSpec {
   preset: AtlasPreset;
   /** ISO 3166-1 alpha-2. Always filled; custom is the only preset you edit by hand. */
   nations: string[];
+  /** Optional cities within the selected nations. */
+  cities?: string[];
 }
 
 export const DEFAULT_ATLAS: AtlasSpec = { preset: "sa-nl", nations: ["NL", "ZA"] };
@@ -144,7 +146,8 @@ export function inferPreset(nations: string[]): AtlasPreset {
 
 export function sanitizeAtlas(raw: unknown): AtlasSpec {
   if (!raw || typeof raw !== "object") return { ...DEFAULT_ATLAS };
-  const rec = raw as { preset?: unknown; nations?: unknown };
+  const rec = raw as { preset?: unknown; nations?: unknown; cities?: unknown };
+  const cities = Array.isArray(rec.cities) ? [...new Set(rec.cities.filter((v): v is string => typeof v === "string" && v.length < 100))] : [];
   const custom = Array.isArray(rec.nations)
     ? rec.nations.filter((n): n is string => typeof n === "string").map((n) => n.toUpperCase())
     : [];
@@ -152,9 +155,9 @@ export function sanitizeAtlas(raw: unknown): AtlasSpec {
   if (preset === "custom") {
     const nations = uniqueSorted(custom.filter((c) => allNations().includes(c)));
     if (!nations.length) return { ...DEFAULT_ATLAS };
-    return { preset: "custom", nations };
+    return { preset: "custom", nations, ...(cities.length ? {cities} : {}) };
   }
-  return { preset, nations: presetNations(preset) };
+  return { preset, nations: presetNations(preset), ...(cities.length ? {cities} : {}) };
 }
 
 export function nationsFor(spec: AtlasSpec): Set<string> {
@@ -174,7 +177,8 @@ export function atlasFocus(spec: AtlasSpec): "ZA" | "NL" | "world" {
 
 export function filterByAtlas(list: GeoLocation[], spec: AtlasSpec): GeoLocation[] {
   const n = nationsFor(spec);
-  return list.filter((l) => n.has(nationOf(l)));
+  const cities = sanitizeAtlas(spec).cities;
+  return list.filter((l) => n.has(nationOf(l)) && (!cities?.length || !!l.city && cities.includes(l.city)));
 }
 
 export function atlasPoolSize(spec: AtlasSpec): number {

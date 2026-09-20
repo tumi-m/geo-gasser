@@ -22,7 +22,8 @@
     "locations:dedupe": "node --experimental-strip-types src/lib/game/validate-cli.ts",
     "lint": "eslint .",
     "format": "prettier --write .",
-    "map:data": "node scripts/build-map-data.mjs"
+    "map:data": "node scripts/build-map-data.mjs",
+    "test:game": "node --experimental-strip-types --test src/lib/game/*.test.ts src/lib/map/*.test.ts src/lib/multiplayer/*.test.ts"
   },
   "dependencies": {
     "@electric-sql/pglite": "^0.5.4",

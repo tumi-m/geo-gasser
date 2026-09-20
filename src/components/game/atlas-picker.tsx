@@ -1,5 +1,8 @@
+import { useState } from "react";
 import {
   applyRegion,
+  enabledLocations,
+  nationOf,
   ATLAS_PRESETS,
   atlasLabel,
   atlasPoolSize,
@@ -23,7 +26,9 @@ export function AtlasPicker({
   onChange: (next: AtlasSpec) => void;
   compact?: boolean;
 }) {
+  const [cityQuery, setCityQuery] = useState("");
   const spec = sanitizeAtlas(value);
+  const cities = [...new Set(enabledLocations().filter(l=>spec.nations.includes(nationOf(l))).map(l=>l.city).filter((c):c is string=>!!c))].sort();
   const counts = nationCounts();
   const pool = atlasPoolSize(spec);
   const custom = spec.preset === "custom";
@@ -85,6 +90,7 @@ export function AtlasPicker({
                   <button
                     key={code}
                     type="button"
+                    aria-pressed={on}
                     onClick={() => onChange(toggleNation(spec, code))}
                     className={cn(
                       "flex min-h-10 items-center justify-between gap-2 rounded-[var(--radius-sm)] border px-2.5 text-left text-xs",
@@ -99,6 +105,14 @@ export function AtlasPicker({
           </div>
         </div>
       ) : null}
+      <details className="mt-3 rounded-xl border border-border p-3">
+        <summary className="cursor-pointer text-sm text-muted">Choose cities {spec.cities?.length ? `(${spec.cities.length})` : "· optional"}</summary>
+        <input className="atlas-search" aria-label="Find a city" placeholder="Find a city…" value={cityQuery} onChange={e=>setCityQuery(e.target.value)}/>
+        <div className="mt-3 flex max-h-44 flex-wrap gap-2 overflow-y-auto">
+          <button type="button" className={cn("city-chip", !spec.cities?.length && "selected")} onClick={()=>onChange({...spec,cities:undefined})}>All cities</button>
+          {cities.filter(c=>c.toLowerCase().includes(cityQuery.toLowerCase())).map(city=><button type="button" aria-pressed={spec.cities?.includes(city) ?? false} className={cn("city-chip",spec.cities?.includes(city)&&"selected")} key={city} onClick={()=>{const next=spec.cities?.includes(city)?spec.cities.filter(c=>c!==city):[...(spec.cities??[]),city];onChange({...spec,cities:next});}}>{city}</button>)}
+        </div>
+      </details>
       {!compact ? (
         <p className="text-xs text-subtle">
           {atlasLabel(spec)} · {pool} unique places

@@ -15,7 +15,7 @@ const STEPS = [
   {
     n: "03",
     title: "Lock in",
-    body: "If time runs out with a pin down, you keep accuracy points but lose the speed bonus. Enter also locks.",
+    body: "Lock your guess before time runs out. Unsubmitted pins score zero. Enter also locks.",
   },
   {
     n: "04",
@@ -30,7 +30,7 @@ const STEPS = [
   {
     n: "06",
     title: "Match length",
-    body: "Standard is 4 rounds / 40 questions on a large atlas. A custom country list shrinks to the unique places you picked — never repeats.",
+    body: "Quick Escape visits five places, with a world wildcard at the end of SA × NL games. Choose a longer expedition in settings. Smaller country or city maps never repeat places.",
   },
   {
     n: "07",
