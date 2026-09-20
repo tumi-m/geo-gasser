@@ -575,6 +575,7 @@ export function MatchApp({
           roundLabel={roundLabel}
           lastRound={lastRound}
           expanded={expanded}
+          timedOut={state.phase === "round_expired"}
           onContinue={continueRound}
         />
       )}

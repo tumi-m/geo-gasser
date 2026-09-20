@@ -13,6 +13,7 @@ export function RevealOverlay({
   roundLabel,
   lastRound,
   expanded,
+  timedOut,
 }: {
   score: RoundScore;
   you: PlayerState;
@@ -24,7 +25,10 @@ export function RevealOverlay({
   roundLabel: string;
   lastRound?: boolean;
   expanded?: boolean;
+  timedOut?: boolean;
 }) {
+  const hasPin = Number.isFinite(score.distanceKm);
+  const headline = !hasPin ? "NO PIN — TIME RAN OUT" : timedOut ? `${FEEDBACK_COPY[score.feedback]} · TIMED OUT` : FEEDBACK_COPY[score.feedback];
   return (
     <div
       className={cn(
@@ -36,7 +40,7 @@ export function RevealOverlay({
         <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
           <div className="min-w-0 text-left">
             <p className="text-[10px] uppercase tracking-[0.2em] text-muted">{roundLabel}</p>
-            <p className="font-display mt-0.5 text-xl tracking-tight sm:text-2xl">{FEEDBACK_COPY[score.feedback]}</p>
+            <p className="font-display mt-0.5 text-xl tracking-tight sm:text-2xl">{headline}</p>
             <p className="mt-0.5 truncate text-sm text-muted">
               {locationTitle}
               {city ? ` · ${city}` : ""} · {country}
@@ -48,14 +52,19 @@ export function RevealOverlay({
         </div>
         <div className="mt-3 flex items-end justify-between gap-3">
           <p className="font-display text-3xl tabular tracking-tight sm:text-4xl">
-            {Number.isFinite(score.distanceKm) ? formatDistance(score.distanceKm) : "No pin"}
+            {hasPin ? formatDistance(score.distanceKm) : "No pin"}
           </p>
           <div className="flex gap-4 text-right text-[11px] uppercase tracking-wider text-muted">
             <Stat label="Acc" value={score.accuracyPoints.toLocaleString()} />
-            <Stat label="Time" value={score.timePoints.toLocaleString()} />
+            <Stat label="Time" value={timedOut ? "0 · clock" : score.timePoints.toLocaleString()} />
             <Stat label="Round" value={score.roundScore.toLocaleString()} highlight />
           </div>
         </div>
+        {timedOut && hasPin && (
+          <p className="mt-2 text-left text-xs text-muted">
+            {formatDistance(score.distanceKm)} off · the clock hit zero, so the time bonus is 0.
+          </p>
+        )}
         {score.multiplier > 1 && (
           <p className="mt-2 text-left text-xs text-muted">Includes {score.multiplier}× reconstruction multiplier</p>
         )}
