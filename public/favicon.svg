@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+  <rect width="32" height="32" rx="7" fill="#09090b"/>
+  <clipPath id="globe">
+    <circle cx="16" cy="16" r="10"/>
+  </clipPath>
+  <g clip-path="url(#globe)">
+    <rect x="6" y="6" width="10" height="20" fill="#c45c2a"/>
+    <rect x="16" y="6" width="10" height="20" fill="#3d8f6e"/>
+  </g>
+  <circle cx="16" cy="16" r="10" fill="none" stroke="#d5d8de" stroke-width="1.35"/>
+  <line x1="16" y1="6" x2="16" y2="26" stroke="#f4f4f0" stroke-width="1.25"/>
+</svg>
