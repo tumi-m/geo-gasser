@@ -72,7 +72,6 @@ export function MatchApp({
   const [expanded, setExpanded] = useState(false);
   const [copied, setCopied] = useState(false);
   const [shake, setShake] = useState(false);
-  const [sceneReady, setSceneReady] = useState(false);
   const statsRecorded = useRef(false);
   const lastUrgentRef = useRef<number | null>(null);
   const name = sanitizeName(settings.displayName);
@@ -431,7 +430,6 @@ export function MatchApp({
 
   useEffect(() => {
     if (state.phase === "round_intro") {
-      setSceneReady(false);
       setRemaining(state.durationSec || ROUND_DURATION_SEC);
     }
     if (state.phase === "round_active") {
@@ -452,10 +450,6 @@ export function MatchApp({
     }
     if (state.phase === "final_reveal") audio.play(state.winnerIds.includes(selfId) ? "win" : "lose");
   }, [state.phase]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  useEffect(() => {
-    setSceneReady(false);
-  }, [loc?.sceneUrl, state.questionIndex]);
 
   useEffect(() => {
     if (state.phase !== "match_complete" && state.phase !== "final_reveal") return;
@@ -686,18 +680,11 @@ export function MatchApp({
             alt="Location to identify"
             reducedMotion={settings.reducedMotion}
             interactive={canGuess && !showSettings && !showingReveal}
-            onReady={() => setSceneReady(true)}
-            onError={() => setSceneReady(true)}
           />
         ) : (
           <div className="absolute inset-0 bg-bg-subtle" />
         )}
-        {!sceneReady && !live3d ? (
-          <div className="pointer-events-none absolute inset-0 flex items-center justify-center bg-bg/55">
-            <p className="text-sm text-muted">Loading scene</p>
-          </div>
-        ) : null}
-        <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(180deg,rgba(9,9,11,0.28)_0%,transparent_22%,transparent_72%,rgba(9,9,11,0.32)_100%)]" />
+        <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(180deg,rgba(9,9,11,0.22)_0%,transparent_18%,transparent_78%,rgba(9,9,11,0.28)_100%)]" />
       </div>
 
       <header className="relative z-20 flex items-start justify-between gap-3 px-4 py-3 pt-[max(0.75rem,env(safe-area-inset-top))]">

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { resolveWikiImage } from "@/lib/game";
 import { cn } from "@/lib/utils";
 
@@ -105,13 +105,13 @@ export function SceneExplorer({
     return () => window.clearTimeout(hide);
   }, [src, reducedMotion, fallbacks?.join("|"), sourceUrl, title]);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     const img = imgRef.current;
     if (img?.complete && img.naturalWidth > 0) {
       setFailed(false);
       onReady?.();
     }
-  }, [current]);
+  }, [current, onReady]);
 
   useEffect(() => {
     const host = hostRef.current;
@@ -274,7 +274,8 @@ export function SceneExplorer({
     <div className="absolute inset-0 bg-bg-subtle">
       <div
         ref={hostRef}
-        className="absolute inset-0 cursor-grab touch-none overflow-hidden"
+        className="absolute inset-0 cursor-grab touch-none overflow-hidden bg-bg-subtle bg-cover bg-center"
+        style={current && !failed ? { backgroundImage: `url(${JSON.stringify(current)})` } : undefined}
         aria-label="Look around the location. Drag to look, WASD to inspect, scroll to zoom."
       >
         <img
@@ -285,7 +286,7 @@ export function SceneExplorer({
           referrerPolicy="no-referrer"
           decoding="async"
           className={cn(
-            "pointer-events-none h-full w-full origin-center object-cover select-none will-change-transform",
+            "pointer-events-none h-full w-full min-h-full min-w-full origin-center object-cover select-none will-change-transform",
             failed ? "opacity-0" : "opacity-100",
           )}
           onLoad={() => {
