@@ -247,6 +247,7 @@ export function MatchApp({
     if (state.phase === "round_intro") {
       setSceneReady(false);
       setSceneFailed(false);
+      setRemaining(ROUND_DURATION_SEC);
     }
     if (state.phase === "round_active") {
       setExpanded(false);
@@ -264,6 +265,16 @@ export function MatchApp({
     }
     if (state.phase === "final_reveal") audio.play(state.winnerIds.includes(selfId) ? "win" : "lose");
   }, [state.phase]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    if (!loc?.sceneUrl) return;
+    const img = new Image();
+    img.src = loc.sceneUrl;
+    if (img.complete && img.naturalWidth > 0) {
+      setSceneFailed(false);
+      setSceneReady(true);
+    }
+  }, [loc?.sceneUrl]);
 
   useEffect(() => {
     if (state.phase !== "match_complete" && state.phase !== "final_reveal") return;
@@ -479,12 +490,6 @@ export function MatchApp({
               onError={() => {
                 setSceneFailed(true);
                 setSceneReady(true);
-              }}
-              ref={(el) => {
-                if (el?.complete && el.naturalWidth > 0) {
-                  setSceneFailed(false);
-                  setSceneReady(true);
-                }
               }}
             />
             {sceneFailed && (

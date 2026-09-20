@@ -15,6 +15,7 @@ import { Route as PlayRouteImport } from './routes/play'
 import { Route as ApiRtcRouteImport } from './routes/api/rtc'
 import { Route as DuelIndexRouteImport } from './routes/duel.index'
 import { Route as DuelCodeRouteImport } from './routes/duel.$code'
+import { Route as ApiTilesKindZYXRouteImport } from './routes/api/tiles.$kind.$z.$y.$x'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -46,6 +47,11 @@ const DuelCodeRoute = DuelCodeRouteImport.update({
   path: '/$code',
   getParentRoute: () => DuelRoute,
 } as any)
+const ApiTilesKindZYXRoute = ApiTilesKindZYXRouteImport.update({
+  id: '/api/tiles/$kind/$z/$y/$x',
+  path: '/api/tiles/$kind/$z/$y/$x',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -54,6 +60,7 @@ export interface FileRoutesByFullPath {
   '/api/rtc': typeof ApiRtcRoute
   '/duel/$code': typeof DuelCodeRoute
   '/duel/': typeof DuelIndexRoute
+  '/api/tiles/$kind/$z/$y/$x': typeof ApiTilesKindZYXRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -61,6 +68,7 @@ export interface FileRoutesByTo {
   '/api/rtc': typeof ApiRtcRoute
   '/duel/$code': typeof DuelCodeRoute
   '/duel': typeof DuelIndexRoute
+  '/api/tiles/$kind/$z/$y/$x': typeof ApiTilesKindZYXRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -70,14 +78,35 @@ export interface FileRoutesById {
   '/api/rtc': typeof ApiRtcRoute
   '/duel/$code': typeof DuelCodeRoute
   '/duel/': typeof DuelIndexRoute
+  '/api/tiles/$kind/$z/$y/$x': typeof ApiTilesKindZYXRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/duel' | '/play' | '/api/rtc' | '/duel/$code' | '/duel/'
+  fullPaths:
+    | '/'
+    | '/duel'
+    | '/play'
+    | '/api/rtc'
+    | '/duel/$code'
+    | '/duel/'
+    | '/api/tiles/$kind/$z/$y/$x'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/play' | '/api/rtc' | '/duel/$code' | '/duel'
+  to:
+    | '/'
+    | '/play'
+    | '/api/rtc'
+    | '/duel/$code'
+    | '/duel'
+    | '/api/tiles/$kind/$z/$y/$x'
   id:
-    '__root__' | '/' | '/duel' | '/play' | '/api/rtc' | '/duel/$code' | '/duel/'
+    | '__root__'
+    | '/'
+    | '/duel'
+    | '/play'
+    | '/api/rtc'
+    | '/duel/$code'
+    | '/duel/'
+    | '/api/tiles/$kind/$z/$y/$x'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -85,6 +114,7 @@ export interface RootRouteChildren {
   DuelRoute: typeof DuelRouteWithChildren
   PlayRoute: typeof PlayRoute
   ApiRtcRoute: typeof ApiRtcRoute
+  ApiTilesKindZYXRoute: typeof ApiTilesKindZYXRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -131,6 +161,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DuelCodeRouteImport
       parentRoute: typeof DuelRoute
     }
+    '/api/tiles/$kind/$z/$y/$x': {
+      id: '/api/tiles/$kind/$z/$y/$x'
+      path: '/api/tiles/$kind/$z/$y/$x'
+      fullPath: '/api/tiles/$kind/$z/$y/$x'
+      preLoaderRoute: typeof ApiTilesKindZYXRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -151,6 +188,7 @@ const rootRouteChildren: RootRouteChildren = {
   DuelRoute: DuelRouteWithChildren,
   PlayRoute: PlayRoute,
   ApiRtcRoute: ApiRtcRoute,
+  ApiTilesKindZYXRoute: ApiTilesKindZYXRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

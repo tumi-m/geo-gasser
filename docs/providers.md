@@ -2,7 +2,7 @@
 
 | Surface | Provider | Notes |
 | --- | --- | --- |
-| Guessing map | MapLibre GL JS + OpenFreeMap `dark` (OSM-derived). Esri Canvas Dark Gray raster fallback. | No API key. CARTO `dark_all` watermarks without a key. Attribution on the map control. |
+| Guessing map | MapLibre GL JS + Esri Canvas Dark Gray / Reference rasters | OpenFreeMap vector tiles return empty bodies (blank map). CARTO watermarks without a key. Esri paints without a key. Attribution on the map control. |
 | Location plates | Wikimedia Commons / Wikipedia page images | CC BY-SA. Per-location credit in the location record and after reveal. |
 | Generated plates | Imagine cinematic reconstructions | Used only where a live Commons file was unavailable. Labelled as reconstructions. |
 | Earth globe | NASA Blue Marble (`land_shallow_topo_2048`) | Public domain. |

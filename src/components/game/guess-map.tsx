@@ -1,30 +1,28 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { LatLng } from "@/lib/game";
 import { geodesicPoints } from "@/lib/game";
 import { cn } from "@/lib/utils";
 import type { GeoJSONSource, Map as MapLibreMap, Marker } from "maplibre-gl";
 
-/** OpenFreeMap — no API key. CARTO dark_all now watermarks without one. */
-const OPENFREEMAP_DARK = "https://tiles.openfreemap.org/styles/dark";
-
-/** Raster fallback if the vector style fails to load. Esri Canvas Dark Gray, no key. */
-const RASTER_FALLBACK = {
+/**
+ * OpenFreeMap vector tiles currently return HTTP 200 with an empty body
+ * (`x-ofm-debug: empty tile`, cached for years) so the map looks blank.
+ * CARTO dark_all watermarks without a key. Esri Canvas Dark Gray raster
+ * always paints land and labels, no API key.
+ */
+const MAP_STYLE = {
   version: 8 as const,
   sources: {
     esri: {
       type: "raster" as const,
-      tiles: [
-        "https://services.arcgisonline.com/arcgis/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}",
-      ],
+      tiles: ["/api/tiles/esri/{z}/{y}/{x}"],
       tileSize: 256,
       maxzoom: 16,
       attribution: "Tiles © Esri",
     },
     labels: {
       type: "raster" as const,
-      tiles: [
-        "https://services.arcgisonline.com/arcgis/rest/services/Canvas/World_Dark_Gray_Reference/MapServer/tile/{z}/{y}/{x}",
-      ],
+      tiles: ["/api/tiles/labels/{z}/{y}/{x}"],
       tileSize: 256,
       maxzoom: 16,
     },
@@ -50,13 +48,20 @@ const NL_BOUNDS: [[number, number], [number, number]] = [
 
 type MarkerHandle = { el: HTMLDivElement; marker: Marker };
 type PinKind = "you" | "truth" | "opp";
+type MapStatus = "loading" | "ready" | "error";
 
 function makePin(kind: PinKind, label?: string) {
   const el = document.createElement("div");
   el.className = "atlas-pin";
-  el.innerHTML = `<span class="atlas-pin-dot atlas-pin-${kind}"></span>${
-    label ? `<span class="atlas-pin-label">${label}</span>` : ""
-  }`;
+  const dot = document.createElement("span");
+  dot.className = `atlas-pin-dot atlas-pin-${kind}`;
+  el.appendChild(dot);
+  if (label) {
+    const tag = document.createElement("span");
+    tag.className = "atlas-pin-label";
+    tag.textContent = label;
+    el.appendChild(tag);
+  }
   el.style.position = "relative";
   return el;
 }
@@ -98,6 +103,9 @@ export function GuessMap({
   disabledRef.current = disabled;
   const reducedRef = useRef(reducedMotion);
   reducedRef.current = reducedMotion;
+  const pendingFocus = useRef<"ZA" | "NL" | "both" | null>("both");
+  const [status, setStatus] = useState<MapStatus>("loading");
+  const [epoch, setEpoch] = useState(0);
 
   useEffect(() => {
     const host = hostRef.current;
@@ -105,65 +113,88 @@ export function GuessMap({
     let cancelled = false;
     let map: MapLibreMap | undefined;
     let ro: ResizeObserver | undefined;
-    let usedFallback = false;
+    let watchdog = 0;
 
     (async () => {
-      const ml = await import("maplibre-gl");
-      await import("maplibre-gl/dist/maplibre-gl.css");
-      if (cancelled || !hostRef.current) return;
-      map = new ml.Map({
-        container: hostRef.current,
-        style: OPENFREEMAP_DARK,
-        center: [14, 10],
-        zoom: 2.05,
-        attributionControl: { compact: true },
-        dragRotate: false,
-        pitchWithRotate: false,
-      });
-      map.addControl(new ml.NavigationControl({ showCompass: false }), "top-right");
-      mapRef.current = map;
-      let framed = false;
-      const frameBoth = () => {
-        if (!map || framed || cancelled) return;
-        const canvas = map.getCanvas();
-        if (canvas.clientWidth < 40 || canvas.clientHeight < 40) return;
-        framed = true;
-        map.fitBounds(BOTH_COUNTRIES, { padding: 16, duration: 0, maxZoom: 2.8 });
-      };
-      map.on("click", (e) => {
-        if (disabledRef.current) return;
-        onGuessRef.current({ latitude: e.lngLat.lat, longitude: e.lngLat.lng });
-      });
-      map.on("load", () => {
-        frameBoth();
-        if (guessRef.current) void placePin("you", guessRef.current, "you");
-        map?.resize();
-        frameBoth();
-      });
-      map.on("error", () => {
-        if (usedFallback || cancelled || !map || map.isStyleLoaded()) return;
-        usedFallback = true;
-        framed = false;
-        map.setStyle(RASTER_FALLBACK);
-      });
-      const wrap = wrapRef.current;
-      if (wrap) {
-        ro = new ResizeObserver(() => {
-          map?.resize();
-          frameBoth();
+      try {
+        const ml = await import("maplibre-gl");
+        await import("maplibre-gl/dist/maplibre-gl.css");
+        if (cancelled || !hostRef.current) return;
+        map = new ml.Map({
+          container: hostRef.current,
+          style: MAP_STYLE,
+          center: [14, 10],
+          zoom: 2.05,
+          minZoom: 1,
+          maxZoom: 18,
+          attributionControl: { compact: true },
+          dragRotate: false,
+          pitchWithRotate: false,
+          renderWorldCopies: false,
         });
-        ro.observe(wrap);
+        map.addControl(new ml.NavigationControl({ showCompass: false }), "top-right");
+        mapRef.current = map;
+
+        const applyPending = () => {
+          if (!map) return;
+          const canvas = map.getCanvas();
+          if (canvas.clientWidth < 40 || canvas.clientHeight < 40) return;
+          const next = pendingFocus.current;
+          if (!next) return;
+          pendingFocus.current = null;
+          const duration = reducedRef.current ? 0 : next === "both" ? 0 : 750;
+          if (next === "both") map.fitBounds(BOTH_COUNTRIES, { padding: 16, duration, maxZoom: 2.8 });
+          else if (next === "ZA") map.fitBounds(ZA_BOUNDS, { padding: 28, duration, maxZoom: 5.1 });
+          else map.fitBounds(NL_BOUNDS, { padding: 28, duration, maxZoom: 7.1 });
+        };
+
+        map.on("click", (e) => {
+          if (disabledRef.current) return;
+          onGuessRef.current({ latitude: e.lngLat.lat, longitude: e.lngLat.lng });
+        });
+        const markReady = () => {
+          if (cancelled) return;
+          setStatus("ready");
+          window.clearTimeout(watchdog);
+        };
+        map.on("load", () => {
+          markReady();
+          applyPending();
+          if (guessRef.current) void placePin("you", guessRef.current, "you");
+          map?.resize();
+          applyPending();
+        });
+        map.on("idle", markReady);
+        map.on("sourcedata", (e) => {
+          if (e.sourceId === "esri" && e.isSourceLoaded) markReady();
+        });
+        watchdog = window.setTimeout(() => {
+          if (cancelled || !map) return;
+          if (map.isStyleLoaded()) markReady();
+          else setStatus("error");
+        }, 5000);
+        const wrap = wrapRef.current;
+        if (wrap) {
+          ro = new ResizeObserver(() => {
+            map?.resize();
+            applyPending();
+          });
+          ro.observe(wrap);
+        }
+      } catch {
+        if (!cancelled) setStatus("error");
       }
     })();
 
     return () => {
       cancelled = true;
+      window.clearTimeout(watchdog);
       ro?.disconnect();
       map?.remove();
       mapRef.current = null;
       pins.current = {};
     };
-  }, []);
+  }, [epoch]);
 
   async function placePin(key: string, point: LatLng, kind: PinKind, label?: string) {
     const map = mapRef.current;
@@ -190,8 +221,11 @@ export function GuessMap({
 
   function focusCountry(which: "ZA" | "NL") {
     const map = mapRef.current;
-    if (!map) return;
     const bounds = which === "ZA" ? ZA_BOUNDS : NL_BOUNDS;
+    if (!map) {
+      pendingFocus.current = which;
+      return;
+    }
     map.fitBounds(bounds, {
       padding: expanded ? 48 : 28,
       maxZoom: which === "ZA" ? 5.1 : 7.1,
@@ -217,8 +251,12 @@ export function GuessMap({
       pins.current.you.marker.remove();
       delete pins.current.you;
     }
-    if (!guess && map) {
-      map.fitBounds(BOTH_COUNTRIES, { padding: 16, duration: 0, maxZoom: 2.8 });
+    if (!guess) {
+      pendingFocus.current = "both";
+      if (map?.isStyleLoaded()) {
+        map.fitBounds(BOTH_COUNTRIES, { padding: 16, duration: 0, maxZoom: 2.8 });
+        pendingFocus.current = null;
+      }
     }
   }, [reveal, guess]);
 
@@ -249,16 +287,19 @@ export function GuessMap({
           geometry: { type: "LineString" as const, coordinates: line },
         };
         const paint = () => {
+          if (!map.getStyle()) return;
           if (map.getSource("arc")) {
             (map.getSource("arc") as GeoJSONSource).setData(data);
           } else {
             map.addSource("arc", { type: "geojson", data });
-            map.addLayer({
-              id: "arc",
-              type: "line",
-              source: "arc",
-              paint: { "line-color": "#d5d8de", "line-width": 2, "line-opacity": 0.85 },
-            });
+            if (!map.getLayer("arc")) {
+              map.addLayer({
+                id: "arc",
+                type: "line",
+                source: "arc",
+                paint: { "line-color": "#d5d8de", "line-width": 2, "line-opacity": 0.85 },
+              });
+            }
           }
         };
         if (map.isStyleLoaded()) paint();
@@ -285,6 +326,25 @@ export function GuessMap({
       )}
     >
       <div ref={hostRef} className="h-full w-full" role="application" aria-label="Guessing map" />
+      {status !== "ready" && (
+        <div className="pointer-events-none absolute inset-0 z-[5] flex items-center justify-center bg-bg-elevated/80">
+          {status === "loading" ? (
+            <p className="text-xs uppercase tracking-wider text-muted">Loading map</p>
+          ) : (
+            <button
+              type="button"
+              className="pointer-events-auto h-11 rounded-[var(--radius-sm)] border border-border bg-bg px-4 text-xs font-medium uppercase tracking-wider"
+              onClick={() => {
+                setStatus("loading");
+                pendingFocus.current = "both";
+                setEpoch((n) => n + 1);
+              }}
+            >
+              Retry map
+            </button>
+          )}
+        </div>
+      )}
       <div className="absolute left-3 top-3 z-10 flex flex-wrap items-center gap-2">
         <button
           type="button"
