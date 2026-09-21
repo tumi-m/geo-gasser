@@ -142,10 +142,16 @@ export function planMatch(
   avoidLocationIds: readonly string[] = [],
 ): MatchPlan {
   const spec = sanitizeAtlas(atlas);
+  // An empty atlas filter must not deal a blank match; a filter that simply
+  // excludes every round-4 site is fine and stays respected.
+  const pickPool = (list: GeoLocation[], spec2: AtlasSpec) => {
+    const filtered = filterByAtlas(list, spec2);
+    return filtered.length ? filtered : list;
+  };
   const cfg = MATCH_LENGTH[matchLength];
   const rand = mulberry32(seed);
   if (matchLength === "escape") {
-    const all = filterByAtlas(enabledLocations(), spec);
+    const all = pickPool(enabledLocations(), spec);
     const recent = new Set(avoidLocationIds);
     const fresh = all.filter(l => !recent.has(l.id));
     const pool = fresh.length >= Math.min(5, all.length) ? fresh : all;
@@ -167,13 +173,15 @@ export function planMatch(
     return {seed, matchLength, atlas:spec, locationIds:picked.map(l=>l.id), envIds:[], photoQuestions:picked.length, totalQuestions:picked.length, photoRounds:picked.length, totalRounds:picked.length};
   }
   const reserved = new Set(ROUND4_LOCATIONS.map((l) => l.id));
-  const photoPool = filterByAtlas(
-    enabledLocations().filter((l) => !reserved.has(l.id)),
-    spec,
-  );
+  const photoPoolAll = enabledLocations().filter((l) => !reserved.has(l.id));
+  let photoPool = filterByAtlas(photoPoolAll, spec);
+  let r4Pool = filterByAtlas(ROUND4_LOCATIONS, spec);
+  if (photoPool.length + r4Pool.length === 0) {
+    photoPool = photoPoolAll;
+    r4Pool = ROUND4_LOCATIONS;
+  }
   const avoid = new Set(avoidLocationIds);
   const preferred = photoPool.filter((l) => !avoid.has(l.id));
-  const r4Pool = filterByAtlas(ROUND4_LOCATIONS, spec);
   const available = photoPool.length + r4Pool.length;
   const target = Math.max(1, Math.min(cfg.totalQuestions, available || 1));
 

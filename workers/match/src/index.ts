@@ -67,7 +67,7 @@ export class MatchRoom extends DurableObject<Env> {
 
   private broadcast(): void {
     if (!this.state) return;
-    const payload = serverMessage({ t: "snapshot", state: roomSnapshot(this.state) });
+    const payload = serverMessage({ t: "snapshot", state: roomSnapshot(this.state), sentAt: Date.now() });
     for (const ws of this.ctx.getWebSockets()) {
       try {
         ws.send(payload);
@@ -156,7 +156,7 @@ export class MatchRoom extends DurableObject<Env> {
     });
     const state = await this.hydrate();
     server.send(
-      serverMessage({ t: "welcome", selfId: playerId, state: roomSnapshot(state) }),
+      serverMessage({ t: "welcome", selfId: playerId, state: roomSnapshot(state), sentAt: Date.now() }),
     );
 
     return new Response(null, { status: 101, webSocket: client });

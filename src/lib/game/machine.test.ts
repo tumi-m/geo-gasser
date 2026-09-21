@@ -228,6 +228,26 @@ describe("two-player lock and local duels", () => {
     assert.equal(s.players.filter((p) => p.locked).length, 2);
   });
 
+  it("drops a disconnected seat on rematch and refuses to start against a ghost", () => {
+    let s = reduce(createLobbyState(), {
+      type: "CREATE_DUEL",
+      playerId: "h",
+      name: "Host",
+      roomCode: "ABC123",
+      seed: 3,
+      now,
+    });
+    s = reduce(s, { type: "PLAYER_JOIN", playerId: "g", name: "Guest", now: now + 1 });
+    s = reduce(s, { type: "START_MATCH", now: now + 2 });
+    s = reduce(s, { type: "INTRO_DONE", now: now + 3 });
+    s = reduce(s, { type: "PLAYER_LEAVE", playerId: "g", now: now + 4 });
+    assert.equal(s.phase, "match_complete");
+    s = reduce(s, { type: "REMATCH", seed: 77, now: now + 5 });
+    assert.deepEqual(s.players.map((p) => p.id), ["h"]);
+    const before = s;
+    assert.equal(reduce(s, { type: "START_MATCH", now: now + 6 }), before);
+  });
+
   it("starts a grok bot duel without a lobby wait", () => {
     let s = reduce(createLobbyState(), {
       type: "CREATE_LOCAL_DUEL",

@@ -332,7 +332,7 @@ export function reduce(state: MatchState, event: MatchEvent): MatchState {
       return { ...state, players, seq: state.seq + 1, lastEventAt: event.now };
     }
     case "START_MATCH": {
-      if (state.mode === "duel" && state.players.length < 2) return state;
+      if (state.mode === "duel" && state.players.filter((p) => p.connected).length < 2) return state;
       if (!["waiting_for_players", "match_starting", "rematch_pending"].includes(state.phase)) return state;
       return beginRound({ ...state, roundIndex: 0, questionIndex: 0, roundHistory: [], winnerIds: [], players: state.players.map((p) => ({
         ...emptyPlayer(p.id, p.name, p.avatarId, p.kind),
@@ -436,7 +436,8 @@ export function reduce(state: MatchState, event: MatchEvent): MatchState {
       }
       if (state.phase !== "round_results" && state.phase !== "next_round") return state;
       const nextQ = state.questionIndex + 1;
-      if (nextQ >= (state.totalQuestions || TOTAL_QUESTIONS)) {
+      // `0` means the plan held no questions: end instead of grinding blanks.
+      if (nextQ >= (state.totalQuestions ?? TOTAL_QUESTIONS)) {
         const { winnerIds } = rankPlayers(state.players);
         return { ...bump(state, "final_reveal", event.now), winnerIds };
       }
@@ -453,7 +454,11 @@ export function reduce(state: MatchState, event: MatchEvent): MatchState {
       if (!["final_reveal","match_complete"].includes(state.phase)) return state;
       const plan = planMatch(event.seed, event.matchLength ?? state.matchLength, event.atlas ?? state.atlas, event.avoidLocationIds);
       const opts = matchOptions(event.difficulty ?? state.timeDifficulty, event.matchLength ?? state.matchLength);
-      const players = state.players.map((p) => emptyPlayer(p.id, p.name, p.avatarId, p.kind));
+      // A rematch never resurrects an absent seat: disconnected players are
+      // dropped so the room waits for a real opponent instead of a ghost.
+      const players = state.players
+        .filter((p) => p.connected)
+        .map((p) => emptyPlayer(p.id, p.name, p.avatarId, p.kind));
       const next: MatchState = {
         ...state,
         seq: state.seq + 1,

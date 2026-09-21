@@ -79,6 +79,7 @@ export function MatchApp({
   const [copied, setCopied] = useState(false);
   const [shake, setShake] = useState(false);
   const [panoFailed, setPanoFailed] = useState(false);
+  const [scene3dFailed, setScene3dFailed] = useState(false);
   const [pendingLock, setPendingLock] = useState<{roundStartedAtMs?:number; questionIndex:number; lat:number; lng:number} | null>(null);
   const clockOffset = useRef(0);
   const statsRecorded = useRef(false);
@@ -277,8 +278,14 @@ export function MatchApp({
   useEffect(() => {
     if (!serverMode) return;
     return socketOnMessage({
-      onWelcome: (_id, snapshot) => adoptSnapshot(snapshot as MatchState),
-      onSnapshot: (snapshot) => adoptSnapshot(snapshot as MatchState),
+      onWelcome: (_id, snapshot, sentAt) => {
+        if (sentAt) clockOffset.current = sentAt - Date.now();
+        adoptSnapshot(snapshot as MatchState);
+      },
+      onSnapshot: (snapshot, sentAt) => {
+        if (sentAt) clockOffset.current = sentAt - Date.now();
+        adoptSnapshot(snapshot as MatchState);
+      },
     });
   }, [serverMode, socketOnMessage, adoptSnapshot]);
 
@@ -316,6 +323,31 @@ export function MatchApp({
     if (mode !== "duel" || duelKind !== "online" || !hostRef.current || serverMode || !roomCode || !state.hostId) return;
     try { sessionStorage.setItem(`atlas-host:${roomCode}`,JSON.stringify(state,(_key,value)=>value === Infinity ? "__Infinity" : value)); } catch { /* Refresh recovery is optional. */ }
   }, [state,mode,duelKind,serverMode,roomCode]);
+
+  // The P2P transport drops a peer from the roster once its signaling lease
+  // expires (~30s). Treat a missing opponent as a forfeit so the host does
+  // not play out every remaining round against a ghost. The countdown keys
+  // on the missing set, not on every state update.
+  const ghostKey = useMemo(() => {
+    if (mode !== "duel" || duelKind !== "online" || serverMode || !hostRef.current) return "";
+    if (!state.hostId || state.hostId !== selfId) return "";
+    const roster = new Set(p2pPeers.map((peer) => peer.id));
+    return state.players
+      .filter((p) => p.kind === "human" && p.id !== selfId && p.connected && !roster.has(p.id))
+      .map((p) => p.id)
+      .join(",");
+  }, [mode, duelKind, serverMode, p2pPeers, state.hostId, state.players, selfId]);
+
+  useEffect(() => {
+    if (!ghostKey) return;
+    const ids = ghostKey.split(",");
+    const id = window.setTimeout(() => {
+      for (const ghostId of ids) {
+        dispatch({ type: "PLAYER_LEAVE", playerId: ghostId, now: Date.now() });
+      }
+    }, 8000);
+    return () => window.clearTimeout(id);
+  }, [ghostKey, dispatch]);
 
   const grokTimer = useRef(0);
   const grokQ = useRef(-1);
@@ -363,7 +395,8 @@ export function MatchApp({
   }, [scene, panoFailed]);
   useEffect(() => {
     setPanoFailed(false);
-  }, [scene?.src]);
+    setScene3dFailed(false);
+  }, [scene?.src, env?.id]);
 
   // Warm the next plate while the player studies the current one. Only the
   // host/solo knows the deck, so guests simply skip this.
@@ -433,7 +466,10 @@ export function MatchApp({
       (state.phase === "round_active" ||
         ((state.phase === "waiting_for_opponent" || state.phase === "player_locked") && duelKind !== "hotseat"));
     if (!ticking) return;
-    const clock = () => (mode === "solo" ? performance.now() : Date.now() + (hostRef.current ? 0 : clockOffset.current));
+    const clock = () =>
+      mode === "solo"
+        ? performance.now()
+        : Date.now() + (serverMode || !hostRef.current ? clockOffset.current : 0);
     const duration = state.durationSec || ROUND_DURATION_SEC;
     const fire = () => {
       const now = clock();
@@ -508,14 +544,17 @@ export function MatchApp({
     if (state.phase !== "match_complete" && state.phase !== "final_reveal") return;
     if (statsRecorded.current) return;
     statsRecorded.current = true;
+    // Hotseat switches the active seat; record the seat that just finished so
+    // its score, distances and win flag all describe the same player.
+    const statsId = you?.id ?? selfId;
     const distances = state.roundHistory
-      .map((r) => r.guesses[selfId]?.score.distanceKm)
+      .map((r) => r.guesses[statsId]?.score.distanceKm)
       .filter((d) => d != null) as number[];
     const za = { n: 0, hits: 0 };
     const nl = { n: 0, hits: 0 };
     const world = { n: 0, hits: 0 };
     for (const r of state.roundHistory) {
-      const g = r.guesses[selfId];
+      const g = r.guesses[statsId];
       if (!g) continue;
       const country = getLocation(r.locationId)?.country;
       const bucket = country === "NL" ? nl : country === "WORLD" ? world : za;
@@ -523,12 +562,12 @@ export function MatchApp({
       if (g.score.countryCorrect) bucket.hits += 1;
     }
     const fastest = state.roundHistory
-      .map((r) => r.guesses[selfId]?.score)
+      .map((r) => r.guesses[statsId]?.score)
       .filter((s) => s && s.distanceKm <= 5)
       .map((s) => s!.responseMs);
     recordMatch(loadStats(), {
       score: you?.totalScore ?? 0,
-      won: state.mode === "duel" && state.winnerIds.includes(selfId),
+      won: state.mode === "duel" && state.winnerIds.includes(statsId),
       distances,
       countryHits: { ZA: za, NL: nl, WORLD: world },
       fastestAccurateMs: fastest.length ? Math.min(...fastest) : null,
@@ -723,8 +762,13 @@ export function MatchApp({
       )}
 
       <div className="absolute inset-0">
-        {live3d && env ? (
-          <Round4Scene key={env.id} env={env} reducedMotion={settings.reducedMotion} />
+        {live3d && env && !scene3dFailed ? (
+          <Round4Scene
+            key={env.id}
+            env={env}
+            reducedMotion={settings.reducedMotion}
+            onUnavailable={() => setScene3dFailed(true)}
+          />
         ) : scene?.isPano && !panoFailed ? (
           <PanoViewer
             key={scene.src}

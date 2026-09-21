@@ -54,3 +54,11 @@ describe("atlas", () => {
     assert.equal(new Set(plan.locationIds).size, 1);
   });
 });
+
+describe("empty atlas filters", () => {
+  it("deals a playable deck when a custom city filter matches nothing", () => {
+    const plan = planMatch(4, "standard", { preset: "custom", nations: ["ZA"], cities: ["Atlantis"] });
+    assert.ok(plan.locationIds.length >= 10);
+    assert.ok(plan.totalQuestions >= 10);
+  });
+});
