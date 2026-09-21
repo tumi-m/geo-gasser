@@ -433,20 +433,36 @@ export function MatchApp({
       (state.phase === "round_active" ||
         ((state.phase === "waiting_for_opponent" || state.phase === "player_locked") && duelKind !== "hotseat"));
     if (!ticking) return;
+    const clock = () => (mode === "solo" ? performance.now() : Date.now() + (hostRef.current ? 0 : clockOffset.current));
+    const duration = state.durationSec || ROUND_DURATION_SEC;
+    const fire = () => {
+      const now = clock();
+      const rem = remainingSeconds(state.roundStartedAtMs!, now, duration);
+      setRemaining(rem);
+      if (rem > 0) return false;
+      if (serverMode || (mode === "duel" && duelKind === "online" && !hostRef.current)) return true;
+      dispatch({ type: "TIMEOUT", now });
+      return true;
+    };
     let raf = 0;
     const loop = () => {
-      const clock = mode === "solo" ? performance.now() : Date.now() + (hostRef.current ? 0 : clockOffset.current);
-      const rem = remainingSeconds(state.roundStartedAtMs!, clock, state.durationSec || ROUND_DURATION_SEC);
-      setRemaining(rem);
-      if (rem <= 0) {
-        if (serverMode || (mode === "duel" && duelKind === "online" && !hostRef.current)) return;
-        dispatch({ type: "TIMEOUT", now: clock });
-        return;
-      }
+      if (fire()) return;
       raf = requestAnimationFrame(loop);
     };
     raf = requestAnimationFrame(loop);
-    return () => cancelAnimationFrame(raf);
+    // rAF stops in hidden tabs. A wall-clock timer plus a visibility catch-up
+    // keeps the host's authoritative timeout firing while backgrounded.
+    const rem0 = remainingSeconds(state.roundStartedAtMs!, clock(), duration);
+    const timeoutId = window.setTimeout(fire, Math.max(0, rem0 * 1000) + 150);
+    const onVisible = () => {
+      if (document.visibilityState === "visible") fire();
+    };
+    document.addEventListener("visibilitychange", onVisible);
+    return () => {
+      cancelAnimationFrame(raf);
+      window.clearTimeout(timeoutId);
+      document.removeEventListener("visibilitychange", onVisible);
+    };
   }, [state.phase, state.roundStartedAtMs, state.durationSec, mode, duelKind, serverMode, dispatch]);
 
   useEffect(() => {

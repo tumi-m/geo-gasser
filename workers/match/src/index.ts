@@ -78,7 +78,10 @@ export class MatchRoom extends DurableObject<Env> {
   }
 
   private async armAlarm(): Promise<void> {
-    const round = this.state ? roundDeadlineMs(this.state) : null;
+    // A hibernated instance has no in-memory state, but a pending round
+    // deadline still has to win over a later leave grace.
+    const state = await this.hydrate();
+    const round = roundDeadlineMs(state);
     const leaves = await this.pendingLeaves();
     const deadlines = [round, ...Object.values(leaves)].filter((v): v is number => v !== null);
     if (deadlines.length === 0) {

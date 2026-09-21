@@ -171,6 +171,20 @@ describe("public snapshot answer hygiene", () => {
     assert.equal(wire.includes('"longitude"'), false);
   });
 
+  it("does not leak truth or a pin when a player forfeits mid-question", () => {
+    let s = activeDuel();
+    s = reduce(s, { type: "PLACE_PIN", playerId: "g", guess: s.truth!, now: now + 10 });
+    s = reduce(s, { type: "PLAYER_LEAVE", playerId: "g", now: now + 12 });
+    assert.equal(s.phase, "match_complete");
+    assert.equal(s.revealed, false);
+    const pub = toPublicSnapshot(s);
+    assert.equal(pub.truth, undefined);
+    assert.equal(pub.players.find((p) => p.id === "g")?.guess, undefined);
+    const wire = JSON.stringify(pub);
+    assert.equal(wire.includes('"latitude"'), false);
+    assert.equal(wire.includes('"longitude"'), false);
+  });
+
   it("releases truth and the round record at reveal, never the deck", () => {
     let s = activeDuel();
     s = reduce(s, { type: "PLACE_PIN", playerId: "h", guess: s.truth!, now: now + 10 });

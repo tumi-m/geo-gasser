@@ -116,6 +116,12 @@ export function GuessMap({
   reducedRef.current = reducedMotion;
   const revealRef = useRef(reveal);
   revealRef.current = reveal;
+  const truthRef = useRef(truth);
+  truthRef.current = truth;
+  const opponentRef = useRef(opponent);
+  opponentRef.current = opponent;
+  const atlasRef = useRef(atlas);
+  atlasRef.current = atlas;
   const pendingFocus = useRef<"ZA" | "NL" | "world" | null>(atlas ? atlasFocus(atlas) : "world");
   const ignoreMapClickUntil = useRef(0);
   const [status, setStatus] = useState<MapStatus>("loading");
@@ -127,6 +133,12 @@ export function GuessMap({
     () => (guess ? describePoint(guess, DETAIL.provinces, DETAIL.countries, WORLD) : null),
     [guess],
   );
+
+  // Scalar identities: snapshots clone truth/guess objects every poll, and
+  // object deps would restart the reveal choreography each time.
+  const truthKey = truth ? `${truth.latitude},${truth.longitude}` : "";
+  const guessKey = guess ? `${guess.latitude},${guess.longitude}` : "";
+  const opponentKey = opponent ? `${opponent.guess.latitude},${opponent.guess.longitude},${opponent.name}` : "";
 
   /** Padding that keeps framed content clear of the toolbar / bottom bar. */
   function framePad(): { paddingTopLeft: [number, number]; paddingBottomRight: [number, number] } {
@@ -381,9 +393,12 @@ export function GuessMap({
       delete pins.current.you;
     }
     if (!guess) {
-      pendingFocus.current = "world";
+      const which = atlasRef.current ? atlasFocus(atlasRef.current) : "world";
+      const bounds = which === "ZA" ? ZA_BOUNDS : which === "NL" ? NL_BOUNDS : WORLD_BOUNDS;
+      const maxZoom = which === "ZA" ? 5.5 : which === "NL" ? 7.5 : 2.2;
+      pendingFocus.current = which;
       if (map) {
-        map.fitBounds(WORLD_BOUNDS, { ...framePad(), animate: false, maxZoom: 2.2 });
+        map.fitBounds(bounds, { ...framePad(), animate: false, maxZoom });
         pendingFocus.current = null;
       }
     }
@@ -403,13 +418,17 @@ export function GuessMap({
     return () => window.clearTimeout(id);
   }, [expanded, reveal]);
 
-  // Reveal choreography. Re-runs whenever `opponent` changes identity, so
-  // every pass first tears down the previous arcs / labels / animations.
+  // Reveal choreography. Keys are scalars so cloned snapshot objects do not
+  // restart the arcs, labels and camera fly-through on every poll.
   useEffect(() => {
-    if (!reveal || !truth) return;
+    if (!reveal || !truthKey) return;
     const map = mapRef.current;
     const L = LRef.current;
     if (!map || !L) return;
+    const currentTruth = truthRef.current;
+    const currentGuess = guessRef.current;
+    const currentOpponent = opponentRef.current;
+    if (!currentTruth) return;
     const reduced = Boolean(reducedMotion);
 
     for (const raf of revealRafs.current) cancelAnimationFrame(raf);
@@ -417,9 +436,9 @@ export function GuessMap({
     for (const layer of revealLayers.current) layer.remove();
     revealLayers.current = [];
 
-    if (guess) placePin("you", guess, "you", "YOU");
-    placePin("truth", truth, "truth", "TRUE");
-    if (opponent) placePin("opp", opponent.guess, "opp", opponent.name);
+    if (guessKey && currentGuess) placePin("you", currentGuess, "you", "YOU");
+    placePin("truth", currentTruth, "truth", "TRUE");
+    if (opponentKey && currentOpponent) placePin("opp", currentOpponent.guess, "opp", currentOpponent.name);
 
     const animateArc = (
       pts: [number, number][],
@@ -445,29 +464,29 @@ export function GuessMap({
       revealRafs.current.push(requestAnimationFrame(step));
     };
 
-    if (guess) {
-      const pts = toLatLngs(geodesicPoints(guess, truth, 64));
+    if (guessKey && currentGuess) {
+      const pts = toLatLngs(geodesicPoints(currentGuess, currentTruth, 64));
       const mid = pts[Math.floor(pts.length / 2)];
       animateArc(pts, { color: MAP_COLORS.arc, weight: 2.25, opacity: 0.9 }, 900, () => {
         if (!mapRef.current) return;
-        const label = textMarker(L, mid, formatDistance(haversineKm(guess, truth)), "atlas-distance-label");
+        const label = textMarker(L, mid, formatDistance(haversineKm(currentGuess, currentTruth)), "atlas-distance-label");
         label.addTo(map);
         revealLayers.current.push(label);
       });
     }
-    if (opponent) {
-      const pts = toLatLngs(geodesicPoints(opponent.guess, truth, 64));
+    if (opponentKey && currentOpponent) {
+      const pts = toLatLngs(geodesicPoints(currentOpponent.guess, currentTruth, 64));
       animateArc(pts, { color: MAP_COLORS.arcOpp, weight: 1.75, opacity: 0.8, dashArray: "6 6" }, 900);
     }
 
     // Frame the arcs too, not just the endpoints: a ZA↔NL geodesic bows
     // hundreds of kilometres north of the straight-line box.
-    const framePts: LatLng[] = [truth];
-    if (guess) framePts.push(guess);
-    if (opponent) framePts.push(opponent.guess);
+    const framePts: LatLng[] = [currentTruth];
+    if (guessKey && currentGuess) framePts.push(currentGuess);
+    if (opponentKey && currentOpponent) framePts.push(currentOpponent.guess);
     const b = L.latLngBounds(toLatLngs(framePts));
-    if (guess) {
-      const arc = toLatLngs(geodesicPoints(guess, truth, 64));
+    if (guessKey && currentGuess) {
+      const arc = toLatLngs(geodesicPoints(currentGuess, currentTruth, 64));
       // Sample the apex every 8 points; cheap and keeps the frame tight.
       for (let i = 4; i < arc.length - 4; i += 8) b.extend(arc[i]);
     }
@@ -480,7 +499,7 @@ export function GuessMap({
             m.invalidateSize({ animate: false, pan: false });
             const pad = framePad();
             if (framePts.length === 1) {
-              m.setView([truth.latitude, truth.longitude], 4.5, { animate: !reduced });
+              m.setView([currentTruth.latitude, currentTruth.longitude], 4.5, { animate: !reduced });
             } else if (reduced) {
               m.fitBounds(b, { ...pad, maxZoom: 6, animate: false });
             } else {
@@ -490,8 +509,7 @@ export function GuessMap({
         );
       }),
     );
-
-  }, [reveal, truth, guess, opponent, reducedMotion]);
+  }, [reveal, truthKey, guessKey, opponentKey, reducedMotion]);
 
   const chip =
     "inline-flex h-9 items-center gap-1.5 rounded-full border border-border bg-bg/85 px-3 text-[11px] font-medium uppercase tracking-wider text-fg backdrop-blur-sm active:scale-95 transition-transform";

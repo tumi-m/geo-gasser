@@ -13,6 +13,10 @@ export function ModalShell({
   wide?: boolean;
 }) {
   const panelRef = useRef<HTMLDivElement>(null);
+  // Callers pass inline handlers; keep the latest so the focus trap is set up
+  // once per mount instead of re-running (and stealing focus) every render.
+  const onCloseRef = useRef(onClose);
+  onCloseRef.current = onClose;
 
   useEffect(() => {
     const prev = document.activeElement as HTMLElement | null;
@@ -25,7 +29,7 @@ export function ModalShell({
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
         e.preventDefault();
-        onClose();
+        onCloseRef.current();
         return;
       }
       if (e.key !== "Tab" || nodes.length === 0) return;
@@ -44,7 +48,7 @@ export function ModalShell({
       document.removeEventListener("keydown", onKey);
       prev?.focus?.();
     };
-  }, [onClose]);
+  }, []);
 
   return (
     <div
@@ -59,7 +63,7 @@ export function ModalShell({
       <div
         ref={panelRef}
         className={cn(
-          "atlas-modal w-full rounded-[var(--radius-xl)] border border-border bg-bg-elevated p-5 shadow-[var(--shadow-panel)]",
+          "atlas-modal max-h-[calc(100dvh-2rem)] w-full overflow-y-auto overscroll-contain rounded-[var(--radius-xl)] border border-border bg-bg-elevated p-5 shadow-[var(--shadow-panel)]",
           wide ? "max-w-lg" : "max-w-md",
         )}
       >

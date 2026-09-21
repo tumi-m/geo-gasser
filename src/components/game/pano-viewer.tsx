@@ -54,11 +54,17 @@ export function PanoViewer({
     provider === "mapillary" && imageId ? null : (src ?? null),
   );
   const [failed, setFailed] = useState(false);
+  // Keep the latest callbacks in refs: inline props from the parent would
+  // otherwise re-run the effects (and rebuild the WebGL scene) every render.
+  const onReadyRef = useRef(onReady);
+  const onErrorRef = useRef(onError);
+  onReadyRef.current = onReady;
+  onErrorRef.current = onError;
 
   const markFailed = useCallback(() => {
     setFailed(true);
-    onError?.();
-  }, [onError]);
+    onErrorRef.current?.();
+  }, []);
 
   useEffect(() => {
     if (!(provider === "mapillary" && imageId)) {
@@ -77,6 +83,9 @@ export function PanoViewer({
       cancelled = true;
     };
   }, [provider, imageId, src, markFailed]);
+
+  const reducedMotionRef = useRef(reducedMotion);
+  reducedMotionRef.current = reducedMotion;
 
   useEffect(() => {
     if (!url || failed) return;
@@ -117,7 +126,7 @@ export function PanoViewer({
         // MeshBasicMaterial multiplies the map by `color`; white shows it as-is.
         material.color.setHex(0xffffff);
         material.needsUpdate = true;
-        onReady?.();
+        onReadyRef.current?.();
       },
       undefined,
       () => markFailed(),
@@ -130,7 +139,7 @@ export function PanoViewer({
       v.lat = Math.max(-85, Math.min(85, v.lat));
       const phi = THREE.MathUtils.degToRad(90 - v.lat);
       const theta = THREE.MathUtils.degToRad(v.lon);
-      camera.fov = reducedMotion ? v.fov : camera.fov + (v.fov - camera.fov) * 0.25;
+      camera.fov = reducedMotionRef.current ? v.fov : camera.fov + (v.fov - camera.fov) * 0.25;
       camera.updateProjectionMatrix();
       target.setFromSphericalCoords(1, phi, theta);
       camera.lookAt(target);
@@ -164,7 +173,7 @@ export function PanoViewer({
       renderer.dispose();
       renderer.domElement.remove();
     };
-  }, [url, failed, reducedMotion, onReady, markFailed]);
+  }, [url, failed, markFailed]);
 
   const onPointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
     if (!interactive) return;

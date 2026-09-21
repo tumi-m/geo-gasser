@@ -510,13 +510,9 @@ export function activeScene(state: MatchState): SceneInfo | undefined {
 }
 
 export function toPublicSnapshot(state: MatchState): PublicSnapshot {
-  const hideAnswers =
-    !state.revealed &&
-    (state.phase === "round_active" ||
-      state.phase === "player_locked" ||
-      state.phase === "waiting_for_opponent" ||
-      state.phase === "round_intro" ||
-      state.phase === "match_starting");
+  // Anything unrevealed stays hidden — including an abandoned match
+  // (`match_complete` from PLAYER_LEAVE) which never reaches a reveal.
+  const hideAnswers = !state.revealed;
   return {
     seq: state.seq,
     phase: state.phase,
