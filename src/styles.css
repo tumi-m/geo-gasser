@@ -561,3 +561,99 @@ button:focus-visible,a:focus-visible {outline:2px solid var(--color-accent)!impo
 
 .expedition-hero{min-height:530px;padding:40px 0 36px}.hero-copy h1{font-size:clamp(49px,5.35vw,79px);letter-spacing:-3.7px}.hero-actions{gap:12px}.hero-actions button{font-size:14px;border-radius:9px}.hero-setup{display:flex;align-items:center;gap:12px;font-size:12px;color:var(--color-muted);padding:18px 0 6px}.hero-setup i{width:3px;height:3px;background:var(--color-subtle);border-radius:50%}.pack-card{height:178px}.pack-copy h3{font-size:20px}.expedition-footer{margin-top:33px}.section-heading h2{font-size:24px}.expedition-nav{height:90px}.duel-lobby{background:radial-gradient(ellipse at 20% 0,#304e4c88,transparent 55%),var(--color-bg)}.duel-panel{border:1px solid var(--color-border);background:#16262ee8;border-radius:24px;padding:28px;box-shadow:var(--shadow-panel)}
 @media(max-width:600px){.expedition-hero{padding-top:32px;gap:22px}.hero-copy h1{font-size:clamp(47px,12vw,66px);letter-spacing:-2.5px}.hero-actions{gap:10px}.hero-actions>button:first-child{gap:17px;padding-inline:21px}.hero-actions>button:nth-child(2){padding-inline:17px}.hero-setup{padding-top:15px;font-size:11px}.hero-collage{height:284px}.destination-card{height:237px}.destination-back{height:221px}.pack-card{height:132px}.pack-grid{gap:10px}.section-heading{margin-bottom:17px}.section-heading h2{font-size:21px}.pack-copy h3{font-size:19px}.pack-copy>span{font-size:10px}.pack-top{top:11px}.duel-panel{padding:20px;border-radius:18px}}
+
+/* A photographic opening, with enough quiet space to find your next game. */
+.journey-hero {position:relative;isolation:isolate;min-height:565px;margin:26px 0 36px;border:1px solid #ffffff1c;border-radius:24px;overflow:hidden;display:flex;align-items:center;background:#122129}
+.journey-image {position:absolute;inset:0;z-index:-2;width:100%;height:100%;object-fit:cover;object-position:65% center;animation:journey-fade .45s ease-out}
+.journey-shade {position:absolute;inset:0;z-index:-1;background:linear-gradient(90deg,#0b1824f5 0%,#0b1824d6 30%,#0b182460 62%,#0b182412),linear-gradient(0deg,#081724e6,transparent 65%)}
+.journey-copy {padding:48px;width:65%}
+.journey-copy h1 {font-family:var(--font-display);font-size:clamp(48px,5.4vw,80px);font-weight:600;letter-spacing:-3.5px;line-height:1.08;margin:26px 0 22px;color:#faf8ef}
+.journey-copy>p:not(.eyebrow) {color:#d0dadc;font-size:16px;line-height:1.7}
+.journey-copy .eyebrow {color:#e1e8e2;font-size:9px;letter-spacing:2px}
+.journey-copy .hero-setup {color:#ced9dc;margin-top:3px}
+.journey-copy .hero-actions>button:nth-child(2) {background:#14252dbb;backdrop-filter:blur(12px);border:1px solid #ffffff40;color:#f5f5ef}
+.journey-destination {position:absolute;right:34px;bottom:28px;text-align:right;color:#f4f6ef;max-width:38%}
+.journey-destination>p {font-size:10px;letter-spacing:1.5px;text-transform:uppercase;display:flex;gap:7px;justify-content:flex-end;align-items:center}
+.journey-destination h2 {font-family:Georgia,serif;font-size:34px;margin:9px 0;letter-spacing:-.8px}
+.journey-destination>span {font-size:11px;color:#dee6e2}
+.destination-switcher {display:flex;gap:8px;justify-content:flex-end;margin-top:20px}
+.destination-switcher button {position:relative;width:64px;height:48px;border:1px solid #ffffff66;border-radius:8px;overflow:hidden;padding:3px;background:#162a33;transition:transform .2s}
+.destination-switcher button[aria-pressed=true] {border:2px solid var(--color-accent);transform:translateY(-4px)}
+.destination-switcher img {width:100%;height:100%;object-fit:cover;border-radius:4px}
+.destination-switcher span {position:absolute;inset:auto 5px 4px auto;font-size:8px;color:white;text-shadow:0 1px 4px black}
+.journey-credit {display:block;font-size:8px;color:#d1d9d4;margin-top:11px;text-decoration:underline;text-underline-offset:3px}
+.expedition-packs {padding:0}
+.pack-card {height:190px;border-radius:14px}
+.pack-copy h3 {font-size:21px}
+.expedition-nav {height:84px}
+@keyframes journey-fade {from{opacity:.4}to{opacity:1}}
+
+/* Settings is one bounded surface. Only the active section scrolls. */
+.settings-shell {max-width:740px!important;height:min(730px,calc(100dvh - 2rem));padding:0!important;display:flex;flex-direction:column;overflow:hidden;border-radius:24px;background:linear-gradient(145deg,#20333a,var(--color-bg-elevated) 45%)}
+.settings-header {padding:27px 28px 20px;display:flex;align-items:center;justify-content:space-between;gap:16px;flex-shrink:0}
+.settings-header h2 {font-family:var(--font-display);font-size:30px;font-weight:500;letter-spacing:-1px;margin-top:9px}
+.settings-header .eyebrow {font-size:9px;letter-spacing:1.8px;color:var(--color-accent)}
+.settings-tabs {display:grid;grid-template-columns:repeat(4,1fr);gap:5px;padding:5px;margin:0 28px 16px;border:1px solid var(--color-border);border-radius:13px;background:#07121a50;flex-shrink:0}
+.settings-tabs button {display:flex;justify-content:center;align-items:center;gap:8px;min-height:43px;border-radius:9px;font-size:13px;color:var(--color-muted);transition:background .15s,color .15s}
+.settings-tabs button[aria-selected=true] {background:#d8f36a;color:#152023;font-weight:600;box-shadow:0 2px 10px #0002}
+.settings-tabs button:hover:not([aria-selected=true]) {background:#ffffff08;color:var(--color-fg)}
+.settings-content {flex:1;min-height:0;overflow-y:auto;overscroll-behavior:contain;padding:10px 28px 28px;scrollbar-gutter:stable}
+.settings-section+.settings-section {margin-top:26px}
+.settings-section h3 {font-size:15px;font-weight:600;letter-spacing:-.15px}
+.settings-section>p {font-size:12px;color:var(--color-muted);line-height:1.6;margin-top:5px}
+.settings-section>div {margin-top:13px}
+.settings-choices {display:grid;gap:8px}
+.settings-choices.three {grid-template-columns:repeat(3,1fr)}
+.settings-choices.two {grid-template-columns:repeat(2,1fr)}
+.settings-choices.lengths {grid-template-columns:repeat(5,1fr)}
+.settings-choice {border:1px solid var(--color-border);border-radius:12px;min-height:76px;padding:13px;text-align:left;background:#07121a35;transition:background .15s,border-color .15s}
+.settings-choice:hover {border-color:#72837d}
+.settings-choice.selected {border-color:var(--color-accent);background:#d8f36a0b}
+.settings-choice>span {display:flex;align-items:center;justify-content:space-between;gap:6px;font-size:13px;font-weight:600}
+.settings-choice svg {color:var(--color-accent);flex-shrink:0}
+.settings-choice small {display:block;font-size:10px;color:var(--color-muted);line-height:1.5;margin-top:7px}
+.settings-footnote {font-size:11px;color:var(--color-muted);line-height:1.7;margin-top:16px}
+.settings-notice {padding:12px 14px;border:1px solid #d8f36a33;background:#d8f36a08;border-radius:10px;font-size:12px;line-height:1.5;color:var(--color-muted);margin-bottom:20px}
+.settings-switches {margin-top:12px}
+.settings-toggle {display:flex;align-items:center;justify-content:space-between;gap:22px;padding:18px 0;border-bottom:1px solid var(--color-border)}
+.settings-toggle strong,.settings-volume strong {display:block;font-size:14px;font-weight:500}
+.settings-toggle small,.settings-volume small {display:block;font-size:12px;line-height:1.6;color:var(--color-muted);margin-top:5px}
+.settings-switch {width:46px;height:27px;border:1px solid #778682;background:#35444b;border-radius:30px;position:relative;flex-shrink:0;transition:background .15s}
+.settings-switch span {position:absolute;left:3px;top:3px;width:19px;height:19px;border-radius:50%;background:#d9e1df;transition:transform .15s}
+.settings-switch.on {background:var(--color-accent);border-color:var(--color-accent)}
+.settings-switch.on span {transform:translateX(19px);background:#172126}
+.settings-volume {display:block;margin-top:27px}
+.settings-volume>span {display:flex;justify-content:space-between;align-items:center}
+.settings-volume output {font-size:12px;color:var(--color-accent);font-variant-numeric:tabular-nums}
+.settings-volume input {width:100%;margin-top:14px;height:22px;accent-color:var(--color-accent);cursor:pointer}
+.settings-footer {padding:17px 28px;border-top:1px solid var(--color-border);display:flex;align-items:center;justify-content:space-between;gap:16px;flex-shrink:0;background:#102029}
+.settings-footer>span {display:flex;align-items:flex-start;gap:8px;color:var(--color-muted);font-size:11px}
+.settings-footer>span>svg {color:var(--color-accent)}
+.settings-footer small {display:block;color:var(--color-subtle);font-size:10px;margin-top:5px;max-width:210px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.settings-footer>div {display:flex;align-items:center;gap:5px}
+.settings-footer button {border-radius:10px;min-height:43px}
+
+/* The photograph gets the space; controls float above it. */
+.scene-viewport {position:absolute;inset:0;overflow:hidden;background:#0a1117}
+.scene-controls {left:22px;bottom:22px;padding:5px;gap:4px;border-radius:40px;background:#0a1722c9;border:1px solid #ffffff26;backdrop-filter:blur(16px)}
+.scene-controls button {width:37px;height:37px;border:0;background:transparent}
+.scene-controls button:hover {background:#ffffff18}
+.scene-hint {text-shadow:0 1px 5px #000;background:#0a1722bb;width:fit-content;max-width:80%;margin:auto;padding:7px 12px;border-radius:30px}
+.match-hud {padding-bottom:20px!important;background:linear-gradient(#07121b8c,transparent)}
+.view-mode-button {display:flex;align-items:center;justify-content:center;gap:8px;min-height:40px;padding:8px 13px;border:1px solid #ffffff40;border-radius:30px;background:#10202bd9;backdrop-filter:blur(12px);font-size:11px;color:#f1f5ee}
+.view-mode-button[aria-pressed=true] {background:var(--color-accent);color:#12212a;border-color:var(--color-accent)}
+.match-stage:fullscreen {height:100dvh}
+.hc .settings-choice,.hc .settings-tabs,.hc .settings-shell {border-color:var(--color-fg)}
+@media(max-width:1000px) {.journey-copy{padding:32px;width:70%}.journey-copy h1{font-size:58px}.journey-destination{right:25px;bottom:26px}.journey-destination h2{font-size:27px}.journey-destination>span{display:none}.journey-hero{min-height:555px}.journey-copy .hero-actions{flex-wrap:wrap}}
+@media(max-width:640px) {
+  .journey-hero{min-height:650px;align-items:flex-start;margin-top:16px;border-radius:18px;margin-bottom:28px}
+  .journey-image{object-position:67% center}
+  .journey-shade{background:linear-gradient(180deg,#0b1824dd 0%,#0b1824a6 40%,#0b182410 67%,#081724e6 100%)}
+  .journey-copy{width:100%;padding:29px 23px}.journey-copy h1{font-size:clamp(42px,10.8vw,64px);letter-spacing:-2.5px;margin:22px 0 18px}.journey-copy>p:not(.eyebrow){font-size:14px}
+  .journey-copy .eyebrow{font-size:8px;letter-spacing:1.4px}.journey-copy .hero-actions{gap:8px;flex-wrap:nowrap}.journey-copy .hero-actions button{font-size:12px;padding:0 14px;height:49px;gap:10px}.journey-copy .hero-setup{font-size:10px;gap:9px}
+  .journey-destination{left:23px;right:23px;bottom:21px;max-width:none;text-align:left}.journey-destination>p{justify-content:flex-start;font-size:9px}.journey-destination h2{font-size:28px;margin:6px 0}.destination-switcher{position:absolute;right:0;bottom:27px;margin:0;gap:5px}.destination-switcher button{width:44px;height:40px}.journey-credit{font-size:8px}
+  .pack-card{height:145px}.pack-copy h3{font-size:19px}
+  .settings-shell{height:min(760px,calc(100dvh - 1.5rem));border-radius:20px}.settings-header{padding:22px 19px 17px}.settings-header h2{font-size:26px}.settings-tabs{margin:0 16px 9px}.settings-tabs button{font-size:12px;gap:6px}.settings-content{padding:12px 18px 24px}.settings-footer{padding:14px 18px}.settings-footer small{max-width:140px}.settings-choices.lengths{grid-template-columns:repeat(3,1fr)}.settings-choice{padding:12px;min-height:73px}.settings-choice>span{font-size:12px}.settings-toggle{gap:14px}.settings-toggle small{font-size:11px}
+  .scene-viewport{bottom:var(--atlas-map-h)}.is-exploring .scene-viewport{bottom:0}.scene-controls{left:13px;bottom:12px;padding:3px}.scene-controls button{width:33px;height:33px}.scene-hint{bottom:65px;font-size:10px}.view-mode-button{padding:9px;font-size:10px;gap:5px}.match-hud{padding-inline:10px}.match-hud .view-mode-button+button{display:none}
+}
+@media(max-width:370px){.journey-copy{padding:25px 17px}.journey-copy .hero-actions{flex-wrap:wrap}.journey-destination h2{font-size:24px}.destination-switcher button{width:35px}.settings-footer>span{font-size:10px}}

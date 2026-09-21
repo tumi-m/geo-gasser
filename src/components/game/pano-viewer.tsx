@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { Minus, Plus, RotateCcw } from "lucide-react";
 import * as THREE from "three";
 import { mapillaryImageUrl } from "@/lib/game";
 import { cn } from "@/lib/utils";
@@ -39,6 +40,8 @@ export function PanoViewer({
   onError?: () => void;
   className?: string;
 }) {
+  const callbacks = useRef({ onReady, onError });
+  callbacks.current = { onReady, onError };
   const hostRef = useRef<HTMLDivElement | null>(null);
   const view = useRef({
     lon: heading ?? 0,
@@ -67,18 +70,18 @@ export function PanoViewer({
       if (resolved) setUrl(resolved);
       else {
         setFailed(true);
-        onError?.();
+        callbacks.current.onError?.();
       }
     });
     return () => {
       cancelled = true;
     };
-  }, [provider, imageId, src, onError]);
+  }, [provider, imageId, src]);
 
   const markFailed = useCallback(() => {
     setFailed(true);
-    onError?.();
-  }, [onError]);
+    callbacks.current.onError?.();
+  }, []);
 
   useEffect(() => {
     if (!url || failed) return;
@@ -107,22 +110,30 @@ export function PanoViewer({
     const material = new THREE.MeshBasicMaterial({ color: 0x14161c });
     scene.add(new THREE.Mesh(geometry, material));
 
+    let disposed = false;
     let texture: THREE.Texture | null = null;
     const loader = new THREE.TextureLoader();
     loader.setCrossOrigin("anonymous");
     loader.load(
       url,
       (loaded) => {
+        if (disposed) {
+          loaded.dispose();
+          return;
+        }
         texture = loaded;
+        loaded.anisotropy = Math.min(8, renderer.capabilities.getMaxAnisotropy());
         loaded.colorSpace = THREE.SRGBColorSpace;
         material.map = loaded;
         // MeshBasicMaterial multiplies the map by `color`; white shows it as-is.
         material.color.setHex(0xffffff);
         material.needsUpdate = true;
-        onReady?.();
+        callbacks.current.onReady?.();
       },
       undefined,
-      () => markFailed(),
+      () => {
+        if (!disposed) markFailed();
+      },
     );
 
     let raf = 0;
@@ -137,12 +148,13 @@ export function PanoViewer({
       target.setFromSphericalCoords(1, phi, theta);
       camera.lookAt(target);
       renderer.render(scene, camera);
-      (window as unknown as { __panoTest?: unknown }).__panoTest = {
-        lon: v.lon,
-        lat: v.lat,
-        fov: Math.round(camera.fov),
-        url,
-      };
+      if (import.meta.env.DEV)
+        (window as unknown as { __panoTest?: unknown }).__panoTest = {
+          lon: v.lon,
+          lat: v.lat,
+          fov: Math.round(camera.fov),
+          url,
+        };
       raf = requestAnimationFrame(render);
     };
     render();
@@ -158,6 +170,7 @@ export function PanoViewer({
     observer.observe(host);
 
     return () => {
+      disposed = true;
       cancelAnimationFrame(raf);
       observer.disconnect();
       geometry.dispose();
@@ -166,10 +179,10 @@ export function PanoViewer({
       renderer.dispose();
       renderer.domElement.remove();
     };
-  }, [url, failed, reducedMotion, onReady, markFailed]);
+  }, [url, failed, reducedMotion, markFailed]);
 
   const onPointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
-    if (!interactive) return;
+    if (!interactive || (event.target as HTMLElement).closest("button")) return;
     const v = view.current;
     v.pointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
     if (v.pointers.size === 1) {
@@ -235,6 +248,39 @@ export function PanoViewer({
       onPointerCancel={endPointer}
       onWheel={onWheel}
     >
+      {interactive && (
+        <div className="scene-controls" aria-label="Panorama controls">
+          <button
+            type="button"
+            aria-label="Zoom in on panorama"
+            onClick={() => {
+              view.current.fov = Math.max(MIN_FOV, view.current.fov - 10);
+            }}
+          >
+            <Plus size={18} />
+          </button>
+          <button
+            type="button"
+            aria-label="Zoom out of panorama"
+            onClick={() => {
+              view.current.fov = Math.min(MAX_FOV, view.current.fov + 10);
+            }}
+          >
+            <Minus size={18} />
+          </button>
+          <button
+            type="button"
+            aria-label="Reset panorama view"
+            onClick={() => {
+              view.current.lon = heading ?? 0;
+              view.current.lat = pitch ?? 0;
+              view.current.fov = 75;
+            }}
+          >
+            <RotateCcw size={16} />
+          </button>
+        </div>
+      )}
       {!url && (
         <div className="pointer-events-none absolute inset-0 flex items-center justify-center bg-bg-subtle">
           <p className="text-xs uppercase tracking-wider text-muted">Loading 360…</p>

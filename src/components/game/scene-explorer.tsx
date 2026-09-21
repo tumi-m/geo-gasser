@@ -1,6 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
-import { Minus, Plus, RotateCcw } from "lucide-react";
-import { resolveWikiImage } from "@/lib/game";
+import { Maximize, Minimize, Minus, Plus, RotateCcw } from "lucide-react";
+import { resolveWikiImage, responsiveSceneSrcSet } from "@/lib/game";
 import { cn } from "@/lib/utils";
 
 type Probe = {
@@ -20,7 +20,7 @@ const LOOK_RATE = 1.65;
 const ZOOM_RATE = 0.85;
 const ZOOM_MIN = 1.0;
 const ZOOM_MAX = 2.8;
-const ZOOM_START = 1.08;
+const ZOOM_START = 1.0;
 const DRAG_YAW = 0.0048;
 const DRAG_PITCH = 0.0034;
 
@@ -28,7 +28,13 @@ function typingTarget(el: EventTarget | null) {
   const node = el as HTMLElement | null;
   if (!node) return false;
   const tag = node.tagName;
-  return tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT" || node.isContentEditable || !!node.closest(".leaflet-container, button, [role=dialog]");
+  return (
+    tag === "INPUT" ||
+    tag === "TEXTAREA" ||
+    tag === "SELECT" ||
+    node.isContentEditable ||
+    !!node.closest(".leaflet-container, button, [role=dialog]")
+  );
 }
 
 /**
@@ -43,6 +49,9 @@ export function SceneExplorer({
   sourceUrl,
   title,
   reducedMotion,
+  fit = "contain",
+  showHints = true,
+  onToggleFit,
   interactive = true,
   onReady,
   onError,
@@ -53,6 +62,9 @@ export function SceneExplorer({
   sourceUrl?: string;
   title?: string;
   reducedMotion?: boolean;
+  fit?: "cover" | "contain";
+  showHints?: boolean;
+  onToggleFit?: () => void;
   interactive?: boolean;
   onReady?: () => void;
   onError?: () => void;
@@ -62,7 +74,7 @@ export function SceneExplorer({
   const sim = useRef({
     yaw: 0,
     pitch: 0,
-    zoom: reducedMotion ? 1.18 : ZOOM_START,
+    zoom: ZOOM_START,
     keys: new Set<string>(),
     steer: 0,
     dragging: false,
@@ -85,7 +97,7 @@ export function SceneExplorer({
     const s = sim.current;
     s.yaw = 0;
     s.pitch = 0;
-    s.zoom = reducedMotion ? 1.18 : ZOOM_START;
+    s.zoom = ZOOM_START;
     s.keys.clear();
     s.steer = 0;
     s.dragging = false;
@@ -105,7 +117,7 @@ export function SceneExplorer({
     setCurrent(chain[0] ?? src);
     const hide = window.setTimeout(() => setHint(false), 4200);
     return () => window.clearTimeout(hide);
-  }, [src, reducedMotion, fallbacks?.join("|"), sourceUrl, title, retry]);
+  }, [src, reducedMotion, fallbacks?.join("|"), sourceUrl, title, retry, fit]);
 
   useLayoutEffect(() => {
     const img = imgRef.current;
@@ -126,8 +138,18 @@ export function SceneExplorer({
       const box = hostRef.current;
       if (!img || !box) return;
       const { yaw, pitch, zoom } = sim.current;
-      const maxX = box.clientWidth * (zoom - 1) / 2;
-      const maxY = box.clientHeight * (zoom - 1) / 2;
+      const scale =
+        fit === "contain"
+          ? Math.min(
+              box.clientWidth / (img.naturalWidth || 1),
+              box.clientHeight / (img.naturalHeight || 1),
+            )
+          : Math.max(
+              box.clientWidth / (img.naturalWidth || 1),
+              box.clientHeight / (img.naturalHeight || 1),
+            );
+      const maxX = Math.max(0, (img.naturalWidth * scale * zoom - box.clientWidth) / 2);
+      const maxY = Math.max(0, (img.naturalHeight * scale * zoom - box.clientHeight) / 2);
       const x = Math.max(-maxX, Math.min(maxX, yaw * box.clientWidth * 0.55));
       const y = Math.max(-maxY, Math.min(maxY, pitch * box.clientHeight * 0.48));
       sim.current.yaw = x / (box.clientWidth * 0.55 || 1);
@@ -150,7 +172,10 @@ export function SceneExplorer({
         s.zoom = Math.max(ZOOM_MIN, Math.min(ZOOM_MAX, s.zoom));
         s.pitch = Math.max(-0.7, Math.min(0.7, s.pitch));
       }
-      if (!interactiveRef.current) {s.keys.clear();s.steer=0;}
+      if (!interactiveRef.current) {
+        s.keys.clear();
+        s.steer = 0;
+      }
       apply();
       frame = requestAnimationFrame(loop);
     };
@@ -226,7 +251,13 @@ export function SceneExplorer({
     const onUp = (e: PointerEvent) => {
       sim.current.pointers.delete(e.pointerId);
       if (host.hasPointerCapture(e.pointerId)) host.releasePointerCapture(e.pointerId);
-      if (sim.current.pointers.size === 1) { const p = [...sim.current.pointers.values()][0];sim.current.lx=p.x;sim.current.ly=p.y;sim.current.dragging=true;sim.current.pinch0=0; }
+      if (sim.current.pointers.size === 1) {
+        const p = [...sim.current.pointers.values()][0];
+        sim.current.lx = p.x;
+        sim.current.ly = p.y;
+        sim.current.dragging = true;
+        sim.current.pinch0 = 0;
+      }
       if (sim.current.pointers.size === 0) {
         sim.current.dragging = false;
         host.style.cursor = "grab";
@@ -250,16 +281,17 @@ export function SceneExplorer({
     host.addEventListener("pointercancel", onUp);
     host.addEventListener("wheel", onWheel, { passive: false });
 
-    if (import.meta.env.DEV) window.__controlsTest = {
-      getYaw: () => sim.current.yaw,
-      getSpeed: () => sim.current.zoom - ZOOM_MIN,
-      setKeys: (codes) => {
-        sim.current.keys = new Set(codes);
-      },
-      setSteer: (v) => {
-        sim.current.steer = Math.max(-1, Math.min(1, v));
-      },
-    };
+    if (import.meta.env.DEV)
+      window.__controlsTest = {
+        getYaw: () => sim.current.yaw,
+        getSpeed: () => sim.current.zoom - ZOOM_MIN,
+        setKeys: (codes) => {
+          sim.current.keys = new Set(codes);
+        },
+        setSteer: (v) => {
+          sim.current.steer = Math.max(-1, Math.min(1, v));
+        },
+      };
 
     apply();
     return () => {
@@ -275,26 +307,29 @@ export function SceneExplorer({
       host.removeEventListener("wheel", onWheel);
       if (window.__controlsTest) delete window.__controlsTest;
     };
-  }, [src]);
+  }, [src, fit]);
 
   return (
     <div className="absolute inset-0 bg-bg-subtle">
       <div
         ref={hostRef}
-        className="absolute inset-0 cursor-grab touch-none overflow-hidden bg-bg-subtle bg-cover bg-center"
-        style={current && !failed ? { backgroundImage: `url(${JSON.stringify(current)})` } : undefined}
+        className="absolute inset-0 cursor-grab touch-none overflow-hidden bg-[#0a1117]"
         aria-label="Look around the location. Drag to look, WASD to inspect, scroll to zoom."
       >
         <img
           key={retry}
           ref={imgRef}
           src={current}
+          srcSet={responsiveSceneSrcSet(current)}
+          sizes="100vw"
           alt={alt}
           draggable={false}
           referrerPolicy="no-referrer"
           decoding="async"
+          fetchPriority="high"
           className={cn(
-            "pointer-events-none h-full w-full min-h-full min-w-full origin-center object-cover select-none will-change-transform",
+            "pointer-events-none h-full w-full min-h-full min-w-full origin-center select-none will-change-transform",
+            fit === "contain" ? "object-contain" : "object-cover",
             failed ? "opacity-0" : "opacity-100",
           )}
           onLoad={() => {
@@ -331,11 +366,65 @@ export function SceneExplorer({
           <p className="px-6 text-center text-sm text-muted">Photo unavailable</p>
         </div>
       )}
-      {failed && <button className="absolute top-[55%] left-1/2 -translate-x-1/2 z-10 rounded-lg bg-accent text-accent-fg px-5 py-3" onClick={()=>{setFailed(false);setRetry(n=>n+1);}}>Retry photo</button>}
-      {interactive && !failed && <div className="scene-controls" aria-label="Photo controls"><button type="button" aria-label="Zoom in on photo" onClick={()=>{sim.current.zoom=Math.min(ZOOM_MAX,sim.current.zoom+0.3);setHint(false);}}><Plus size={18}/></button><button type="button" aria-label="Zoom out of photo" onClick={()=>{sim.current.zoom=Math.max(ZOOM_MIN,sim.current.zoom-0.3);setHint(false);}}><Minus size={18}/></button><button type="button" aria-label="Reset photo view" onClick={()=>{sim.current.zoom=ZOOM_START;sim.current.yaw=0;sim.current.pitch=0;}}><RotateCcw size={16}/></button></div>}
-      {hint && interactive && !failed && (
-        <p className="pointer-events-none absolute inset-x-0 top-[28%] z-10 text-center text-[11px] uppercase tracking-[0.18em] text-fg/90">
-          Drag to look · WASD inspect · scroll zoom
+      {failed && (
+        <button
+          className="absolute top-[55%] left-1/2 -translate-x-1/2 z-10 rounded-lg bg-accent text-accent-fg px-5 py-3"
+          onClick={() => {
+            setFailed(false);
+            setRetry((n) => n + 1);
+          }}
+        >
+          Retry photo
+        </button>
+      )}
+      {interactive && !failed && (
+        <div className="scene-controls" aria-label="Photo controls">
+          <button
+            type="button"
+            aria-label="Zoom in on photo"
+            onClick={() => {
+              sim.current.zoom = Math.min(ZOOM_MAX, sim.current.zoom + 0.3);
+              setHint(false);
+            }}
+          >
+            <Plus size={18} />
+          </button>
+          <button
+            type="button"
+            aria-label="Zoom out of photo"
+            onClick={() => {
+              sim.current.zoom = Math.max(ZOOM_MIN, sim.current.zoom - 0.3);
+              setHint(false);
+            }}
+          >
+            <Minus size={18} />
+          </button>
+          <button
+            type="button"
+            aria-label="Reset photo view"
+            onClick={() => {
+              sim.current.zoom = ZOOM_START;
+              sim.current.yaw = 0;
+              sim.current.pitch = 0;
+            }}
+          >
+            <RotateCcw size={16} />
+          </button>
+          {onToggleFit && (
+            <button
+              type="button"
+              aria-label={fit === "contain" ? "Fill screen with photo" : "Show full photograph"}
+              title={fit === "contain" ? "Fill frame" : "Full photograph"}
+              onClick={onToggleFit}
+            >
+              {fit === "contain" ? <Maximize size={16} /> : <Minimize size={16} />}
+            </button>
+          )}
+        </div>
+      )}
+      {showHints && hint && interactive && !failed && (
+        <p className="scene-hint pointer-events-none absolute inset-x-0 bottom-20 z-10 text-center text-[11px] text-fg/90">
+          Scroll or pinch to zoom · drag to explore
         </p>
       )}
     </div>

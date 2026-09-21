@@ -1,5 +1,10 @@
 import { DEFAULT_ATLAS, sanitizeAtlas, type AtlasSpec } from "./atlas.ts";
-import { isMatchLengthId, isTimeDifficulty, type MatchLengthId, type TimeDifficulty } from "./timer.ts";
+import {
+  isMatchLengthId,
+  isTimeDifficulty,
+  type MatchLengthId,
+  type TimeDifficulty,
+} from "./timer.ts";
 
 const KEY = "atlas-duel-settings-v3";
 
@@ -13,6 +18,8 @@ export interface GameSettings {
   reducedMotion: boolean;
   cameraShake: boolean;
   highContrast: boolean;
+  photoFit: "cover" | "contain";
+  showHints: boolean;
   difficulty: TimeDifficulty;
   matchLength: MatchLengthId;
   atlas: AtlasSpec;
@@ -28,6 +35,8 @@ export const DEFAULT_SETTINGS: GameSettings = {
   reducedMotion: false,
   cameraShake: true,
   highContrast: false,
+  photoFit: "contain",
+  showHints: true,
   difficulty: "medium",
   matchLength: "escape",
   atlas: DEFAULT_ATLAS,
@@ -48,8 +57,14 @@ export function loadSettings(): GameSettings {
     return {
       ...DEFAULT_SETTINGS,
       ...parsed,
-      difficulty: isTimeDifficulty(parsed.difficulty) ? parsed.difficulty : DEFAULT_SETTINGS.difficulty,
-      matchLength: isMatchLengthId(parsed.matchLength) ? parsed.matchLength : DEFAULT_SETTINGS.matchLength,
+      photoFit: parsed.photoFit === "cover" ? "cover" : "contain",
+      showHints: typeof parsed.showHints === "boolean" ? parsed.showHints : true,
+      difficulty: isTimeDifficulty(parsed.difficulty)
+        ? parsed.difficulty
+        : DEFAULT_SETTINGS.difficulty,
+      matchLength: isMatchLengthId(parsed.matchLength)
+        ? parsed.matchLength
+        : DEFAULT_SETTINGS.matchLength,
       atlas: sanitizeAtlas(parsed.atlas),
     };
   } catch {
@@ -59,5 +74,9 @@ export function loadSettings(): GameSettings {
 
 export function saveSettings(settings: GameSettings) {
   if (typeof window === "undefined") return;
-  try { localStorage.setItem(KEY, JSON.stringify(settings)); } catch { /* Private browsing can disable storage. */ }
+  try {
+    localStorage.setItem(KEY, JSON.stringify(settings));
+  } catch {
+    /* Private browsing can disable storage. */
+  }
 }

@@ -20,9 +20,7 @@ export function localScenePath(id: string): string {
 }
 
 /** Ordered candidates: 360 plate first, then the local still, then stored. */
-export function sceneCandidates(
-  loc: Pick<GeoLocation, "id" | "sceneUrl" | "panoUrl">,
-): string[] {
+export function sceneCandidates(loc: Pick<GeoLocation, "id" | "sceneUrl" | "panoUrl">): string[] {
   const url = loc.sceneUrl;
   if (url.startsWith("/generated/")) return [url];
   const urls: string[] = [];
@@ -49,7 +47,8 @@ async function wikiJson(params: Record<string, string>): Promise<Record<string, 
 }
 
 function firstThumb(data: Record<string, unknown> | null): string | null {
-  const query = data?.query as { pages?: Record<string, { thumbnail?: { source?: string } }> } | undefined;
+  const query = data?.query as
+    { pages?: Record<string, { thumbnail?: { source?: string } }> } | undefined;
   const pages = query?.pages;
   if (!pages) return null;
   for (const page of Object.values(pages)) {
@@ -63,7 +62,7 @@ async function pageImage(page: string): Promise<string | null> {
     redirects: "1",
     prop: "pageimages",
     piprop: "thumbnail",
-    pithumbsize: "960",
+    pithumbsize: "1920",
     titles: page,
   });
   return firstThumb(data);
@@ -83,7 +82,15 @@ export async function resolveWikiImage(sourceUrl?: string, title?: string): Prom
     gsrlimit: "1",
     prop: "pageimages",
     piprop: "thumbnail",
-    pithumbsize: "960",
+    pithumbsize: "1920",
   });
   return firstThumb(data);
+}
+
+/** Keep the lightweight plate on phones; allow large displays to request the original. */
+export function responsiveSceneSrcSet(src: string): string | undefined {
+  if (src === "/locations/loc_02.jpg") {
+    return "/locations/loc_02.jpg 1280w, /locations/hires/loc_02.jpg 5844w";
+  }
+  return undefined;
 }

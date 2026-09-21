@@ -1,12 +1,29 @@
-import { LogOut, X } from "lucide-react";
+import { useState } from "react";
+import {
+  Check,
+  Compass,
+  Headphones,
+  Image,
+  LogOut,
+  SlidersHorizontal,
+  UserRound,
+  X,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import type { AvatarId, GameSettings, MatchLengthId, TimeDifficulty } from "@/lib/game";
-import { sanitizeAvatar } from "@/lib/game";
+import { atlasLabel, planMatch, sanitizeAvatar, type GameSettings } from "@/lib/game";
 import { AtlasPicker } from "./atlas-picker";
 import { AvatarPicker } from "./player-avatar";
 import { cn } from "@/lib/utils";
 import { ModalShell } from "./modal-shell";
+
+const tabs = [
+  { id: "game", label: "Game", icon: Compass },
+  { id: "picture", label: "Picture", icon: Image },
+  { id: "sound", label: "Sound", icon: Headphones },
+  { id: "profile", label: "You", icon: UserRound },
+] as const;
+type TabId = (typeof tabs)[number]["id"];
 
 export function SettingsPanel({
   settings,
@@ -19,143 +36,276 @@ export function SettingsPanel({
   onClose: () => void;
   onQuit?: () => void;
 }) {
-  const slider = (key: "master" | "music" | "sfx", label: string) => (
-    <label className="flex flex-col gap-2 text-sm text-muted">
-      {label}
+  const [tab, setTab] = useState<TabId>(onQuit ? "picture" : "game");
+  const update = (patch: Partial<GameSettings>) => onChange({ ...settings, ...patch });
+  const plan = planMatch(1, settings.matchLength, settings.atlas);
+  const slider = (key: "master" | "music" | "sfx", label: string, hint: string) => (
+    <label className={cn("settings-volume", settings.muted && "opacity-45")}>
+      <span>
+        <strong>{label}</strong>
+        <output>{Math.round(settings[key] * 100)}%</output>
+      </span>
+      <small>{hint}</small>
       <input
         type="range"
         min={0}
         max={1}
         step={0.01}
         value={settings[key]}
-        onChange={(e) => onChange({ ...settings, [key]: Number(e.target.value) })}
-        className="w-full"
-        aria-valuemin={0}
-        aria-valuemax={100}
-        aria-valuenow={Math.round(settings[key] * 100)}
+        disabled={settings.muted}
+        onChange={(e) => update({ [key]: Number(e.target.value) })}
+        aria-label={label}
+        aria-valuetext={`${Math.round(settings[key] * 100)} percent`}
       />
     </label>
   );
-
   return (
-    <ModalShell titleId="settings-title" onClose={onClose}>
-      <div className="mb-5 flex items-center justify-between">
-        <h2 id="settings-title" className="font-display text-2xl">
-          Settings
-        </h2>
+    <ModalShell titleId="settings-title" onClose={onClose} className="settings-shell">
+      <header className="settings-header">
+        <div>
+          <p className="eyebrow">
+            <SlidersHorizontal size={13} /> YOUR WAY TO PLAY
+          </p>
+          <h2 id="settings-title">Make it your world.</h2>
+        </div>
         <Button variant="ghost" size="icon" onClick={onClose} aria-label="Close settings">
-          <X className="size-5" />
+          <X size={20} />
         </Button>
+      </header>
+      <div className="settings-tabs" role="tablist" aria-label="Settings sections">
+        {tabs.map((item, index) => (
+          <button
+            key={item.id}
+            id={`settings-tab-${item.id}`}
+            type="button"
+            role="tab"
+            aria-selected={tab === item.id}
+            aria-controls={`settings-panel-${item.id}`}
+            tabIndex={tab === item.id ? 0 : -1}
+            onClick={() => setTab(item.id)}
+            onKeyDown={(e) => {
+              const next =
+                e.key === "ArrowRight"
+                  ? (index + 1) % tabs.length
+                  : e.key === "ArrowLeft"
+                    ? (index + tabs.length - 1) % tabs.length
+                    : e.key === "Home"
+                      ? 0
+                      : e.key === "End"
+                        ? tabs.length - 1
+                        : -1;
+              if (next < 0) return;
+              e.preventDefault();
+              setTab(tabs[next].id);
+              document.getElementById(`settings-tab-${tabs[next].id}`)?.focus();
+            }}
+          >
+            <item.icon size={17} />
+            {item.label}
+          </button>
+        ))}
       </div>
-      <div className="flex flex-col gap-5">
-        <div className="flex flex-col gap-2 text-sm text-muted">
-          Atlas
-          <AtlasPicker value={settings.atlas} onChange={(atlas) => onChange({ ...settings, atlas })} />
-        </div>
-        <div className="flex flex-col gap-2 text-sm text-muted">
-          Timer
-          <div className="grid grid-cols-3 gap-2">
-            {(
-              [
-                ["easy", "Easy", "60s"],
-                ["medium", "Medium", "45s"],
-                ["hard", "Hard", "30s"],
-              ] as const
-            ).map(([id, label, hint]) => (
-              <Choice
-                key={id}
-                label={label}
-                hint={hint}
-                active={settings.difficulty === id}
-                onClick={() => onChange({ ...settings, difficulty: id as TimeDifficulty })}
+      <div
+        key={tab}
+        role="tabpanel"
+        id={`settings-panel-${tab}`}
+        aria-labelledby={`settings-tab-${tab}`}
+        tabIndex={0}
+        className="settings-content"
+      >
+        {tab === "game" && (
+          <>
+            {onQuit && (
+              <p className="settings-notice">
+                Changes here apply to your next match. This match keeps running.
+              </p>
+            )}
+            <Section title="Set your pace" hint="Time to look around, then trust your instinct.">
+              <div className="settings-choices three">
+                {(
+                  [
+                    ["easy", "Wander", "60 seconds"],
+                    ["medium", "Explore", "45 seconds"],
+                    ["hard", "Sprint", "30 seconds"],
+                  ] as const
+                ).map(([id, label, hint]) => (
+                  <Choice
+                    key={id}
+                    label={label}
+                    hint={hint}
+                    active={settings.difficulty === id}
+                    onClick={() => update({ difficulty: id })}
+                  />
+                ))}
+              </div>
+            </Section>
+            <Section
+              title="How far will you go?"
+              hint={`${plan.totalQuestions} unique places in your selected map.`}
+            >
+              <div className="settings-choices lengths">
+                {(
+                  [
+                    ["escape", "Escape", "5 places"],
+                    ["quick", "Quick", "10 places"],
+                    ["standard", "Classic", "Up to 40"],
+                    ["extended", "Voyage", "Up to 70"],
+                    ["full", "Odyssey", "Up to 100"],
+                  ] as const
+                ).map(([id, label, hint]) => (
+                  <Choice
+                    key={id}
+                    label={label}
+                    hint={hint}
+                    active={settings.matchLength === id}
+                    onClick={() => update({ matchLength: id })}
+                  />
+                ))}
+              </div>
+              {settings.matchLength === "escape" &&
+                settings.atlas.preset === "sa-nl" &&
+                !settings.atlas.cities?.length && (
+                  <p className="settings-footnote">Your fifth stop is a world wildcard.</p>
+                )}
+            </Section>
+            <Section title="Choose your map">
+              <AtlasPicker value={settings.atlas} onChange={(atlas) => update({ atlas })} />
+            </Section>
+          </>
+        )}
+        {tab === "picture" && (
+          <>
+            <Section title="Take in the view" hint="Choose how still photographs fit your screen.">
+              <div className="settings-choices two">
+                <Choice
+                  label="Cinematic"
+                  hint="Fill the frame · some cropping"
+                  active={settings.photoFit === "cover"}
+                  onClick={() => update({ photoFit: "cover" })}
+                />
+                <Choice
+                  label="Full photograph"
+                  hint="Every detail · no cropping"
+                  active={settings.photoFit === "contain"}
+                  onClick={() => update({ photoFit: "contain" })}
+                />
+              </div>
+            </Section>
+            <div className="settings-switches">
+              <Toggle
+                label="Show control hints"
+                hint="A little guidance while you explore."
+                checked={settings.showHints}
+                onChange={(showHints) => update({ showHints })}
               />
-            ))}
-          </div>
-        </div>
-        <div className="flex flex-col gap-2 text-sm text-muted">
-          Match length
-          <div className="grid grid-cols-2 gap-2">
-            <Choice label="Quick escape" hint="5 places · world finale*" active={settings.matchLength === "escape"} onClick={() => onChange({...settings,matchLength:"escape"})}/>
-            <Choice label="Quick" hint="1 round · 10 places" active={settings.matchLength === "quick"} onClick={() => onChange({...settings,matchLength:"quick"})}/>
-            <Choice
-              label="Standard"
-              hint="4 rounds · 40"
-              active={settings.matchLength === "standard"}
-              onClick={() => onChange({ ...settings, matchLength: "standard" as MatchLengthId })}
-            />
-            <Choice
-              label="Extended"
-              hint="7 rounds · 70"
-              active={settings.matchLength === "extended"}
-              onClick={() => onChange({ ...settings, matchLength: "extended" as MatchLengthId })}
-            />
-            <Choice
-              label="Full game"
-              hint="10 rounds · 100"
-              active={settings.matchLength === "full"}
-              onClick={() => onChange({ ...settings, matchLength: "full" as MatchLengthId })}
-            />
-          </div>
-          <p className="text-xs text-subtle">*SA × NL quick games finish with a world wildcard. Smaller maps use all available places.</p>
-          {onQuit ? <p className="text-xs text-subtle">Timer and length apply on the next match.</p> : null}
-        </div>
-        <label className="flex flex-col gap-2 text-sm text-muted">
-          Display name
-          <Input
-            value={settings.displayName}
-            maxLength={24}
-            autoComplete="nickname"
-            onChange={(e) => onChange({ ...settings, displayName: e.target.value })}
-          />
-        </label>
-        <div className="flex flex-col gap-2 text-sm text-muted">
-          Avatar
-          <AvatarPicker
-            value={sanitizeAvatar(settings.avatarId)}
-            onChange={(avatarId: AvatarId) => onChange({ ...settings, avatarId })}
-          />
-        </div>
-        {slider("master", "Master")}
-        {slider("music", "Music")}
-        {slider("sfx", "Effects")}
-        <Toggle
-          label="Mute"
-          checked={settings.muted}
-          onChange={(muted) => onChange({ ...settings, muted })}
-        />
-        <Toggle
-          label="Reduce motion"
-          checked={settings.reducedMotion}
-          onChange={(reducedMotion) =>
-            onChange({
-              ...settings,
-              reducedMotion,
-              cameraShake: reducedMotion ? false : settings.cameraShake,
-            })
-          }
-        />
-        <Toggle
-          label="Camera shake"
-          checked={settings.cameraShake && !settings.reducedMotion}
-          disabled={settings.reducedMotion}
-          onChange={(cameraShake) => onChange({ ...settings, cameraShake })}
-        />
-        <Toggle
-          label="High contrast"
-          checked={settings.highContrast}
-          onChange={(highContrast) => onChange({ ...settings, highContrast })}
-        />
-        {onQuit && (
-          <Button variant="secondary" className="mt-2 w-full" onClick={onQuit}>
-            <LogOut className="size-4" />
-            Quit match
-          </Button>
+              <Toggle
+                label="Reduce motion"
+                hint="Calmer transitions and no camera shake."
+                checked={settings.reducedMotion}
+                onChange={(reducedMotion) =>
+                  update({
+                    reducedMotion,
+                    cameraShake: reducedMotion ? false : settings.cameraShake,
+                  })
+                }
+              />
+              <Toggle
+                label="Camera shake"
+                hint="A small kick when your result lands."
+                checked={settings.cameraShake && !settings.reducedMotion}
+                disabled={settings.reducedMotion}
+                onChange={(cameraShake) => update({ cameraShake })}
+              />
+              <Toggle
+                label="High contrast"
+                hint="Stronger text and interface boundaries."
+                checked={settings.highContrast}
+                onChange={(highContrast) => update({ highContrast })}
+              />
+            </div>
+            <p className="settings-footnote">
+              Use Explore view during a round to hide the map. The timer keeps running.
+            </p>
+          </>
+        )}
+        {tab === "sound" && (
+          <>
+            <div className="settings-switches">
+              <Toggle
+                label="Sound on"
+                hint="Set the mood for your next adventure."
+                checked={!settings.muted}
+                onChange={(value) => update({ muted: !value })}
+              />
+            </div>
+            {slider("master", "Overall volume", "The volume of everything you hear.")}
+            {slider("music", "Atmosphere", "Ambient sound while you explore.")}
+            {slider("sfx", "Game sounds", "Pins, countdowns and celebrations.")}
+          </>
+        )}
+        {tab === "profile" && (
+          <>
+            <Section title="What should we call you?">
+              <label className="sr-only" htmlFor="traveler-name">
+                Display name
+              </label>
+              <Input
+                id="traveler-name"
+                value={settings.displayName}
+                maxLength={24}
+                autoComplete="nickname"
+                onChange={(e) => update({ displayName: e.target.value })}
+              />
+            </Section>
+            <Section title="Pick your travel companion">
+              <AvatarPicker
+                value={sanitizeAvatar(settings.avatarId)}
+                onChange={(avatarId) => update({ avatarId })}
+              />
+            </Section>
+            {onQuit && (
+              <p className="settings-footnote">Your name and avatar update in your next room.</p>
+            )}
+          </>
         )}
       </div>
+      <footer className="settings-footer">
+        <span>
+          <Check size={14} />
+          <span>
+            Saved automatically<small>{atlasLabel(settings.atlas)}</small>
+          </span>
+        </span>
+        <div>
+          {onQuit && (
+            <Button variant="ghost" aria-label="Quit match" onClick={onQuit}>
+              <LogOut size={16} />
+              <span className="hidden sm:inline">Leave</span>
+            </Button>
+          )}
+          <Button onClick={onClose}>{onQuit ? "Back to game" : "Done"}</Button>
+        </div>
+      </footer>
     </ModalShell>
   );
 }
-
+function Section({
+  title,
+  hint,
+  children,
+}: {
+  title: string;
+  hint?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <section className="settings-section">
+      <h3>{title}</h3>
+      {hint && <p>{hint}</p>}
+      <div>{children}</div>
+    </section>
+  );
+}
 function Choice({
   label,
   hint,
@@ -170,33 +320,37 @@ function Choice({
   return (
     <button
       type="button"
-      onClick={onClick}
       aria-pressed={active}
-      className={cn(
-        "rounded-[var(--radius-md)] border px-3 py-2 text-left transition-colors",
-        active ? "border-accent bg-accent/15 text-fg" : "border-border bg-bg-subtle text-muted",
-      )}
+      onClick={onClick}
+      className={cn("settings-choice", active && "selected")}
     >
-      <span className="block text-sm font-medium text-fg">{label}</span>
-      <span className="mt-0.5 block text-[11px] text-muted">{hint}</span>
+      <span>
+        {label}
+        {active && <Check size={14} />}
+      </span>
+      <small>{hint}</small>
     </button>
   );
 }
-
 function Toggle({
   label,
+  hint,
   checked,
   onChange,
   disabled,
 }: {
   label: string;
+  hint: string;
   checked: boolean;
   onChange: (next: boolean) => void;
   disabled?: boolean;
 }) {
   return (
-    <div className="flex min-h-11 items-center justify-between gap-3 text-sm">
-      <span>{label}</span>
+    <div className={cn("settings-toggle", disabled && "opacity-45")}>
+      <span>
+        <strong>{label}</strong>
+        <small>{hint}</small>
+      </span>
       <button
         type="button"
         role="switch"
@@ -204,18 +358,9 @@ function Toggle({
         aria-label={label}
         disabled={disabled}
         onClick={() => onChange(!checked)}
-        className={cn(
-          "relative h-7 w-12 rounded-full border transition-[background-color,border-color] duration-150",
-          checked ? "border-accent bg-accent" : "border-border bg-bg-subtle",
-          disabled && "opacity-40",
-        )}
+        className={cn("settings-switch", checked && "on")}
       >
-        <span
-          className={cn(
-            "absolute top-0.5 left-0.5 size-6 rounded-full transition-transform duration-150",
-            checked ? "translate-x-5 bg-accent-fg" : "bg-fg",
-          )}
-        />
+        <span />
       </button>
     </div>
   );
