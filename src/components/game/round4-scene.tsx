@@ -34,8 +34,18 @@ interface WaterPts {
   phase: number;
 }
 
-export function Round4Scene({ env, reducedMotion }: { env: EnvironmentSpec; reducedMotion?: boolean }) {
+export function Round4Scene({
+  env,
+  reducedMotion,
+  onUnavailable,
+}: {
+  env: EnvironmentSpec;
+  reducedMotion?: boolean;
+  onUnavailable?: () => void;
+}) {
   const hostRef = useRef<HTMLDivElement>(null);
+  const onUnavailableRef = useRef(onUnavailable);
+  onUnavailableRef.current = onUnavailable;
   const [walking, setWalking] = useState(false);
   const walkingRef = useRef(walking);
   walkingRef.current = walking;
@@ -131,7 +141,12 @@ export function Round4Scene({ env, reducedMotion }: { env: EnvironmentSpec; redu
 
       const camera = new THREE.PerspectiveCamera(58, 1, 0.1, 400);
       const isMobile = window.innerWidth < 640;
-      renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
+      try {
+        renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
+      } catch {
+        onUnavailableRef.current?.();
+        return;
+      }
       renderer.setPixelRatio(Math.min(window.devicePixelRatio, isMobile ? 1.5 : 1.75));
       renderer.setClearColor(palette.fog);
       renderer.toneMapping = THREE.ACESFilmicToneMapping;
@@ -286,7 +301,9 @@ export function Round4Scene({ env, reducedMotion }: { env: EnvironmentSpec; redu
         frame = requestAnimationFrame(loop);
       };
       frame = requestAnimationFrame(loop);
-    })();
+    })().catch(() => {
+      if (!disposed) onUnavailableRef.current?.();
+    });
 
     return () => {
       disposed = true;

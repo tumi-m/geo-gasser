@@ -15,6 +15,8 @@ export function ModalShell({
   className?: string;
 }) {
   const panelRef = useRef<HTMLDivElement>(null);
+  // Callers pass inline handlers; keep the latest so the focus trap is set up
+  // once per mount instead of re-running (and stealing focus) every render.
 
   const closeRef = useRef(onClose);
   closeRef.current = onClose;
@@ -77,7 +79,7 @@ export function ModalShell({
         ref={panelRef}
         tabIndex={-1}
         className={cn(
-          "atlas-modal max-h-[calc(100dvh-2rem)] overflow-y-auto w-full rounded-[var(--radius-xl)] border border-border bg-bg-elevated p-5 shadow-[var(--shadow-panel)]",
+          "atlas-modal max-h-[calc(100dvh-2rem)] overflow-y-auto overscroll-contain w-full rounded-[var(--radius-xl)] border border-border bg-bg-elevated p-5 shadow-[var(--shadow-panel)]",
           wide ? "max-w-lg" : "max-w-md",
           className,
         )}

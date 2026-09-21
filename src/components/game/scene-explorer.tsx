@@ -92,6 +92,7 @@ export function SceneExplorer({
   const [current, setCurrent] = useState(src);
   const queue = useRef<string[]>([]);
   const wikiTried = useRef(false);
+  const fallbackKey = (fallbacks ?? []).join("|");
 
   useEffect(() => {
     const s = sim.current;
@@ -107,7 +108,7 @@ export function SceneExplorer({
     wikiTried.current = false;
     const seen = new Set<string>();
     const chain: string[] = [];
-    for (const url of [src, ...(fallbacks ?? [])]) {
+    for (const url of [src, ...(fallbackKey ? fallbackKey.split("|") : [])]) {
       if (url && !seen.has(url)) {
         seen.add(url);
         chain.push(url);
@@ -117,7 +118,7 @@ export function SceneExplorer({
     setCurrent(chain[0] ?? src);
     const hide = window.setTimeout(() => setHint(false), 4200);
     return () => window.clearTimeout(hide);
-  }, [src, reducedMotion, fallbacks?.join("|"), sourceUrl, title, retry, fit]);
+  }, [src, reducedMotion, fallbackKey, sourceUrl, title, retry, fit]);
 
   useLayoutEffect(() => {
     const img = imgRef.current;

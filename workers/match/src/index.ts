@@ -26,6 +26,9 @@ function serverMessage(msg: ServerMessage): string {
   return JSON.stringify(msg);
 }
 
+/** How long a dropped seat is held before the match forfeits it. */
+const LEAVE_GRACE_MS = 5_000;
+
 function parseDifficulty(raw: string | null): TimeDifficulty | undefined {
   return raw === "easy" || raw === "medium" || raw === "hard" ? raw : undefined;
 }
@@ -64,7 +67,7 @@ export class MatchRoom extends DurableObject<Env> {
 
   private broadcast(): void {
     if (!this.state) return;
-    const payload = serverMessage({ t: "snapshot", state: roomSnapshot(this.state) });
+    const payload = serverMessage({ t: "snapshot", state: roomSnapshot(this.state), sentAt: Date.now() });
     for (const ws of this.ctx.getWebSockets()) {
       try {
         ws.send(payload);
@@ -75,12 +78,36 @@ export class MatchRoom extends DurableObject<Env> {
   }
 
   private async armAlarm(): Promise<void> {
-    const deadline = this.state ? roundDeadlineMs(this.state) : null;
-    if (deadline === null) {
+    // A hibernated instance has no in-memory state, but a pending round
+    // deadline still has to win over a later leave grace.
+    const state = await this.hydrate();
+    const round = roundDeadlineMs(state);
+    const leaves = await this.pendingLeaves();
+    const deadlines = [round, ...Object.values(leaves)].filter((v): v is number => v !== null);
+    if (deadlines.length === 0) {
       await this.ctx.storage.deleteAlarm();
       return;
     }
-    await this.ctx.storage.setAlarm(deadline);
+    await this.ctx.storage.setAlarm(Math.min(...deadlines));
+  }
+
+  /** Player id → epoch ms when a dropped seat is forfeited. */
+  private async pendingLeaves(): Promise<Record<string, number>> {
+    return (await this.ctx.storage.get<Record<string, number>>("pendingLeaves")) ?? {};
+  }
+
+  private async scheduleLeave(playerId: string): Promise<void> {
+    const leaves = await this.pendingLeaves();
+    leaves[playerId] = Date.now() + LEAVE_GRACE_MS;
+    await this.ctx.storage.put("pendingLeaves", leaves);
+    await this.armAlarm();
+  }
+
+  private async cancelLeave(playerId: string): Promise<void> {
+    const leaves = await this.pendingLeaves();
+    if (!(playerId in leaves)) return;
+    delete leaves[playerId];
+    await this.ctx.storage.put("pendingLeaves", leaves);
   }
 
   private async apply(command: RoomCommand): Promise<void> {
@@ -113,6 +140,8 @@ export class MatchRoom extends DurableObject<Env> {
     this.ctx.acceptWebSocket(server, [playerId]);
     server.serializeAttachment({ playerId, name, avatarId } satisfies Attachment);
 
+    // A refresh reconnects with the same id inside the grace window.
+    await this.cancelLeave(playerId);
     await this.apply({
       t: "join",
       playerId,
@@ -127,7 +156,7 @@ export class MatchRoom extends DurableObject<Env> {
     });
     const state = await this.hydrate();
     server.send(
-      serverMessage({ t: "welcome", selfId: playerId, state: roomSnapshot(state) }),
+      serverMessage({ t: "welcome", selfId: playerId, state: roomSnapshot(state), sentAt: Date.now() }),
     );
 
     return new Response(null, { status: 101, webSocket: client });
@@ -190,7 +219,13 @@ export class MatchRoom extends DurableObject<Env> {
   async webSocketClose(ws: WebSocket): Promise<void> {
     const att = ws.deserializeAttachment() as Attachment | null;
     if (!att) return;
-    await this.apply({ t: "leave", playerId: att.playerId, now: Date.now() });
+    // A refresh reconnects with the same player id; hold the seat for a few
+    // seconds so a reload does not forfeit a live match.
+    const remaining = this.ctx
+      .getWebSockets(att.playerId)
+      .filter((socket) => socket !== ws);
+    if (remaining.length > 0) return;
+    await this.scheduleLeave(att.playerId);
   }
 
   async webSocketError(ws: WebSocket): Promise<void> {
@@ -198,12 +233,22 @@ export class MatchRoom extends DurableObject<Env> {
   }
 
   async alarm(): Promise<void> {
+    const now = Date.now();
+    const leaves = await this.pendingLeaves();
+    const due = Object.keys(leaves).filter((playerId) => (leaves[playerId] ?? 0) <= now);
+    for (const playerId of due) {
+      delete leaves[playerId];
+      await this.apply({ t: "leave", playerId, now });
+    }
+    if (due.length) await this.ctx.storage.put("pendingLeaves", leaves);
+
     const state = await this.hydrate();
     const deadline = roundDeadlineMs(state);
-    if (deadline === null) return;
-    const now = Date.now();
-    if (now >= deadline) await this.apply({ t: "timeout", now });
-    else await this.armAlarm();
+    if (deadline !== null && now >= deadline) {
+      await this.apply({ t: "timeout", now });
+      return;
+    }
+    await this.armAlarm();
   }
 }
 

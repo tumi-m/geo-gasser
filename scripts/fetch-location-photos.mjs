@@ -9,7 +9,6 @@
  * Files land in /tmp first; they are then resized to max 1600px wide and
  * committed as public/locations/loc_XX.jpg (quality 82, no EXIF).
  */
-import { execFileSync } from "node:child_process";
 import { mkdirSync, statSync, writeFileSync } from "node:fs";
 
 const DEST = process.argv[2] ?? "/tmp/opencode/imgs";

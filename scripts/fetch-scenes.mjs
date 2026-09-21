@@ -1,9 +1,6 @@
 #!/usr/bin/env node
 /** Cache Wikipedia page images into public/locations for pack sites. */
 import { writeFile, mkdir, stat } from "node:fs/promises";
-import { createRequire } from "node:module";
-
-const require = createRequire(import.meta.url);
 
 async function loadLocations() {
   const { enabledLocations } = await import("../src/lib/game/locations.ts");

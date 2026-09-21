@@ -5,6 +5,7 @@ dist/
 .nitro/
 .tanstack/
 .vercel/
+.wrangler/
 .grok/
 .env
 .env.*

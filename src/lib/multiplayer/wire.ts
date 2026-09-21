@@ -29,8 +29,8 @@ export type ClientMessage = z.infer<typeof clientMessageSchema>;
 
 /** Match server → client. The state payload is server-built, so it is trusted. */
 export const serverMessageSchema = z.discriminatedUnion("t", [
-  z.object({ t: z.literal("welcome"), selfId: z.string(), state: z.unknown() }),
-  z.object({ t: z.literal("snapshot"), state: z.unknown() }),
+  z.object({ t: z.literal("welcome"), selfId: z.string(), state: z.unknown(), sentAt: z.number().optional() }),
+  z.object({ t: z.literal("snapshot"), state: z.unknown(), sentAt: z.number().optional() }),
   z.object({ t: z.literal("pong") }),
   z.object({ t: z.literal("error"), message: z.string() }),
 ]);

@@ -332,7 +332,7 @@ export function reduce(state: MatchState, event: MatchEvent): MatchState {
       return { ...state, players, seq: state.seq + 1, lastEventAt: event.now };
     }
     case "START_MATCH": {
-      if (state.mode === "duel" && state.players.length < 2) return state;
+      if (state.mode === "duel" && state.players.filter((p) => p.connected).length < 2) return state;
       if (!["waiting_for_players", "match_starting", "rematch_pending"].includes(state.phase)) return state;
       return beginRound({ ...state, roundIndex: 0, questionIndex: 0, roundHistory: [], winnerIds: [], players: state.players.map((p) => ({
         ...emptyPlayer(p.id, p.name, p.avatarId, p.kind),
@@ -436,7 +436,8 @@ export function reduce(state: MatchState, event: MatchEvent): MatchState {
       }
       if (state.phase !== "round_results" && state.phase !== "next_round") return state;
       const nextQ = state.questionIndex + 1;
-      if (nextQ >= (state.totalQuestions || TOTAL_QUESTIONS)) {
+      // `0` means the plan held no questions: end instead of grinding blanks.
+      if (nextQ >= (state.totalQuestions ?? TOTAL_QUESTIONS)) {
         const { winnerIds } = rankPlayers(state.players);
         return { ...bump(state, "final_reveal", event.now), winnerIds };
       }
@@ -453,7 +454,11 @@ export function reduce(state: MatchState, event: MatchEvent): MatchState {
       if (!["final_reveal","match_complete"].includes(state.phase)) return state;
       const plan = planMatch(event.seed, event.matchLength ?? state.matchLength, event.atlas ?? state.atlas, event.avoidLocationIds);
       const opts = matchOptions(event.difficulty ?? state.timeDifficulty, event.matchLength ?? state.matchLength);
-      const players = state.players.map((p) => emptyPlayer(p.id, p.name, p.avatarId, p.kind));
+      // A rematch never resurrects an absent seat: disconnected players are
+      // dropped so the room waits for a real opponent instead of a ghost.
+      const players = state.players
+        .filter((p) => p.connected)
+        .map((p) => emptyPlayer(p.id, p.name, p.avatarId, p.kind));
       const next: MatchState = {
         ...state,
         seq: state.seq + 1,
@@ -510,26 +515,23 @@ export function activeScene(state: MatchState): SceneInfo | undefined {
 }
 
 export function toPublicSnapshot(state: MatchState): PublicSnapshot {
-  const hideAnswers =
-    !state.revealed &&
-    (state.phase === "round_active" ||
-      state.phase === "player_locked" ||
-      state.phase === "waiting_for_opponent" ||
-      state.phase === "round_intro" ||
-      state.phase === "match_starting");
+  // Anything unrevealed stays hidden — including an abandoned match
+  // (`match_complete` from PLAYER_LEAVE) which never reaches a reveal.
+  const hideAnswers = !state.revealed;
   return {
     seq: state.seq,
     phase: state.phase,
     mode: state.mode,
     roomCode: state.roomCode,
     hostId: state.hostId,
-    // Seed + deck decode to coordinates, so they stay host-side until reveal.
-    seed: hideAnswers ? undefined : state.seed,
+    // The deck, its seed and the environment list are never public: the seed
+    // reproduces the deal, and ids resolve to coordinates in the bundle.
+    seed: undefined,
     roundIndex: state.roundIndex,
     questionIndex: state.questionIndex,
-    locationIds: hideAnswers ? [] : state.locationIds,
-    envId: hideAnswers ? "" : state.envId,
-    envIds: hideAnswers ? [] : state.envIds,
+    locationIds: [],
+    envId: "",
+    envIds: [],
     scene: state.truth ? sceneInfoFor(state) : undefined,
     durationSec: state.durationSec,
     photoQuestions: state.photoQuestions,
@@ -552,11 +554,18 @@ export function toPublicSnapshot(state: MatchState): PublicSnapshot {
 }
 
 export function activeLocation(state: MatchState) {
-  return locationForQuestion(state, state.questionIndex);
+  const id = currentLocationId({ locationIds: state.locationIds }, state.questionIndex);
+  if (state.locationIds.length) return getLocation(id);
+  // Guests never receive the deck. Once a question is revealed, the record
+  // for it is the safe way to recover the location on their side.
+  if (!state.revealed) return undefined;
+  const last = state.roundHistory[state.roundHistory.length - 1];
+  return last ? getLocation(last.locationId) : undefined;
 }
 
 /** Location for an arbitrary question slot — used to preload the next plate. */
 export function locationAt(state: MatchState, questionIndex: number) {
+  if (!state.locationIds.length) return undefined;
   return locationForQuestion(state, questionIndex);
 }
 

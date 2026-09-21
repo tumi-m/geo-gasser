@@ -64,7 +64,7 @@ export function RevealOverlay({
         expanded ? "top-[max(4.75rem,env(safe-area-inset-top))]" : "bottom-[calc(var(--atlas-map-reveal-h)+1.5rem)]",
       )}
     >
-      <div className="atlas-rise pointer-events-auto w-full max-w-lg rounded-[var(--radius-lg)] border border-border bg-bg/92 p-3 shadow-[var(--shadow-panel)] sm:p-4">
+      <div className="atlas-rise pointer-events-auto max-h-[calc(100dvh-var(--atlas-map-reveal-h)-2rem)] w-full max-w-lg overflow-y-auto overscroll-contain rounded-[var(--radius-lg)] border border-border bg-bg/92 p-3 shadow-[var(--shadow-panel)] sm:p-4">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
           <div className="min-w-0 text-left">
             <p className="text-[10px] uppercase tracking-[0.2em] text-muted">{roundLabel}</p>

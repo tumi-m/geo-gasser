@@ -16,4 +16,4 @@ The higher-resolution images are unchanged copies of the same photographs alread
 
 ## Verification
 
-TypeScript, all 99 game/map/multiplayer tests, and the production build pass. Browser checks covered desktop and 390 × 844 layouts, settings tabs, full-photo display, Explore view, visible countdown, and returning to the map at reveal. Cloudflare worker deployment and live production multiplayer were not changed or retested in this visual pass.
+App and worker TypeScript, all 103 game/map/multiplayer tests, and the production build pass. Browser checks covered desktop and 390 × 844 layouts, settings tabs, full-photo display, Explore view, visible countdown, and returning to the map at reveal. Integrated main through b64fd9c, preserving reconnects, ghost-seat handling, answer-deck protection and panel fixes. The Cloudflare worker was typechecked but not deployed or tested in production during this pass.
