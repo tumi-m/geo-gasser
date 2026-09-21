@@ -55,9 +55,15 @@ export function PanoViewer({
   );
   const [failed, setFailed] = useState(false);
 
+  const markFailed = useCallback(() => {
+    setFailed(true);
+    onError?.();
+  }, [onError]);
+
   useEffect(() => {
     if (!(provider === "mapillary" && imageId)) {
       setUrl(src ?? null);
+      if (!src) markFailed();
       return;
     }
     let cancelled = false;
@@ -65,20 +71,12 @@ export function PanoViewer({
     void mapillaryImageUrl(imageId).then((resolved) => {
       if (cancelled) return;
       if (resolved) setUrl(resolved);
-      else {
-        setFailed(true);
-        onError?.();
-      }
+      else markFailed();
     });
     return () => {
       cancelled = true;
     };
-  }, [provider, imageId, src, onError]);
-
-  const markFailed = useCallback(() => {
-    setFailed(true);
-    onError?.();
-  }, [onError]);
+  }, [provider, imageId, src, markFailed]);
 
   useEffect(() => {
     if (!url || failed) return;

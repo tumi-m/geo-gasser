@@ -120,8 +120,8 @@ describe("match state machine", () => {
 });
 
 describe("public snapshot answer hygiene", () => {
-  function activeDuel() {
-    let s = reduce(createLobbyState(), {
+  function lobbyDuel() {
+    return reduce(createLobbyState(), {
       type: "CREATE_DUEL",
       playerId: "h",
       name: "Host",
@@ -129,13 +129,29 @@ describe("public snapshot answer hygiene", () => {
       seed: 1234,
       now,
     });
+  }
+
+  function activeDuel() {
+    let s = lobbyDuel();
     s = reduce(s, { type: "PLAYER_JOIN", playerId: "g", name: "Guest", now: now + 1 });
     s = reduce(s, { type: "START_MATCH", now: now + 2 });
     s = reduce(s, { type: "INTRO_DONE", now: now + 3 });
     return s;
   }
 
-  it("hides deck, seed, env list and truth before reveal but ships the scene", () => {
+  it("never ships the deck, seed or environment list, even in the lobby", () => {
+    const lobby = toPublicSnapshot(lobbyDuel());
+    assert.deepEqual(lobby.locationIds, []);
+    assert.deepEqual(lobby.envIds, []);
+    assert.equal(lobby.envId, "");
+    assert.equal(lobby.seed, undefined);
+    assert.equal(lobby.truth, undefined);
+    const wire = JSON.stringify(lobby);
+    assert.equal(wire.includes('"latitude"'), false);
+    assert.equal(wire.includes('"longitude"'), false);
+  });
+
+  it("hides guesses and truth before reveal but ships the scene", () => {
     const s = activeDuel();
     const pub = toPublicSnapshot(s);
     assert.equal(pub.seed, undefined);
@@ -155,15 +171,15 @@ describe("public snapshot answer hygiene", () => {
     assert.equal(wire.includes('"longitude"'), false);
   });
 
-  it("releases the deck and truth once the round is revealed", () => {
+  it("releases truth and the round record at reveal, never the deck", () => {
     let s = activeDuel();
     s = reduce(s, { type: "PLACE_PIN", playerId: "h", guess: s.truth!, now: now + 10 });
     s = reduce(s, { type: "LOCK", playerId: "h", now: now + 11 });
     s = reduce(s, { type: "TIMEOUT", now: s.roundStartedAtMs! + s.durationSec * 1000 });
     assert.ok(s.revealed);
     const pub = toPublicSnapshot(s);
-    assert.equal(pub.seed, 1234);
-    assert.ok(pub.locationIds.length > 0);
+    assert.equal(pub.seed, undefined);
+    assert.deepEqual(pub.locationIds, []);
     assert.ok(pub.truth);
     assert.equal(pub.roundHistory.length, 1);
     assert.ok(pub.players.find((p) => p.id === "h")?.roundScore);

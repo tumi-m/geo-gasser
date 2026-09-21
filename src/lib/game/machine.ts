@@ -523,13 +523,14 @@ export function toPublicSnapshot(state: MatchState): PublicSnapshot {
     mode: state.mode,
     roomCode: state.roomCode,
     hostId: state.hostId,
-    // Seed + deck decode to coordinates, so they stay host-side until reveal.
-    seed: hideAnswers ? undefined : state.seed,
+    // The deck, its seed and the environment list are never public: the seed
+    // reproduces the deal, and ids resolve to coordinates in the bundle.
+    seed: undefined,
     roundIndex: state.roundIndex,
     questionIndex: state.questionIndex,
-    locationIds: hideAnswers ? [] : state.locationIds,
-    envId: hideAnswers ? "" : state.envId,
-    envIds: hideAnswers ? [] : state.envIds,
+    locationIds: [],
+    envId: "",
+    envIds: [],
     scene: state.truth ? sceneInfoFor(state) : undefined,
     durationSec: state.durationSec,
     photoQuestions: state.photoQuestions,
@@ -552,11 +553,18 @@ export function toPublicSnapshot(state: MatchState): PublicSnapshot {
 }
 
 export function activeLocation(state: MatchState) {
-  return locationForQuestion(state, state.questionIndex);
+  const id = currentLocationId({ locationIds: state.locationIds }, state.questionIndex);
+  if (state.locationIds.length) return getLocation(id);
+  // Guests never receive the deck. Once a question is revealed, the record
+  // for it is the safe way to recover the location on their side.
+  if (!state.revealed) return undefined;
+  const last = state.roundHistory[state.roundHistory.length - 1];
+  return last ? getLocation(last.locationId) : undefined;
 }
 
 /** Location for an arbitrary question slot — used to preload the next plate. */
 export function locationAt(state: MatchState, questionIndex: number) {
+  if (!state.locationIds.length) return undefined;
   return locationForQuestion(state, questionIndex);
 }
 

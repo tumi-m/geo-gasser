@@ -29,7 +29,7 @@ test('five complete online rounds reset guest lock and reject delayed actions',(
  }
  guest=mergeHostSnapshot(guest,toPublicSnapshot(host),'guest');assert.equal(guest.phase,'final_reveal');assert.equal(guest.roundHistory.length,5);
  const old=toPublicSnapshot(host);host=reduce(host,{type:'REMATCH',seed:10,now:time++});guest=mergeHostSnapshot(guest,toPublicSnapshot(host),'guest');
- assert.equal(guest.seed,10);assert.equal(guest.roundHistory.length,0);assert.equal(mergeHostSnapshot(guest,old,'guest'),guest);
+ assert.equal(guest.seed,0);assert.equal(guest.roundHistory.length,0);assert.equal(mergeHostSnapshot(guest,old,'guest'),guest);
 });
 test('wire protocol rejects unknown messages, invalid coordinates, malformed snapshots and unscoped locks',()=>{
  assert.equal(isWireMessage({t:'anything'}),false);

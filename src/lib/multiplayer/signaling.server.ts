@@ -52,7 +52,7 @@ function json(body: unknown, status = 200): Response {
   });
 }
 
-function useSql(): boolean {
+function sqlBacked(): boolean {
   return Boolean(typeof process !== "undefined" && process.env.DATABASE_URL?.trim());
 }
 
@@ -73,7 +73,7 @@ async function handleGet(url: URL): Promise<Response> {
   if (!parsed.success) return json({ error: "invalid query" }, 400);
   const { room, peer, name, since } = parsed.data;
 
-  if (useSql()) return sqlGet(room, peer, name, since);
+  if (sqlBacked()) return sqlGet(room, peer, name, since);
 
   pruneMem();
   const s = store();
@@ -102,7 +102,7 @@ async function handlePost(request: Request): Promise<Response> {
   const parsed = postSchema.safeParse(body);
   if (!parsed.success) return json({ error: "invalid request" }, 400);
   const msg = parsed.data;
-  if (useSql()) return sqlPost(msg);
+  if (sqlBacked()) return sqlPost(msg);
 
   pruneMem();
   const s = store();

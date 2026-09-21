@@ -16,7 +16,7 @@
  *   MAPILLARY_TOKEN=... node scripts/build-locations.mjs --pack=amsterdam \
  *     --source=mapillary --near="52.36,4.89" --limit=25
  */
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
