@@ -1,5 +1,6 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { Minus, Plus, RotateCcw } from "lucide-react";
+import { resolveWikiImage } from "@/lib/game";
 import { cn } from "@/lib/utils";
 
 type Probe = {
@@ -17,9 +18,9 @@ declare global {
 
 const LOOK_RATE = 1.65;
 const ZOOM_RATE = 0.85;
-const ZOOM_MIN = 1.08;
-const ZOOM_MAX = 3.6;
-const ZOOM_START = 1.42;
+const ZOOM_MIN = 1.0;
+const ZOOM_MAX = 2.8;
+const ZOOM_START = 1.08;
 const DRAG_YAW = 0.0048;
 const DRAG_PITCH = 0.0034;
 
@@ -38,6 +39,9 @@ function typingTarget(el: EventTarget | null) {
 export function SceneExplorer({
   src,
   alt,
+  fallbacks,
+  sourceUrl,
+  title,
   reducedMotion,
   interactive = true,
   onReady,
@@ -45,6 +49,9 @@ export function SceneExplorer({
 }: {
   src: string;
   alt: string;
+  fallbacks?: string[];
+  sourceUrl?: string;
+  title?: string;
   reducedMotion?: boolean;
   interactive?: boolean;
   onReady?: () => void;
@@ -70,6 +77,9 @@ export function SceneExplorer({
   const [failed, setFailed] = useState(false);
   const [retry, setRetry] = useState(0);
   const [hint, setHint] = useState(true);
+  const [current, setCurrent] = useState(src);
+  const queue = useRef<string[]>([]);
+  const wikiTried = useRef(false);
 
   useEffect(() => {
     const s = sim.current;
@@ -82,9 +92,28 @@ export function SceneExplorer({
     s.pointers.clear();
     setFailed(false);
     setHint(true);
+    wikiTried.current = false;
+    const seen = new Set<string>();
+    const chain: string[] = [];
+    for (const url of [src, ...(fallbacks ?? [])]) {
+      if (url && !seen.has(url)) {
+        seen.add(url);
+        chain.push(url);
+      }
+    }
+    queue.current = chain.slice(1);
+    setCurrent(chain[0] ?? src);
     const hide = window.setTimeout(() => setHint(false), 4200);
     return () => window.clearTimeout(hide);
-  }, [src, reducedMotion]);
+  }, [src, reducedMotion, fallbacks?.join("|"), sourceUrl, title, retry]);
+
+  useLayoutEffect(() => {
+    const img = imgRef.current;
+    if (img?.complete && img.naturalWidth > 0) {
+      setFailed(false);
+      onReady?.();
+    }
+  }, [current, onReady]);
 
   useEffect(() => {
     const host = hostRef.current;
@@ -252,17 +281,20 @@ export function SceneExplorer({
     <div className="absolute inset-0 bg-bg-subtle">
       <div
         ref={hostRef}
-        className="absolute inset-0 cursor-grab touch-none overflow-hidden"
+        className="absolute inset-0 cursor-grab touch-none overflow-hidden bg-bg-subtle bg-cover bg-center"
+        style={current && !failed ? { backgroundImage: `url(${JSON.stringify(current)})` } : undefined}
         aria-label="Look around the location. Drag to look, WASD to inspect, scroll to zoom."
       >
         <img
           key={retry}
           ref={imgRef}
-          src={retry ? `${src}${src.includes("?") ? "&" : "?"}retry=${retry}` : src}
+          src={current}
           alt={alt}
           draggable={false}
+          referrerPolicy="no-referrer"
+          decoding="async"
           className={cn(
-            "pointer-events-none h-full w-full origin-center object-cover select-none will-change-transform",
+            "pointer-events-none h-full w-full min-h-full min-w-full origin-center object-cover select-none will-change-transform",
             failed ? "opacity-0" : "opacity-100",
           )}
           onLoad={() => {
@@ -270,9 +302,27 @@ export function SceneExplorer({
             onReady?.();
           }}
           onError={() => {
-            setFailed(true);
-            onError?.();
-            onReady?.();
+            const next = queue.current.shift();
+            if (next) {
+              setCurrent(next);
+              return;
+            }
+            if (wikiTried.current) {
+              setFailed(true);
+              onError?.();
+              onReady?.();
+              return;
+            }
+            wikiTried.current = true;
+            void resolveWikiImage(sourceUrl, title).then((wiki) => {
+              if (wiki) {
+                setCurrent(wiki);
+                return;
+              }
+              setFailed(true);
+              onError?.();
+              onReady?.();
+            });
           }}
         />
       </div>

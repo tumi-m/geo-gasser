@@ -1,4 +1,5 @@
 import type { AtlasSpec } from "./atlas.ts";
+import type { MatchLengthId, TimeDifficulty } from "./timer.ts";
 
 export type AtmosphereId =
   | "cape-dusk"
@@ -55,6 +56,10 @@ export interface GeoLocation {
   heading?: number;
   pitch?: number;
   fov?: number;
+  /** Equirectangular 360 plate. When set, the scene opens in the panorama viewer. */
+  panoUrl?: string;
+  /** Explicit 360 flag for provider-backed panos resolved at runtime. */
+  isPano?: boolean;
   attribution: string;
   sourceUrl?: string;
   verifiedAt: string;
@@ -119,6 +124,24 @@ export interface RoundRecord {
   guesses: Record<string, { guess: LatLng | null; score: RoundScore }>;
 }
 
+/**
+ * Guest-safe descriptor for the question on screen. Carries only what the
+ * renderer needs (plate URL and provider flags) — never an id, title, credit,
+ * source URL or coordinate that could decode the answer.
+ */
+export interface SceneInfo {
+  kind: "photo" | "generated";
+  src: string;
+  fallbacks: string[];
+  provider?: string;
+  heading?: number;
+  pitch?: number;
+  /** True for equirectangular 360 plates; the client opens the pano viewer. */
+  isPano?: boolean;
+  /** Mapillary image id when the plate is resolved through the Mapillary API. */
+  imageId?: string;
+}
+
 export interface MatchState {
   seq: number;
   phase: MatchPhase;
@@ -135,13 +158,15 @@ export interface MatchState {
   photoQuestions: number;
   totalQuestions: number;
   totalRounds: number;
-  timeDifficulty: "easy" | "medium" | "hard";
-  matchLength: "quick" | "standard" | "extended" | "full";
+  timeDifficulty: TimeDifficulty;
+  matchLength: MatchLengthId;
   atlas: AtlasSpec;
   roundStartedAtMs?: number;
   players: PlayerState[];
   /** Host-only until reveal. Stripped from public snapshots. */
   truth?: LatLng;
+  /** Guest-side scene descriptor for the current question (never coordinates). */
+  scene?: SceneInfo;
   revealed: boolean;
   roundHistory: RoundRecord[];
   winnerIds: string[];
@@ -156,18 +181,22 @@ export interface PublicSnapshot {
   mode: GameMode;
   roomCode?: string;
   hostId: string;
-  seed: number;
+  /** Hidden (undefined) until reveal — the deck is seed-derived. */
+  seed?: number;
   roundIndex: number;
   questionIndex: number;
+  /** Empty until reveal: location ids decode to coordinates in the bundle. */
   locationIds: string[];
   envId: string;
+  /** Empty until reveal: environment specs embed truth location ids. */
   envIds: string[];
+  scene?: SceneInfo;
   durationSec: number;
   photoQuestions: number;
   totalQuestions: number;
   totalRounds: number;
-  timeDifficulty: "easy" | "medium" | "hard";
-  matchLength: "quick" | "standard" | "extended" | "full";
+  timeDifficulty: TimeDifficulty;
+  matchLength: MatchLengthId;
   atlas: AtlasSpec;
   roundStartedAtMs?: number;
   players: Array<

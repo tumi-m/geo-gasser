@@ -5,7 +5,7 @@ import {mergeHostSnapshot, matchesQuestion} from './sync.ts';
 import {isWireMessage} from './protocol.ts';
 
 function room() {
- let s=reduce(createLobbyState(),{type:'CREATE_DUEL',playerId:'host',name:'Host',seed:9,roomCode:'ABC234',matchLength:'quick',now:0});
+ let s=reduce(createLobbyState(),{type:'CREATE_DUEL',playerId:'host',name:'Host',seed:9,roomCode:'ABC234',matchLength:'escape',now:0});
  s=reduce(s,{type:'PLAYER_JOIN',playerId:'guest',name:'Guest',now:1});
  s=reduce(s,{type:'START_MATCH',now:2});
  return reduce(s,{type:'INTRO_DONE',now:3});
@@ -25,7 +25,7 @@ test('five complete online rounds reset guest lock and reject delayed actions',(
   assert.equal(guest.questionIndex,q);assert.equal(guest.players[1].locked,false);assert.equal(guest.players[1].guess,undefined);
   for(const id of ['guest','host']){host=reduce(host,{type:'PLACE_PIN',playerId:id,guess:host.truth!,now:time++});host=reduce(host,{type:'LOCK',playerId:id,now:time++});}
   guest=mergeHostSnapshot(guest,toPublicSnapshot(host),'guest');assert.equal(guest.phase,'round_reveal');assert.ok(guest.players.every(p=>p.roundScore!.roundScore>0));
-  host=reduce(host,{type:'CONTINUE',now:time++});assert.equal(matchesQuestion(host,{seed:host.seed,questionIndex:q}),q===4);
+  host=reduce(host,{type:'CONTINUE',now:time++});assert.equal(matchesQuestion(host,{roundStartedAtMs:host.roundStartedAtMs,questionIndex:q}),q===4);
  }
  guest=mergeHostSnapshot(guest,toPublicSnapshot(host),'guest');assert.equal(guest.phase,'final_reveal');assert.equal(guest.roundHistory.length,5);
  const old=toPublicSnapshot(host);host=reduce(host,{type:'REMATCH',seed:10,now:time++});guest=mergeHostSnapshot(guest,toPublicSnapshot(host),'guest');

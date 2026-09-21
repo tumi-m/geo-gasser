@@ -29,7 +29,7 @@ export const DEFAULT_SETTINGS: GameSettings = {
   cameraShake: true,
   highContrast: false,
   difficulty: "medium",
-  matchLength: "quick",
+  matchLength: "escape",
   atlas: DEFAULT_ATLAS,
 };
 

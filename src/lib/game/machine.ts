@@ -1,17 +1,18 @@
 import { DEFAULT_ATLAS, type AtlasSpec } from "./atlas.ts";
 import { environmentById } from "./environments.ts";
 import { getLocation } from "./locations.ts";
+import { sceneCandidates } from "./scene.ts";
 import { NO_GUESS_KM, rankPlayers, scoreGuess } from "./scoring.ts";
 import { currentEnvId, currentLocationId, isRound4Question, planMatch, PHOTO_QUESTIONS, QUESTIONS_PER_ROUND, ROUND4_3D_LIVE, roundOf, TOTAL_QUESTIONS } from "./selection.ts";
 import { DIFFICULTY_SECONDS, MATCH_LENGTH, remainingSeconds, ROUND_DURATION_SEC, type MatchLengthId, type TimeDifficulty } from "./timer.ts";
-import type { LatLng, MatchPhase, MatchState, PlayerState, PublicSnapshot, RoundRecord } from "./types.ts";
+import type { LatLng, MatchPhase, MatchState, PlayerState, PublicSnapshot, RoundRecord, SceneInfo } from "./types.ts";
 
 export { TOTAL_ROUNDS, TOTAL_QUESTIONS, QUESTIONS_PER_ROUND } from "./selection.ts";
 
 export type MatchEvent =
   | { type: "HYDRATE"; state: MatchState }
-  | { type: "CREATE_SOLO"; playerId: string; name: string; avatarId?: string; seed: number; now: number; difficulty?: TimeDifficulty; matchLength?: MatchLengthId; atlas?: AtlasSpec }
-  | { type: "CREATE_DUEL"; playerId: string; name: string; avatarId?: string; roomCode: string; seed: number; now: number; difficulty?: TimeDifficulty; matchLength?: MatchLengthId; atlas?: AtlasSpec }
+  | { type: "CREATE_SOLO"; playerId: string; name: string; avatarId?: string; seed: number; now: number; difficulty?: TimeDifficulty; matchLength?: MatchLengthId; atlas?: AtlasSpec; avoidLocationIds?: string[] }
+  | { type: "CREATE_DUEL"; playerId: string; name: string; avatarId?: string; roomCode: string; seed: number; now: number; difficulty?: TimeDifficulty; matchLength?: MatchLengthId; atlas?: AtlasSpec; avoidLocationIds?: string[] }
   | {
       type: "CREATE_LOCAL_DUEL";
       seats: Array<{ id: string; name: string; avatarId?: string; kind?: "human" | "bot" }>;
@@ -21,6 +22,7 @@ export type MatchEvent =
       difficulty?: TimeDifficulty;
       matchLength?: MatchLengthId;
       atlas?: AtlasSpec;
+      avoidLocationIds?: string[];
     }
   | { type: "PLAYER_JOIN"; playerId: string; name: string; avatarId?: string; kind?: "human" | "bot"; now: number }
   | { type: "PLAYER_LEAVE"; playerId: string; now: number }
@@ -32,7 +34,7 @@ export type MatchEvent =
   | { type: "TIMEOUT"; now: number }
   | { type: "REVEAL_DONE"; now: number }
   | { type: "CONTINUE"; now: number }
-  | { type: "REMATCH"; seed: number; now: number; difficulty?: TimeDifficulty; matchLength?: MatchLengthId; atlas?: AtlasSpec }
+  | { type: "REMATCH"; seed: number; now: number; difficulty?: TimeDifficulty; matchLength?: MatchLengthId; atlas?: AtlasSpec; avoidLocationIds?: string[] }
   | { type: "HOME"; now: number };
 
 function bump(state: MatchState, phase: MatchPhase, now: number): MatchState {
@@ -190,7 +192,7 @@ function beginQuestion(state: MatchState, now: number, intro: boolean): MatchSta
     truth: loc ? { latitude: loc.latitude, longitude: loc.longitude } : undefined,
     players: resetRoundFlags(state.players),
     activeSeatId: state.duelKind === "hotseat" ? firstHuman?.id : undefined,
-    roundIndex: state.matchLength === "quick" ? state.questionIndex : roundOf(state.questionIndex),
+    roundIndex: state.matchLength === "escape" ? state.questionIndex : roundOf(state.questionIndex),
   };
   if (intro) {
     return { ...bump(next, "round_intro", now), roundStartedAtMs: undefined };
@@ -209,7 +211,7 @@ export function reduce(state: MatchState, event: MatchEvent): MatchState {
     case "HOME":
       return createLobbyState();
     case "CREATE_SOLO": {
-      const plan = planMatch(event.seed, event.matchLength, event.atlas);
+      const plan = planMatch(event.seed, event.matchLength, event.atlas, event.avoidLocationIds);
       const opts = matchOptions(event.difficulty, event.matchLength);
       return beginRound(
         {
@@ -232,7 +234,7 @@ export function reduce(state: MatchState, event: MatchEvent): MatchState {
       );
     }
     case "CREATE_DUEL": {
-      const plan = planMatch(event.seed, event.matchLength, event.atlas);
+      const plan = planMatch(event.seed, event.matchLength, event.atlas, event.avoidLocationIds);
       const opts = matchOptions(event.difficulty, event.matchLength);
       return {
         seq: 1,
@@ -254,7 +256,7 @@ export function reduce(state: MatchState, event: MatchEvent): MatchState {
       };
     }
     case "CREATE_LOCAL_DUEL": {
-      const plan = planMatch(event.seed, event.matchLength, event.atlas);
+      const plan = planMatch(event.seed, event.matchLength, event.atlas, event.avoidLocationIds);
       const opts = matchOptions(event.difficulty, event.matchLength);
       const seats = event.seats.slice(0, 2).map((s) =>
         emptyPlayer(s.id, s.name, s.avatarId, s.kind ?? "human"),
@@ -441,15 +443,15 @@ export function reduce(state: MatchState, event: MatchEvent): MatchState {
       const advancing: MatchState = {
         ...state,
         questionIndex: nextQ,
-        roundIndex: state.matchLength === "quick" ? nextQ : roundOf(nextQ),
+        roundIndex: state.matchLength === "escape" ? nextQ : roundOf(nextQ),
         phase: "next_round",
       };
-      const newRound = state.matchLength === "quick" || nextQ % QUESTIONS_PER_ROUND === 0;
+      const newRound = state.matchLength === "escape" || nextQ % QUESTIONS_PER_ROUND === 0;
       return beginQuestion(advancing, event.now, newRound);
     }
     case "REMATCH": {
       if (!["final_reveal","match_complete"].includes(state.phase)) return state;
-      const plan = planMatch(event.seed, event.matchLength ?? state.matchLength, event.atlas ?? state.atlas);
+      const plan = planMatch(event.seed, event.matchLength ?? state.matchLength, event.atlas ?? state.atlas, event.avoidLocationIds);
       const opts = matchOptions(event.difficulty ?? state.timeDifficulty, event.matchLength ?? state.matchLength);
       const players = state.players.map((p) => emptyPlayer(p.id, p.name, p.avatarId, p.kind));
       const next: MatchState = {
@@ -477,8 +479,39 @@ export function reduce(state: MatchState, event: MatchEvent): MatchState {
   }
 }
 
+/**
+ * Build the guest-safe scene descriptor for the current question. This is the
+ * only scene information a joiner ever receives before the reveal: plate URLs,
+ * fallbacks and credit. No id, title, source URL or coordinate.
+ */
+export function sceneInfoFor(state: MatchState): SceneInfo | undefined {
+  const loc = locationForQuestion(state, state.questionIndex);
+  if (!loc) return undefined;
+  const candidates = sceneCandidates(loc);
+  const generated =
+    loc.sceneKind === "generated-reconstruction" || loc.sceneUrl.startsWith("/generated/");
+  return {
+    kind: generated ? "generated" : "photo",
+    src: candidates[0] ?? loc.sceneUrl,
+    fallbacks: candidates.slice(1),
+    provider: loc.panoramaProvider,
+    heading: loc.heading,
+    pitch: loc.pitch,
+    isPano: loc.isPano ?? Boolean(loc.panoUrl),
+    imageId: loc.panoramaId,
+  };
+}
+
+/** Current scene: the guest descriptor when present, host derivation otherwise. */
+export function activeScene(state: MatchState): SceneInfo | undefined {
+  if (state.scene) return state.scene;
+  if (!state.truth) return undefined;
+  return sceneInfoFor(state);
+}
+
 export function toPublicSnapshot(state: MatchState): PublicSnapshot {
-  const hideGuesses = !state.revealed &&
+  const hideAnswers =
+    !state.revealed &&
     (state.phase === "round_active" ||
       state.phase === "player_locked" ||
       state.phase === "waiting_for_opponent" ||
@@ -490,12 +523,14 @@ export function toPublicSnapshot(state: MatchState): PublicSnapshot {
     mode: state.mode,
     roomCode: state.roomCode,
     hostId: state.hostId,
-    seed: state.seed,
+    // Seed + deck decode to coordinates, so they stay host-side until reveal.
+    seed: hideAnswers ? undefined : state.seed,
     roundIndex: state.roundIndex,
     questionIndex: state.questionIndex,
-    locationIds: hideGuesses ? state.locationIds : state.locationIds,
-    envId: state.envId,
-    envIds: state.envIds,
+    locationIds: hideAnswers ? [] : state.locationIds,
+    envId: hideAnswers ? "" : state.envId,
+    envIds: hideAnswers ? [] : state.envIds,
+    scene: state.truth ? sceneInfoFor(state) : undefined,
     durationSec: state.durationSec,
     photoQuestions: state.photoQuestions,
     totalQuestions: state.totalQuestions,
@@ -506,10 +541,10 @@ export function toPublicSnapshot(state: MatchState): PublicSnapshot {
     roundStartedAtMs: state.roundStartedAtMs,
     players: state.players.map((p) => ({
       ...p,
-      guess: hideGuesses ? undefined : p.guess,
-      roundScore: hideGuesses ? undefined : p.roundScore,
+      guess: hideAnswers ? undefined : p.guess,
+      roundScore: hideAnswers ? undefined : p.roundScore,
     })),
-    truth: hideGuesses ? undefined : state.truth,
+    truth: hideAnswers ? undefined : state.truth,
     revealed: state.revealed,
     roundHistory: state.roundHistory,
     winnerIds: state.winnerIds,
@@ -518,6 +553,11 @@ export function toPublicSnapshot(state: MatchState): PublicSnapshot {
 
 export function activeLocation(state: MatchState) {
   return locationForQuestion(state, state.questionIndex);
+}
+
+/** Location for an arbitrary question slot — used to preload the next plate. */
+export function locationAt(state: MatchState, questionIndex: number) {
+  return locationForQuestion(state, questionIndex);
 }
 
 export function activeEnvironment(state: MatchState) {

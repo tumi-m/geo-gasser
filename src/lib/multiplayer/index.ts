@@ -9,5 +9,11 @@ export type {
 } from "./p2p";
 export { useP2PRoom } from "./use-p2p-room";
 export type { P2PRoomHandle, UseP2PRoomOptions } from "./use-p2p-room";
+export { useMatchRoom } from "./use-match-room";
+export type { MatchRoomHandlers } from "./use-match-room";
+export { applyRoomCommand, roomSnapshot, roundDeadlineMs } from "./room";
+export type { RoomCommand } from "./room";
+export { clientMessageSchema, serverMessageSchema, parseClientMessage, parseServerMessage } from "./wire";
+export type { ClientMessage, ServerMessage } from "./wire";
 export { makeRoomCode, sanitizeName, isWireMessage, isHost } from "./protocol";
 export type { WireMessage } from "./protocol";

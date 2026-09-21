@@ -75,7 +75,8 @@ export function SettingsPanel({
         <div className="flex flex-col gap-2 text-sm text-muted">
           Match length
           <div className="grid grid-cols-2 gap-2">
-            <Choice label="Quick escape" hint="5 places · world finale*" active={settings.matchLength === "quick"} onClick={() => onChange({...settings,matchLength:"quick"})}/>
+            <Choice label="Quick escape" hint="5 places · world finale*" active={settings.matchLength === "escape"} onClick={() => onChange({...settings,matchLength:"escape"})}/>
+            <Choice label="Quick" hint="1 round · 10 places" active={settings.matchLength === "quick"} onClick={() => onChange({...settings,matchLength:"quick"})}/>
             <Choice
               label="Standard"
               hint="4 rounds · 40"

@@ -53,7 +53,10 @@ function DuelLobby() {
         <h1 className="font-display mt-2 text-5xl">Duel</h1>
         <p className="mt-3 text-muted">Good friends. Better rivals.</p>
         <p className="mt-2 text-xs uppercase tracking-wider text-subtle">
-          {atlasLabel(initial.atlas)} · {initial.difficulty} · {DIFFICULTY_SECONDS[initial.difficulty]}s · {MATCH_LENGTH[initial.matchLength].totalRounds} rounds
+          {atlasLabel(initial.atlas)} · {initial.difficulty} · {DIFFICULTY_SECONDS[initial.difficulty]}s ·{" "}
+          {MATCH_LENGTH[initial.matchLength].totalRounds === 1
+            ? "quick · 10"
+            : `${MATCH_LENGTH[initial.matchLength].totalRounds} rounds`}
         </p>
 
         <label className="mt-8 text-xs uppercase tracking-wider text-subtle">Your name</label>

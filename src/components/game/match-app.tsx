@@ -6,6 +6,7 @@ import {
   atlasLabel,
   activeEnvironment,
   activeLocation,
+  activeScene,
   audio,
   createLobbyState,
   getLocation,
@@ -14,6 +15,7 @@ import {
   GROK_BOT_ID,
   GROK_BOT_NAME,
   isRound4,
+  locationAt,
   locationCountryLabel,
   QUESTIONS_PER_ROUND,
   questionInRound,
@@ -22,7 +24,9 @@ import {
   loadSettings,
   loadStats,
   randomSeed,
+  loadRecentIds,
   recordMatch,
+  rememberRecentIds,
   reduce,
   remainingSeconds,
   ROUND_DURATION_SEC,
@@ -35,8 +39,9 @@ import {
   type MatchState,
 } from "@/lib/game";
 import { mergeHostSnapshot, matchesQuestion } from "@/lib/multiplayer/sync";
-import { isWireMessage, sanitizeName, useP2PRoom, type WireMessage } from "@/lib/multiplayer";
+import { isWireMessage, sanitizeName, useMatchRoom, useP2PRoom, type WireMessage } from "@/lib/multiplayer";
 import { GuessMap } from "./guess-map";
+import { PanoViewer } from "./pano-viewer";
 import { PlayerAvatar } from "./player-avatar";
 import { RevealOverlay } from "./reveal-sequence";
 import { Round4Scene } from "./round4-scene";
@@ -73,21 +78,48 @@ export function MatchApp({
   const [expanded, setExpanded] = useState(false);
   const [copied, setCopied] = useState(false);
   const [shake, setShake] = useState(false);
-  const [sceneReady, setSceneReady] = useState(false);
-  const [pendingLock, setPendingLock] = useState<{seed:number; questionIndex:number; lat:number; lng:number} | null>(null);
+  const [panoFailed, setPanoFailed] = useState(false);
+  const [pendingLock, setPendingLock] = useState<{roundStartedAtMs?:number; questionIndex:number; lat:number; lng:number} | null>(null);
   const clockOffset = useRef(0);
   const statsRecorded = useRef(false);
   const lastUrgentRef = useRef<number | null>(null);
   const name = sanitizeName(settings.displayName);
   const avatarId = sanitizeAvatar(settings.avatarId);
   const selfIdRef = useRef(`solo-${Math.random().toString(36).slice(2, 8)}`);
+  const matchServerUrl = (import.meta.env.VITE_MATCH_SERVER_URL as string | undefined)?.trim() || "";
+  const serverMode = mode === "duel" && duelKind === "online" && Boolean(matchServerUrl);
+  const playerIdRef = useRef<string>("");
+  if (!playerIdRef.current && typeof window !== "undefined") {
+    const key = "atlas-player-id";
+    try { playerIdRef.current = sessionStorage.getItem(key) ?? ""; } catch { /* Storage may be unavailable. */ }
+    if (!playerIdRef.current) {
+      playerIdRef.current = `p-${Math.random().toString(36).slice(2, 10)}`;
+      try { sessionStorage.setItem(key, playerIdRef.current); } catch { /* Keep the in-memory identity. */ }
+    }
+  }
 
   const p2p = useP2PRoom({
     room: roomCode ? `atlas-${roomCode}` : "atlas-idle",
     name,
-    enabled: mode === "duel" && duelKind === "online" && Boolean(roomCode),
+    enabled: mode === "duel" && duelKind === "online" && Boolean(roomCode) && !serverMode,
   });
-  const selfId = mode === "duel" && duelKind === "online" ? p2p.selfId : selfIdRef.current;
+  const socket = useMatchRoom({
+    url: matchServerUrl || undefined,
+    room: roomCode,
+    name,
+    avatarId,
+    playerId: playerIdRef.current,
+    difficulty: settings.difficulty,
+    matchLength: settings.matchLength,
+    atlas: settings.atlas,
+    enabled: serverMode,
+  });
+  const selfId =
+    mode === "duel" && duelKind === "online"
+      ? serverMode
+        ? socket.selfId || playerIdRef.current
+        : p2p.selfId
+      : selfIdRef.current;
   const hostRef = useRef(mode === "solo" || duelKind !== "online" || isCreator);
   const stateRef = useRef(state);
   stateRef.current = state;
@@ -99,6 +131,10 @@ export function MatchApp({
   useEffect(() => {
     applyDocumentSettings(settings);
   }, [settings]);
+
+  const adoptSnapshot = useCallback((incoming: MatchState) => {
+    setState(prev => mergeHostSnapshot(prev, incoming, selfId));
+  }, [selfId]);
 
   const bootRef = useRef(false);
 
@@ -114,6 +150,7 @@ export function MatchApp({
       now: performance.now(),
       difficulty: settings.difficulty,
       matchLength: settings.matchLength, atlas: settings.atlas,
+      avoidLocationIds: loadRecentIds(),
     });
   }, [mode, selfId, name, avatarId, dispatch, settings.difficulty, settings.matchLength, settings.atlas]);
 
@@ -128,6 +165,7 @@ export function MatchApp({
         now: Date.now(),
         difficulty: settings.difficulty,
         matchLength: settings.matchLength, atlas: settings.atlas,
+        avoidLocationIds: loadRecentIds(),
         seats: [
           { id: selfId, name, avatarId },
           { id: GROK_BOT_ID, name: GROK_BOT_NAME, avatarId: "grok", kind: "bot" },
@@ -152,6 +190,7 @@ export function MatchApp({
         now: Date.now(),
         difficulty: settings.difficulty,
         matchLength: settings.matchLength, atlas: settings.atlas,
+        avoidLocationIds: loadRecentIds(),
         seats: [
           { id: selfId, name, avatarId },
           { id: "seat-2", name: guest.name, avatarId: sanitizeAvatar(guest.avatarId) },
@@ -161,7 +200,7 @@ export function MatchApp({
   }, [mode, duelKind, selfId, name, avatarId, dispatch]);
 
   useEffect(() => {
-    if (mode !== "duel" || duelKind !== "online") return;
+    if (mode !== "duel" || duelKind !== "online" || serverMode) return;
     if (isCreator && state.phase === "lobby") {
       hostRef.current = true;
       try {
@@ -185,12 +224,13 @@ export function MatchApp({
         now: Date.now(),
         difficulty: settings.difficulty,
         matchLength: settings.matchLength, atlas: settings.atlas,
+        avoidLocationIds: loadRecentIds(),
       });
     }
-  }, [mode, duelKind, isCreator, selfId, name, avatarId, roomCode, dispatch, state.phase]);
+  }, [mode, duelKind, serverMode, isCreator, selfId, name, avatarId, roomCode, dispatch, state.phase]);
 
   useEffect(() => {
-    if (mode !== "duel") return;
+    if (mode !== "duel" || serverMode) return;
     return p2p.onMessage((_from, data) => {
       if (!isWireMessage(data)) return;
       const msg = data as WireMessage;
@@ -218,29 +258,36 @@ export function MatchApp({
       if (msg.t === "continue") dispatch({ type: "CONTINUE", now });
       if (msg.t === "rematch" && ["final_reveal", "match_complete"].includes(current.phase)) dispatch({ type: "REMATCH", seed: msg.nextSeed, now });
     });
-  }, [mode, p2p.onMessage, p2p.send, dispatch, selfId]);
+  }, [mode, serverMode, p2p.onMessage, p2p.send, dispatch, selfId]);
 
   useEffect(() => {
-    if (mode !== "duel" || !hostRef.current) return;
+    if (!serverMode) return;
+    return socket.onMessage({
+      onWelcome: (_id, snapshot) => adoptSnapshot(snapshot as MatchState),
+      onSnapshot: (snapshot) => adoptSnapshot(snapshot as MatchState),
+    });
+  }, [serverMode, socket.onMessage, adoptSnapshot]);
+
+  useEffect(() => {
+    if (mode !== "duel" || !hostRef.current || serverMode) return;
     if (state.seq === 0) return;
     p2p.send({ t: "snapshot", state: toPublicSnapshot(state), sentAt: Date.now() });
-  }, [mode, p2p.send, state]);
+  }, [mode, serverMode, p2p.send, state]);
 
   // While the room is filling there is no other state change to trigger a
   // resend, yet the data channel often opens AFTER CREATE_DUEL was
   // broadcast. Re-announce on a timer so a late joiner can never miss the
   // only snapshot that ever carried the room.
   useEffect(() => {
-    if (mode !== "duel" || duelKind !== "online" || !hostRef.current) return;
-
+    if (mode !== "duel" || duelKind !== "online" || !hostRef.current || serverMode) return;
     const send = () => p2p.send({ t: "snapshot", state: toPublicSnapshot(stateRef.current), sentAt: Date.now() });
     send();
     const id = window.setInterval(send, 2500);
     return () => window.clearInterval(id);
-  }, [mode, duelKind, p2p.send, state.phase]);
+  }, [mode, duelKind, serverMode, p2p.send, state.phase]);
 
   useEffect(() => {
-    if (mode !== "duel" || duelKind !== "online") return;
+    if (mode !== "duel" || duelKind !== "online" || serverMode) return;
     // Keep announcing until this player is IN the host's game — not merely
     // until a peer is visible. A host that received our hello may have had
     // its reply lost; a resend costs nothing and unsticks the room.
@@ -249,10 +296,10 @@ export function MatchApp({
     ping();
     const id = window.setInterval(ping, 1500);
     return () => window.clearInterval(id);
-  }, [mode, duelKind, p2p.send, selfId, name, avatarId, state.phase, state.players, state.hostId]);
+  }, [mode, duelKind, serverMode, p2p.send, selfId, name, avatarId, state.phase, state.players, state.hostId]);
 
   useEffect(() => {
-    if (mode !== "duel" || duelKind !== "online" || !hostRef.current || !roomCode || !state.hostId) return;
+    if (mode !== "duel" || duelKind !== "online" || !hostRef.current || serverMode || !roomCode || !state.hostId) return;
     try { sessionStorage.setItem(`atlas-host:${roomCode}`,JSON.stringify(state,(_key,value)=>value === Infinity ? "__Infinity" : value)); } catch { /* Refresh recovery is optional. */ }
   }, [state,mode,duelKind,roomCode]);
 
@@ -287,7 +334,24 @@ export function MatchApp({
   useEffect(() => () => window.clearTimeout(grokTimer.current), []);
 
   const loc = activeLocation(state);
+  const scene = activeScene(state);
   const env = activeEnvironment(state);
+  useEffect(() => {
+    setPanoFailed(false);
+  }, [scene?.src]);
+
+  // Warm the next plate while the player studies the current one. Only the
+  // host/solo knows the deck, so guests simply skip this.
+  useEffect(() => {
+    if (!loc) return;
+    const next = locationAt(state, state.questionIndex + 1);
+    if (!next) return;
+    const src = next.panoUrl ?? next.sceneUrl;
+    if (!src || !src.startsWith("/")) return;
+    const img = new Image();
+    img.decoding = "async";
+    img.src = src;
+  }, [loc, state.questionIndex]);
   const reconstructionRound = isRound4(state);
   const live3d = ROUND4_3D_LIVE && reconstructionRound && Boolean(env);
   const you =
@@ -310,17 +374,22 @@ export function MatchApp({
   const finishIntro = useCallback(() => {
     if (stateRef.current.phase !== "round_intro") return;
     const now = mode === "solo" ? performance.now() : Date.now();
+    if (serverMode) {
+      socket.send({ t: "intro" });
+      return;
+    }
     if (mode === "duel" && duelKind === "online" && !hostRef.current) {
       return;
     }
     dispatch({ type: "INTRO_DONE", now });
-  }, [mode, duelKind, dispatch, p2p.send]);
+  }, [mode, duelKind, serverMode, dispatch, p2p.send, socket.send]);
 
   const continueRound = useCallback(() => {
     const now = mode === "solo" ? performance.now() : Date.now();
-    if (mode === "duel" && duelKind === "online" && !hostRef.current) p2p.send({ t: "continue", seed: stateRef.current.seed, questionIndex: stateRef.current.questionIndex });
+    if (serverMode) { socket.send({t:"continue"}); return; }
+    if (mode === "duel" && duelKind === "online" && !hostRef.current) p2p.send({ t: "continue", roundStartedAtMs: stateRef.current.roundStartedAtMs, questionIndex: stateRef.current.questionIndex });
     else dispatch({ type: "CONTINUE", now });
-  }, [mode, duelKind, dispatch, p2p.send]);
+  }, [mode, duelKind, serverMode, dispatch, p2p.send, socket.send]);
 
   useEffect(() => {
     if (state.phase !== "round_intro") return;
@@ -341,7 +410,7 @@ export function MatchApp({
       const rem = remainingSeconds(state.roundStartedAtMs!, clock, state.durationSec || ROUND_DURATION_SEC);
       setRemaining(rem);
       if (rem <= 0) {
-        if (mode === "duel" && duelKind === "online" && !hostRef.current) return;
+        if (serverMode || (mode === "duel" && duelKind === "online" && !hostRef.current)) return;
         dispatch({ type: "TIMEOUT", now: clock });
         return;
       }
@@ -365,7 +434,6 @@ export function MatchApp({
 
   useEffect(() => {
     if (state.phase === "round_intro") {
-      setSceneReady(false);
       setRemaining(state.durationSec || ROUND_DURATION_SEC);
     }
     if (state.phase === "round_active") {
@@ -388,9 +456,8 @@ export function MatchApp({
   }, [state.phase]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
-    setSceneReady(false);
     setPendingLock(null);
-  }, [loc?.sceneUrl, state.questionIndex, state.seed]);
+  }, [state.questionIndex, state.roundStartedAtMs]);
 
   useEffect(() => {
     if (state.phase !== "match_complete" && state.phase !== "final_reveal") return;
@@ -421,15 +488,21 @@ export function MatchApp({
       countryHits: { ZA: za, NL: nl, WORLD: world },
       fastestAccurateMs: fastest.length ? Math.min(...fastest) : null,
     });
-  }, [state.phase, state.roundHistory, state.winnerIds, state.mode, selfId, you]);
+    // Remember this deck so the next match favours sites you have not seen.
+    rememberRecentIds(
+      state.locationIds.length ? state.locationIds : state.roundHistory.map((r) => r.locationId),
+    );
+  }, [state.phase, state.locationIds, state.roundHistory, state.winnerIds, state.mode, selfId, you]);
 
   const onGuess = (p: LatLng) => {
     if (!canGuess) return;
     audio.play("pin");
     const now = mode === "solo" ? performance.now() : Date.now();
     const actor = you?.id ?? selfId;
-    if (mode === "duel" && duelKind === "online" && !hostRef.current) {
-      setState(current => ({...current, players: current.players.map(player => player.id === selfId ? {...player, guess:p} : player)}));
+    if (mode === "duel" && duelKind === "online") {
+      if (serverMode || !hostRef.current) setState(current => ({...current, players: current.players.map(player => player.id === selfId ? {...player, guess:p} : player)}));
+      else dispatch({ type: "PLACE_PIN", playerId: actor, guess: p, now });
+      if (serverMode) socket.send({ t:"pin", lat:p.latitude, lng:p.longitude });
     } else dispatch({ type: "PLACE_PIN", playerId: actor, guess: p, now });
   };
 
@@ -439,18 +512,19 @@ export function MatchApp({
     if (!me?.guess || me.locked || !["round_active", "waiting_for_opponent", "player_locked"].includes(current.phase)) return;
     if (duelKind === "hotseat" && current.phase === "waiting_for_opponent") return;
     audio.play("lock");
+    if (serverMode) { socket.send({t:"lock",lat:me.guess.latitude,lng:me.guess.longitude}); return; }
     if (mode === "duel" && duelKind === "online" && !hostRef.current) {
-      const pending = {seed:current.seed, questionIndex:current.questionIndex, lat:me.guess.latitude, lng:me.guess.longitude};
+      const pending = {roundStartedAtMs:current.roundStartedAtMs, questionIndex:current.questionIndex, lat:me.guess.latitude, lng:me.guess.longitude};
       setPendingLock(pending);
       p2p.send({t:"lock", ...pending});
     } else dispatch({type:"LOCK", playerId:me.id, now:mode === "solo" ? performance.now() : Date.now()});
-  }, [mode, duelKind, dispatch, p2p.send, selfId]);
+  }, [mode, duelKind, serverMode, socket.send, dispatch, p2p.send, selfId]);
 
   useEffect(() => {
     if (!pendingLock || !matchesQuestion(state, pendingLock) || you?.locked || state.revealed) return;
     const id = window.setInterval(() => p2p.send({t:"lock", ...pendingLock}), 900);
     return () => window.clearInterval(id);
-  }, [pendingLock, state.seed, state.questionIndex, state.revealed, you?.locked, p2p.send]);
+  }, [pendingLock, state.roundStartedAtMs, state.questionIndex, state.revealed, you?.locked, p2p.send]);
 
   const quit = () => {
     audio.stopAmbience();
@@ -527,15 +601,15 @@ export function MatchApp({
             ))}
             {state.players.length < 2 && (
               <li className="rounded-[var(--radius-md)] border border-dashed border-border px-4 py-3 text-muted">
-                {p2p.error ?? (failed
+                {(serverMode ? null : p2p.error) ?? (failed
                   ? "Using the room relay to connect"
-                  : p2p.joined
+                  : (serverMode ? socket.joined : p2p.joined)
                     ? "Waiting for opponent"
                     : "Connecting…")}
               </li>
             )}
           </ul>
-          {hostRef.current && (
+          {hostRef.current && !serverMode && (
             <Button className="mt-8 w-full" disabled={state.players.length < 2} onClick={() => dispatch({ type: "START_MATCH", now: Date.now() })}>
               {state.players.length < 2 ? "Waiting for opponent" : "Start match"}
             </Button>
@@ -560,17 +634,18 @@ export function MatchApp({
         onRematch={() => {
           statsRecorded.current = false;
           const seed = randomSeed();
-          if (mode === "duel" && duelKind === "online" && !hostRef.current) p2p.send({ t: "rematch", nextSeed: seed, seed:state.seed, questionIndex:state.questionIndex });
-          else dispatch({ type: "REMATCH", seed, now: mode === "solo" ? performance.now() : Date.now(), difficulty: settings.difficulty, matchLength: settings.matchLength, atlas: settings.atlas });
+          if (serverMode) { socket.send({t:"rematch"}); return; }
+          if (mode === "duel" && duelKind === "online" && !hostRef.current) p2p.send({ t: "rematch", nextSeed: seed, roundStartedAtMs:state.roundStartedAtMs, questionIndex:state.questionIndex });
+          else dispatch({ type: "REMATCH", seed, now: mode === "solo" ? performance.now() : Date.now(), difficulty: settings.difficulty, matchLength: settings.matchLength, atlas: settings.atlas, avoidLocationIds: loadRecentIds() });
         }}
         onHome={quit}
       />
     );
   }
 
-  const qNum = state.matchLength === "quick" ? 1 : questionInRound(state.questionIndex) + 1;
+  const qNum = state.matchLength === "escape" ? 1 : questionInRound(state.questionIndex) + 1;
   const rounds = state.totalRounds || 4;
-  const roundLabel = state.matchLength === "quick" ? `Round ${state.roundIndex + 1} of ${rounds}${state.questionIndex === 4 && state.atlas.preset === "sa-nl" ? " · World wildcard" : ""}` : `Round ${state.roundIndex + 1} of ${rounds} · Q${qNum}/${Math.min(QUESTIONS_PER_ROUND,state.totalQuestions - state.roundIndex * QUESTIONS_PER_ROUND)}`;
+  const roundLabel = state.matchLength === "escape" ? `Round ${state.roundIndex + 1} of ${rounds}${state.questionIndex === 4 && state.atlas.preset === "sa-nl" && !state.atlas.cities?.length ? " · World wildcard" : ""}` : `Round ${state.roundIndex + 1} of ${rounds} · Q${qNum}/${Math.min(QUESTIONS_PER_ROUND,state.totalQuestions - state.roundIndex * QUESTIONS_PER_ROUND)}`;
   const urgent = remaining <= 10 && state.phase === "round_active" && !you?.locked;
 
   return (
@@ -604,21 +679,34 @@ export function MatchApp({
       <div className="absolute inset-0">
         {live3d && env ? (
           <Round4Scene key={env.id} env={env} reducedMotion={settings.reducedMotion} />
-        ) : loc?.sceneUrl ? (
-          <SceneExplorer
-            key={loc.sceneUrl}
-            src={loc.sceneUrl}
+        ) : scene?.isPano && !panoFailed ? (
+          <PanoViewer
+            key={scene.src}
+            src={scene.src}
+            imageId={scene.imageId}
+            provider={scene.provider}
+            heading={scene.heading}
+            pitch={scene.pitch}
             alt="Location to identify"
             reducedMotion={settings.reducedMotion}
             interactive={canGuess && !showSettings && !showingReveal}
-            onReady={() => setSceneReady(true)}
-            onError={() => setSceneReady(true)}
+            onError={() => setPanoFailed(true)}
+          />
+        ) : scene ? (
+          <SceneExplorer
+            key={scene.src}
+            src={scene.src}
+            fallbacks={scene.fallbacks}
+            sourceUrl={loc?.sourceUrl}
+            title={loc?.title}
+            alt="Location to identify"
+            reducedMotion={settings.reducedMotion}
+            interactive={canGuess && !showSettings && !showingReveal}
           />
         ) : (
           <div className="absolute inset-0 bg-bg-subtle" />
         )}
-        {!sceneReady && !live3d && <div className="absolute inset-0 bg-bg-subtle" />}
-        <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(180deg,rgba(9,9,11,0.45)_0%,transparent_26%,transparent_62%,rgba(9,9,11,0.5)_100%)]" />
+        <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(180deg,rgba(9,9,11,0.22)_0%,transparent_18%,transparent_78%,rgba(9,9,11,0.28)_100%)]" />
       </div>
 
       <header className="match-hud relative z-20 flex items-start justify-between gap-3 px-4 py-3 pt-[max(0.75rem,env(safe-area-inset-top))]">
@@ -632,7 +720,7 @@ export function MatchApp({
             />
           )}
           <RoundPips index={state.roundIndex} total={state.totalRounds || 4} />
-          {state.matchLength !== "quick" && <QuestionMark current={qNum} />}
+          {state.matchLength !== "escape" && <QuestionMark current={qNum} />}
           {reconstructionRound ? (
             <div className="w-fit rounded-full border border-border bg-bg/75 px-2.5 py-1 text-[10px] uppercase tracking-wider text-muted">
               {ROUND4_3D_LIVE ? "3D reconstruction" : "Reconstruction plates"}
@@ -685,7 +773,7 @@ export function MatchApp({
         </p>
       )}
 
-      {loc && (
+      {(loc || scene) && (
         <GuessMap
           guess={you?.guess}
           onGuess={onGuess}
@@ -703,7 +791,7 @@ export function MatchApp({
           urgent={urgent}
           onLock={canGuess ? lock : undefined}
           canLock={Boolean(you?.guess)}
-          atlas={state.matchLength === "quick" && state.questionIndex === 4 && state.atlas.preset === "sa-nl" ? {preset:"mix",nations:[]} : state.atlas}
+          atlas={state.matchLength === "escape" && state.questionIndex === 4 && state.atlas.preset === "sa-nl" && !state.atlas.cities?.length ? {preset:"mix",nations:[]} : state.atlas}
         />
       )}
 
@@ -724,7 +812,7 @@ export function MatchApp({
         />
       )}
 
-      {loc && loc.sceneKind === "generated-reconstruction" && !showingReveal && (
+      {scene?.kind === "generated" && !showingReveal && (
         <p className="pointer-events-none absolute left-3 bottom-[calc(var(--atlas-map-h)+0.75rem)] z-10 max-w-[52%] text-[10px] leading-snug text-subtle max-sm:max-w-[70%]">
           Reconstruction · not a live street photo
         </p>

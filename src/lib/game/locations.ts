@@ -34,10 +34,13 @@ export const LAUNCH_LOCATIONS: GeoLocation[] = [
     longitude: 18.409883,
     difficulty: 2,
     tags: ["mountain", "coastal", "iconic", "landscape"],
-    attribution: "Photo: DanieVDM, Wikimedia Commons, CC BY-SA. Wikipedia: Table Mountain.",
+    attribution:
+      "360° plate: Greg Zaal and Rico Cilliers, Poly Haven, CC0. Still: DanieVDM, Wikimedia Commons, CC BY-SA. Wikipedia: Table Mountain.",
     sourceUrl: "https://en.wikipedia.org/wiki/Table_Mountain",
     sceneKind: "wikimedia",
     panoramaProvider: "wikimedia",
+    panoUrl: "/locations/pano_table_mountain.jpg",
+    pitch: -20,
   }),
   loc({
     id: "loc_02",
@@ -95,10 +98,10 @@ export const LAUNCH_LOCATIONS: GeoLocation[] = [
     difficulty: 3,
     tags: ["coastal", "urban", "promenade", "beach"],
     attribution:
-      "Cinematic reconstruction inspired by Durban's Golden Mile / North Beach. Not a live street photograph. Coordinates from Wikipedia: North Beach, Durban.",
+      "Photo: Wikimedia Commons, CC BY-SA. Wikipedia: North Beach, Durban.",
     sourceUrl: "https://en.wikipedia.org/wiki/North_Beach,_Durban",
-    sceneKind: "generated-reconstruction",
-    panoramaProvider: "generated",
+    sceneKind: "wikimedia",
+    panoramaProvider: "wikimedia",
   }),
   loc({
     id: "loc_06",
@@ -246,10 +249,10 @@ export const LAUNCH_LOCATIONS: GeoLocation[] = [
     difficulty: 4,
     tags: ["coastal", "civic", "historic", "urban"],
     attribution:
-      "Cinematic reconstruction inspired by the Donkin Reserve pyramid and lighthouse, Gqeberha. Not a live street photograph.",
+      "Photo: Wikimedia Commons, CC BY-SA. Wikipedia: Gqeberha.",
     sourceUrl: "https://en.wikipedia.org/wiki/Gqeberha",
-    sceneKind: "generated-reconstruction",
-    panoramaProvider: "generated",
+    sceneKind: "wikimedia",
+    panoramaProvider: "wikimedia",
   }),
   loc({
     id: "loc_16",
@@ -322,10 +325,10 @@ export const LAUNCH_LOCATIONS: GeoLocation[] = [
     difficulty: 4,
     tags: ["modern", "industrial", "urban", "infrastructure"],
     attribution:
-      "Cinematic reconstruction inspired by Eindhoven's Lichttoren / Strijp-S. Not a live street photograph.",
+      "Photo: Wikimedia Commons, CC BY-SA. Wikipedia: Eindhoven.",
     sourceUrl: "https://en.wikipedia.org/wiki/Eindhoven",
-    sceneKind: "generated-reconstruction",
-    panoramaProvider: "generated",
+    sceneKind: "wikimedia",
+    panoramaProvider: "wikimedia",
   }),
   loc({
     id: "loc_21",
@@ -338,10 +341,10 @@ export const LAUNCH_LOCATIONS: GeoLocation[] = [
     difficulty: 3,
     tags: ["historic", "plaza", "urban"],
     attribution:
-      "Cinematic reconstruction inspired by Groningen's Grote Markt and Martinitoren. Not a live street photograph.",
+      "Photo: Wikimedia Commons, CC BY-SA. Wikipedia: Grote Markt (Groningen).",
     sourceUrl: "https://en.wikipedia.org/wiki/Grote_Markt_(Groningen)",
-    sceneKind: "generated-reconstruction",
-    panoramaProvider: "generated",
+    sceneKind: "wikimedia",
+    panoramaProvider: "wikimedia",
   }),
   loc({
     id: "loc_22",
@@ -458,10 +461,13 @@ export const LAUNCH_LOCATIONS: GeoLocation[] = [
     longitude: 4.28,
     difficulty: 3,
     tags: ["coastal", "beach", "infrastructure"],
-    attribution: "Photo: Michielverbeek, Wikimedia Commons, CC BY-SA 4.0. Wikipedia: Scheveningen Pier.",
+    attribution:
+      "360° plate: Wvdp, Wikimedia Commons, CC0. Still: Michielverbeek, Wikimedia Commons, CC BY-SA 4.0. Wikipedia: Scheveningen Pier.",
     sourceUrl: "https://en.wikipedia.org/wiki/Scheveningen_Pier",
     sceneKind: "wikimedia",
     panoramaProvider: "wikimedia",
+    panoUrl: "/locations/pano_scheveningen.jpg",
+    pitch: -20,
   }),
   loc({
     id: "loc_30",

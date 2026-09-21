@@ -1,6 +1,6 @@
 import type { MatchState, PublicSnapshot } from "../game/types.ts";
 
-type Question = { seed: number; questionIndex: number };
+type Question = { roundStartedAtMs?: number; questionIndex: number };
 export type WireMessage =
   | { t: "hello"; peerId: string; name: string; avatarId?: string }
   | { t: "snapshot"; state: PublicSnapshot; sentAt: number }
@@ -17,13 +17,13 @@ export function isWireMessage(value: unknown): value is WireMessage {
   if (value.t === "snapshot") {
     const s = value.state;
     return finite(value.sentAt) && record(s) && finite(s.seq) && Number.isInteger(s.seq) && s.seq >= 0 &&
-      typeof s.hostId === "string" && finite(s.seed) && finite(s.questionIndex) && finite(s.roundIndex) &&
+      typeof s.hostId === "string" && (s.seed === undefined || finite(s.seed)) && finite(s.questionIndex) && finite(s.roundIndex) &&
       typeof s.phase === "string" && phases.has(s.phase) && finite(s.durationSec) && s.durationSec > 0 &&
       finite(s.totalQuestions) && Array.isArray(s.locationIds) && s.locationIds.length <= 100 && s.locationIds.every(id => typeof id === "string") &&
       Array.isArray(s.players) && s.players.length <= 2 && s.players.every(p => record(p) && typeof p.id === "string" && typeof p.name === "string" && finite(p.totalScore) && typeof p.locked === "boolean") &&
       Array.isArray(s.roundHistory) && Array.isArray(s.envIds) && Array.isArray(s.winnerIds) && record(s.atlas) && Array.isArray(s.atlas.nations);
   }
-  if (!finite(value.seed) || !Number.isInteger(value.seed) || !finite(value.questionIndex) || !Number.isInteger(value.questionIndex) || value.questionIndex < 0) return false;
+  if ((value.roundStartedAtMs !== undefined && !finite(value.roundStartedAtMs)) || !finite(value.questionIndex) || !Number.isInteger(value.questionIndex) || value.questionIndex < 0) return false;
   if (value.t === "pin" || value.t === "lock") return finite(value.lat) && Math.abs(value.lat) <= 90 && finite(value.lng) && Math.abs(value.lng) <= 180;
   if (value.t === "rematch") return finite(value.nextSeed) && Number.isInteger(value.nextSeed);
   return ["continue", "intro-done", "reveal-done", "start", "handoff"].includes(String(value.t));

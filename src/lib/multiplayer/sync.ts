@@ -4,10 +4,11 @@ import type { MatchState, PublicSnapshot } from "../game/types.ts";
 export function mergeHostSnapshot(previous: MatchState, incoming: PublicSnapshot, selfId: string): MatchState {
   if (previous.hostId && incoming.hostId !== previous.hostId) return previous;
   if (previous.hostId && incoming.seq <= previous.seq) return previous;
-  const sameQuestion = previous.seed === incoming.seed && previous.questionIndex === incoming.questionIndex;
+  const sameQuestion = previous.roundStartedAtMs === incoming.roundStartedAtMs && previous.questionIndex === incoming.questionIndex;
   const mine = sameQuestion ? previous.players.find(p => p.id === selfId) : undefined;
   return {
     ...incoming,
+    seed: incoming.seed ?? 0,
     lastEventAt: 0,
     duelKind: "online",
     players: incoming.players.map(p => p.id === selfId && mine && !incoming.revealed
@@ -16,6 +17,6 @@ export function mergeHostSnapshot(previous: MatchState, incoming: PublicSnapshot
   };
 }
 
-export function matchesQuestion(state: Pick<MatchState, "seed" | "questionIndex">, message: {seed: number; questionIndex: number}): boolean {
-  return state.seed === message.seed && state.questionIndex === message.questionIndex;
+export function matchesQuestion(state: Pick<MatchState, "roundStartedAtMs" | "questionIndex">, message: {roundStartedAtMs?: number; questionIndex: number}): boolean {
+  return state.roundStartedAtMs === message.roundStartedAtMs && state.questionIndex === message.questionIndex;
 }

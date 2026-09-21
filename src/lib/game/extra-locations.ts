@@ -45,7 +45,7 @@ export const EXTRA_LOCATIONS: GeoLocation[] = [
     tags: ["coastal", "beach", "wildlife"],
     attribution: "Cinematic reconstruction inspired by Boulders Beach. Not a live street photograph. Coordinates from Wikipedia.",
     sourceUrl: "https://en.wikipedia.org/wiki/Boulders_Beach",
-    sceneKind: "generated-reconstruction",
+    sceneKind: "wikimedia",
       }),
   loc({
     id: "loc_43",
@@ -59,7 +59,7 @@ export const EXTRA_LOCATIONS: GeoLocation[] = [
     tags: ["coastal", "mountain", "road"],
     attribution: "Cinematic reconstruction inspired by Chapman’s Peak. Not a live street photograph. Coordinates from Wikipedia.",
     sourceUrl: "https://en.wikipedia.org/wiki/Chapman%27s_Peak",
-    sceneKind: "generated-reconstruction",
+    sceneKind: "wikimedia",
       }),
   loc({
     id: "loc_44",
@@ -133,7 +133,7 @@ export const EXTRA_LOCATIONS: GeoLocation[] = [
     tags: ["stadium", "urban", "iconic"],
     attribution: "Cinematic reconstruction inspired by Moses Mabhida Stadium. Not a live street photograph. Coordinates from Wikipedia.",
     sourceUrl: "https://en.wikipedia.org/wiki/Moses_Mabhida_Stadium",
-    sceneKind: "generated-reconstruction",
+    sceneKind: "wikimedia",
       }),
   loc({
     id: "loc_49",
@@ -147,7 +147,7 @@ export const EXTRA_LOCATIONS: GeoLocation[] = [
     tags: ["civic", "architecture", "urban"],
     attribution: "Cinematic reconstruction inspired by Pietermaritzburg. Not a live street photograph. Coordinates from Wikipedia.",
     sourceUrl: "https://en.wikipedia.org/wiki/Pietermaritzburg",
-    sceneKind: "generated-reconstruction",
+    sceneKind: "wikimedia",
       }),
   loc({
     id: "loc_50",
@@ -176,7 +176,7 @@ export const EXTRA_LOCATIONS: GeoLocation[] = [
     tags: ["tower", "urban", "skyline", "iconic"],
     attribution: "Cinematic reconstruction inspired by Hillbrow Tower. Not a live street photograph. Coordinates from Wikipedia.",
     sourceUrl: "https://en.wikipedia.org/wiki/Hillbrow_Tower",
-    sceneKind: "generated-reconstruction",
+    sceneKind: "wikimedia",
   }),
   loc({
     id: "loc_52",
@@ -190,7 +190,7 @@ export const EXTRA_LOCATIONS: GeoLocation[] = [
     tags: ["monument", "historic", "architecture"],
     attribution: "Cinematic reconstruction inspired by Voortrekker Monument. Not a live street photograph. Coordinates from Wikipedia.",
     sourceUrl: "https://en.wikipedia.org/wiki/Voortrekker_Monument",
-    sceneKind: "generated-reconstruction",
+    sceneKind: "wikimedia",
       }),
   loc({
     id: "loc_53",
@@ -204,7 +204,7 @@ export const EXTRA_LOCATIONS: GeoLocation[] = [
     tags: ["urban", "historic", "street"],
     attribution: "Cinematic reconstruction inspired by Vilakazi Street. Not a live street photograph. Coordinates from Wikipedia.",
     sourceUrl: "https://en.wikipedia.org/wiki/Orlando,_Soweto",
-    sceneKind: "generated-reconstruction",
+    sceneKind: "wikimedia",
       }),
   loc({
     id: "loc_54",
@@ -218,7 +218,7 @@ export const EXTRA_LOCATIONS: GeoLocation[] = [
     tags: ["canyon", "escarpment", "landscape"],
     attribution: "Cinematic reconstruction inspired by Blyde River Canyon. Not a live street photograph. Coordinates from Wikipedia.",
     sourceUrl: "https://en.wikipedia.org/wiki/Blyde_River_Canyon",
-    sceneKind: "generated-reconstruction",
+    sceneKind: "wikimedia",
       }),
   loc({
     id: "loc_55",
@@ -245,10 +245,13 @@ export const EXTRA_LOCATIONS: GeoLocation[] = [
     longitude: 4.8853,
     difficulty: 2,
     tags: ["museum", "architecture", "urban", "iconic"],
-    attribution: "Cinematic reconstruction inspired by Rijksmuseum. Not a live street photograph. Coordinates from Wikipedia.",
+    attribution:
+      "360° plate: Greg Zaal, Poly Haven, CC0. Coordinates from Wikipedia: Rijksmuseum.",
     sourceUrl: "https://en.wikipedia.org/wiki/Rijksmuseum",
-    sceneKind: "generated-reconstruction",
-      }),
+    sceneKind: "wikimedia",
+    panoUrl: "/locations/pano_museumplein.jpg",
+    pitch: -20,
+  }),
   loc({
     id: "loc_57",
     country: "NL",
@@ -261,7 +264,7 @@ export const EXTRA_LOCATIONS: GeoLocation[] = [
     tags: ["bridge", "canal", "urban"],
     attribution: "Cinematic reconstruction inspired by Magere Brug. Not a live street photograph. Coordinates from Wikipedia.",
     sourceUrl: "https://en.wikipedia.org/wiki/Magere_Brug",
-    sceneKind: "generated-reconstruction",
+    sceneKind: "wikimedia",
       }),
   loc({
     id: "loc_58",
@@ -275,7 +278,7 @@ export const EXTRA_LOCATIONS: GeoLocation[] = [
     tags: ["historic", "market", "urban"],
     attribution: "Cinematic reconstruction inspired by Alkmaar. Not a live street photograph. Coordinates from Wikipedia.",
     sourceUrl: "https://en.wikipedia.org/wiki/Alkmaar",
-    sceneKind: "generated-reconstruction",
+    sceneKind: "wikimedia",
       }),
   loc({
     id: "loc_59",
@@ -289,7 +292,7 @@ export const EXTRA_LOCATIONS: GeoLocation[] = [
     tags: ["harbor", "village", "coastal"],
     attribution: "Cinematic reconstruction inspired by Volendam. Not a live street photograph. Coordinates from Wikipedia.",
     sourceUrl: "https://en.wikipedia.org/wiki/Volendam",
-    sceneKind: "generated-reconstruction",
+    sceneKind: "wikimedia",
       }),
   loc({
     id: "loc_60",
@@ -318,7 +321,7 @@ export const EXTRA_LOCATIONS: GeoLocation[] = [
     tags: ["market", "historic", "urban"],
     attribution: "Cinematic reconstruction inspired by Gouda, South Holland. Not a live street photograph. Coordinates from Wikipedia.",
     sourceUrl: "https://en.wikipedia.org/wiki/Gouda,_South_Holland",
-    sceneKind: "generated-reconstruction",
+    sceneKind: "wikimedia",
       }),
   loc({
     id: "loc_62",
@@ -332,7 +335,7 @@ export const EXTRA_LOCATIONS: GeoLocation[] = [
     tags: ["church", "historic", "urban"],
     attribution: "Cinematic reconstruction inspired by Grote Kerk (Breda). Not a live street photograph. Coordinates from Wikipedia.",
     sourceUrl: "https://en.wikipedia.org/wiki/Grote_Kerk_(Breda)",
-    sceneKind: "generated-reconstruction",
+    sceneKind: "wikimedia",
       }),
   loc({
     id: "loc_63",
@@ -361,7 +364,7 @@ export const EXTRA_LOCATIONS: GeoLocation[] = [
     tags: ["bridge", "river", "urban"],
     attribution: "Cinematic reconstruction inspired by John Frost Bridge. Not a live street photograph. Coordinates from Wikipedia.",
     sourceUrl: "https://en.wikipedia.org/wiki/John_Frost_Bridge",
-    sceneKind: "generated-reconstruction",
+    sceneKind: "wikimedia",
       }),
   loc({
     id: "loc_65",
@@ -375,7 +378,7 @@ export const EXTRA_LOCATIONS: GeoLocation[] = [
     tags: ["gate", "historic", "water"],
     attribution: "Cinematic reconstruction inspired by Koppelpoort. Not a live street photograph. Coordinates from Wikipedia.",
     sourceUrl: "https://en.wikipedia.org/wiki/Koppelpoort",
-    sceneKind: "generated-reconstruction",
+    sceneKind: "wikimedia",
       }),
   loc({
     id: "loc_66",
@@ -404,7 +407,7 @@ export const EXTRA_LOCATIONS: GeoLocation[] = [
     tags: ["castle", "historic", "water"],
     attribution: "Cinematic reconstruction inspired by Muiderslot. Not a live street photograph. Coordinates from Wikipedia.",
     sourceUrl: "https://en.wikipedia.org/wiki/Muiderslot",
-    sceneKind: "generated-reconstruction",
+    sceneKind: "wikimedia",
       }),
   loc({
     id: "loc_68",
@@ -418,7 +421,7 @@ export const EXTRA_LOCATIONS: GeoLocation[] = [
     tags: ["tower", "historic", "urban"],
     attribution: "Cinematic reconstruction inspired by Oldehove. Not a live street photograph. Coordinates from Wikipedia.",
     sourceUrl: "https://en.wikipedia.org/wiki/Oldehove_(Leeuwarden)",
-    sceneKind: "generated-reconstruction",
+    sceneKind: "wikimedia",
       }),
   loc({
     id: "loc_69",

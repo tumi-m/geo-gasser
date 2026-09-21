@@ -27,7 +27,7 @@ export function HomeScreen() {
   };
   const cards = [
     {id:"sa-nl", name:"South Africa × Netherlands", subtitle:"THE ORIGINAL", src:"/generated/home-cape.jpg", icon:Compass},
-    {id:"world", name:"World tour", subtitle:"BEYOND THE FAMILIAR", src:"/locations/loc_41.jpg", icon:Globe2},
+    {id:"world", name:"World tour", subtitle:"BEYOND THE FAMILIAR", src:"/locations/loc_100.jpg", icon:Globe2},
     {id:"custom", name:"Your own adventure", subtitle:"COUNTRIES & CITIES", src:"/generated/home-amsterdam.jpg", icon:SlidersHorizontal},
   ] as const;
   return <main className="expedition-home">

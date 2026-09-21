@@ -70,7 +70,7 @@ export function FinalResults({
             </p>
           ) : null}
           {Array.from({ length: state.totalRounds || 4 }, (_, round) => {
-            const rows = state.roundHistory.filter((r) => (state.matchLength === "quick" ? r.index : Math.floor(r.index / 10)) === round);
+            const rows = state.roundHistory.filter((r) => (state.matchLength === "escape" ? r.index : Math.floor(r.index / 10)) === round);
             if (!rows.length) return null;
             const roundYou = rows.reduce((n, r) => n + (r.guesses[selfId]?.score.roundScore ?? 0), 0);
             const roundOther = other
