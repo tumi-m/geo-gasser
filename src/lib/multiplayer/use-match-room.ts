@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { PublicSnapshot } from "../game/types.ts";
+import { matchSocketUrl, queueCommand } from "./transport.ts";
 import { parseServerMessage, type ClientMessage } from "./wire.ts";
 
 export interface MatchRoomHandlers {
@@ -27,6 +28,8 @@ export function useMatchRoom(options: {
   const [joined, setJoined] = useState(false);
   const socketRef = useRef<WebSocket | null>(null);
   const handlersRef = useRef<MatchRoomHandlers>({});
+  /** Commands issued while the socket was down, replayed when it returns. */
+  const outboxRef = useRef<ClientMessage[]>([]);
   const identityRef = useRef(options);
   identityRef.current = options;
 
@@ -39,7 +42,12 @@ export function useMatchRoom(options: {
 
   const send = useCallback((msg: ClientMessage) => {
     const ws = socketRef.current;
-    if (!ws || ws.readyState !== WebSocket.OPEN) return false;
+    if (!ws || ws.readyState !== WebSocket.OPEN) {
+      // Dropping a lock here would cost the player the round; hold it for the
+      // reconnect instead. The server rejects whatever the round outran.
+      outboxRef.current = queueCommand(outboxRef.current, msg);
+      return false;
+    }
     ws.send(JSON.stringify(msg));
     return true;
   }, []);
@@ -57,40 +65,30 @@ export function useMatchRoom(options: {
     const connect = () => {
       if (disposed) return;
       const identity = identityRef.current;
-      const base = url.replace(/\/+$/, "");
-      const wsUrl = new URL(`${base}/room/${encodeURIComponent(room.toUpperCase())}`);
-      wsUrl.protocol = wsUrl.protocol === "https:" ? "wss:" : "ws:";
-      wsUrl.searchParams.set("playerId", playerId);
-      wsUrl.searchParams.set("name", identity.name);
-      if (identity.avatarId) wsUrl.searchParams.set("avatarId", identity.avatarId);
-      if (identity.difficulty) wsUrl.searchParams.set("difficulty", identity.difficulty);
-      if (identity.matchLength) wsUrl.searchParams.set("matchLength", identity.matchLength);
-      if (identity.atlas) {
-        try {
-          wsUrl.searchParams.set("atlas", JSON.stringify(identity.atlas));
-        } catch {
-          /* ignore unserialisable atlas */
-        }
-      }
+      const wsUrl = matchSocketUrl(url, room, { ...identity, playerId });
 
-      ws = new WebSocket(wsUrl);
-      socketRef.current = ws;
-      ws.onopen = () => {
+      const socket = new WebSocket(wsUrl);
+      ws = socket;
+      socketRef.current = socket;
+      socket.onopen = () => {
         retry = 0;
         setConnected(true);
+        const pending = outboxRef.current;
+        outboxRef.current = [];
+        for (const msg of pending) socket.send(JSON.stringify(msg));
       };
-      ws.onclose = () => {
+      socket.onclose = () => {
         setConnected(false);
         setJoined(false);
-        socketRef.current = null;
+        if (socketRef.current === socket) socketRef.current = null;
         // The room holds a dropped seat for a grace window, so a reconnect
         // with the same player id restores the match instead of forfeiting.
         if (disposed) return;
         const delay = Math.min(5_000, 400 * 2 ** retry++) + Math.random() * 250;
         retryTimer = window.setTimeout(connect, delay);
       };
-      ws.onerror = () => setConnected(false);
-      ws.onmessage = (event) => {
+      socket.onerror = () => setConnected(false);
+      socket.onmessage = (event) => {
         let raw: unknown;
         try {
           raw = JSON.parse(String(event.data));
@@ -112,7 +110,7 @@ export function useMatchRoom(options: {
 
       window.clearInterval(ping);
       ping = window.setInterval(() => {
-        if (ws?.readyState === WebSocket.OPEN) ws.send(JSON.stringify({ t: "ping" }));
+        if (socket.readyState === WebSocket.OPEN) socket.send(JSON.stringify({ t: "ping" }));
       }, 20_000);
     };
 
@@ -123,6 +121,8 @@ export function useMatchRoom(options: {
       window.clearTimeout(retryTimer);
       window.clearInterval(ping);
       socketRef.current = null;
+      // A queued command belongs to the room being left, not the next one.
+      outboxRef.current = [];
       ws?.close();
     };
   }, [enabled, url, room, playerId]);

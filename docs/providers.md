@@ -5,7 +5,7 @@
 | Guessing map | Leaflet + bundled Natural Earth countries (`src/data/world.json`, `detail.json`) | No live tile dependency. External raster/vector hosts (OpenFreeMap, Esri, OSM) were blank on mobile/Vercel. |
 | Location plates | Wikimedia Commons / Wikipedia page images | CC BY-SA. Per-location credit in the location record. |
 | 360 panoramas | Commons equirectangular files (Poly Haven CC0 uploads, Commons CC0/CC BY-SA) | Rendered by `PanoViewer`; per-site credit in the location record. |
-| Street-level | Mapillary API v4 (`VITE_MAPILLARY_TOKEN`) | CC BY-SA 4.0. Credit Mapillary and the contributor. Public client token; unset = bundled stills only. |
+| Street-level | Mapillary API v4 (`VITE_MAPILLARY_TOKEN`) | CC BY-SA 4.0. Credit Mapillary and the contributor. Public client token; unset = bundled stills only. Requests `thumb_original_url`, `thumb_2048_url` and `thumb_1024_url` and shows the widest that came back. |
 | Pack building | `scripts/build-locations.mjs` | Commons geosearch and Mapillary radius search; writes credited JSON packs. |
 | Generated plates | Imagine cinematic reconstructions | Used only where a live Commons file was unavailable. Labelled as reconstructions. |
 | Earth globe | NASA Blue Marble (`land_shallow_topo_2048`) | Public domain. |

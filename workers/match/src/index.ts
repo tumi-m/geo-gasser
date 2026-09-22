@@ -16,6 +16,24 @@ interface Env {
   ALLOWED_ORIGIN: string;
 }
 
+/**
+ * `*` (the default) keeps the worker open, which is what a hobby deploy wants.
+ * Set ALLOWED_ORIGIN to the app's origin — or a comma-separated list — and the
+ * upgrade is refused for anyone else.
+ */
+function originAllowed(request: Request, allowed: string | undefined): boolean {
+  const list = (allowed ?? "*")
+    .split(",")
+    .map((o) => o.trim())
+    .filter(Boolean);
+  if (!list.length || list.includes("*")) return true;
+  const origin = request.headers.get("Origin");
+  // A non-browser client sends no Origin; browsers always do, and they are the
+  // only ones the allow-list can speak about.
+  if (!origin) return true;
+  return list.includes(origin);
+}
+
 interface Attachment {
   playerId: string;
   name: string;
@@ -186,13 +204,19 @@ export class MatchRoom extends DurableObject<Env> {
       case "start":
         return this.apply({ t: "start", playerId: att.playerId, now });
       case "intro":
-        return this.apply({ t: "intro", playerId: att.playerId, now });
+        return this.apply({
+          t: "intro",
+          playerId: att.playerId,
+          now,
+          questionIndex: msg.questionIndex,
+        });
       case "pin":
         return this.apply({
           t: "pin",
           playerId: att.playerId,
           guess: { latitude: msg.lat, longitude: msg.lng },
           now,
+          questionIndex: msg.questionIndex,
         });
       case "lock":
         return this.apply({
@@ -200,9 +224,15 @@ export class MatchRoom extends DurableObject<Env> {
           playerId: att.playerId,
           guess: { latitude: msg.lat, longitude: msg.lng },
           now,
+          questionIndex: msg.questionIndex,
         });
       case "continue":
-        return this.apply({ t: "continue", playerId: att.playerId, now });
+        return this.apply({
+          t: "continue",
+          playerId: att.playerId,
+          now,
+          questionIndex: msg.questionIndex,
+        });
       case "rematch":
         return this.apply({
           t: "rematch",
@@ -236,11 +266,14 @@ export class MatchRoom extends DurableObject<Env> {
     const now = Date.now();
     const leaves = await this.pendingLeaves();
     const due = Object.keys(leaves).filter((playerId) => (leaves[playerId] ?? 0) <= now);
-    for (const playerId of due) {
-      delete leaves[playerId];
-      await this.apply({ t: "leave", playerId, now });
+    if (due.length) {
+      // Drop the fired deadlines FIRST. `apply` re-arms from storage, and a
+      // deadline still sitting there would arm an alarm in the past — waking
+      // the object again for work that is already done.
+      for (const playerId of due) delete leaves[playerId];
+      await this.ctx.storage.put("pendingLeaves", leaves);
+      for (const playerId of due) await this.apply({ t: "leave", playerId, now });
     }
-    if (due.length) await this.ctx.storage.put("pendingLeaves", leaves);
 
     const state = await this.hydrate();
     const deadline = roundDeadlineMs(state);
@@ -259,6 +292,9 @@ export default {
 
     const match = url.pathname.match(/^\/room\/([A-Za-z0-9]{4,12})$/);
     if (!match) return new Response("Not found", { status: 404 });
+    if (!originAllowed(request, env.ALLOWED_ORIGIN)) {
+      return new Response("Forbidden origin", { status: 403 });
+    }
 
     const id = env.MATCH_ROOM.idFromName(match[1].toUpperCase());
     return env.MATCH_ROOM.get(id).fetch(request);

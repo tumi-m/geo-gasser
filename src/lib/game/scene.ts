@@ -1,6 +1,12 @@
+import { HIRES_PLATES } from "./hires-plates.ts";
 import type { GeoLocation } from "./types.ts";
 
 const UA = "AtlasDuel/1.0 (https://geo-gasser.vercel.app)";
+/**
+ * Wikipedia fallback plates fill the viewport and zoom to 2.8x, so they are
+ * asked for at least as wide as the bundled plates they stand in for.
+ */
+const PI_THUMB_SIZE = "2560";
 
 export function wikiTitleFrom(sourceUrl?: string): string | undefined {
   if (!sourceUrl) return undefined;
@@ -62,7 +68,7 @@ async function pageImage(page: string): Promise<string | null> {
     redirects: "1",
     prop: "pageimages",
     piprop: "thumbnail",
-    pithumbsize: "1920",
+    pithumbsize: PI_THUMB_SIZE,
     titles: page,
   });
   return firstThumb(data);
@@ -82,15 +88,15 @@ export async function resolveWikiImage(sourceUrl?: string, title?: string): Prom
     gsrlimit: "1",
     prop: "pageimages",
     piprop: "thumbnail",
-    pithumbsize: "1920",
+    pithumbsize: PI_THUMB_SIZE,
   });
   return firstThumb(data);
 }
 
 /** Keep the lightweight plate on phones; allow large displays to request the original. */
 export function responsiveSceneSrcSet(src: string): string | undefined {
-  if (src === "/locations/loc_02.jpg") {
-    return "/locations/loc_02.jpg 1280w, /locations/hires/loc_02.jpg 5844w";
-  }
-  return undefined;
+  const id = /^\/locations\/([A-Za-z0-9_-]+)\.jpg$/.exec(src)?.[1];
+  const plate = id ? HIRES_PLATES[id] : undefined;
+  if (!plate) return undefined;
+  return `/locations/${id}.jpg ${plate.base}w, /locations/hires/${id}.jpg ${plate.hires}w`;
 }

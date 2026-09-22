@@ -79,4 +79,26 @@ describe("mapillary provider", () => {
     mockFetch(sample);
     assert.equal(await mapillaryImageUrl("123", "TOKEN"), "https://cdn.mapillary.com/123.jpg");
   });
+
+  it("asks for every thumbnail size and prefers the widest that came back", async () => {
+    const calls = mockFetch({
+      ...sample,
+      thumb_original_url: "https://cdn.mapillary.com/123-original.jpg",
+      thumb_1024_url: "https://cdn.mapillary.com/123-1024.jpg",
+    });
+    const image = await mapillaryImage("123", "TOKEN");
+    assert.match(calls[0], /thumb_original_url/);
+    assert.match(calls[0], /thumb_1024_url/);
+    assert.equal(image?.thumbUrl, "https://cdn.mapillary.com/123-original.jpg");
+    assert.deepEqual(image?.thumbUrls, [
+      "https://cdn.mapillary.com/123-original.jpg",
+      "https://cdn.mapillary.com/123.jpg",
+      "https://cdn.mapillary.com/123-1024.jpg",
+    ]);
+  });
+
+  it("falls down the ladder when the wider sizes are missing", async () => {
+    mockFetch({ ...sample, thumb_2048_url: undefined, thumb_1024_url: "https://cdn/small.jpg" });
+    assert.equal(await mapillaryImageUrl("123", "TOKEN"), "https://cdn/small.jpg");
+  });
 });

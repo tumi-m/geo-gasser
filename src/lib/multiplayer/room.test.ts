@@ -103,6 +103,39 @@ describe("server-authoritative room", () => {
     assert.equal(s.roundHistory.length, 0);
   });
 
+  it("drops a command scoped to a question the round has moved past", () => {
+    let s = hostRoom();
+    s = applyRoomCommand(s, cmd({ t: "join", playerId: "guest", name: "Guest" }));
+    s = applyRoomCommand(s, cmd({ t: "intro", playerId: "host" }));
+    assert.equal(s.questionIndex, 0);
+    const truth = s.truth!;
+
+    // A lock replayed from the first question must not score the second one.
+    const stale = applyRoomCommand(
+      s,
+      cmd({ t: "lock", playerId: "guest", guess: truth, questionIndex: 7 }),
+    );
+    assert.equal(stale, s);
+
+    // The same command, correctly scoped, still applies.
+    const live = applyRoomCommand(
+      s,
+      cmd({ t: "lock", playerId: "guest", guess: truth, questionIndex: 0, now: now + 1_000 }),
+    );
+    assert.equal(live.players.find((p) => p.id === "guest")?.locked, true);
+  });
+
+  it("still accepts an unscoped command from a client that sends no question", () => {
+    let s = hostRoom();
+    s = applyRoomCommand(s, cmd({ t: "join", playerId: "guest", name: "Guest" }));
+    s = applyRoomCommand(s, cmd({ t: "intro", playerId: "host" }));
+    const locked = applyRoomCommand(
+      s,
+      cmd({ t: "lock", playerId: "guest", guess: s.truth!, now: now + 1_000 }),
+    );
+    assert.equal(locked.players.find((p) => p.id === "guest")?.locked, true);
+  });
+
   it("ignores commands from players who are not in the room", () => {
     let s = hostRoom();
     s = applyRoomCommand(s, cmd({ t: "join", playerId: "guest", name: "Guest" }));
