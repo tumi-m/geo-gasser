@@ -33,7 +33,13 @@ npm run match:deploy
 ```
 
 Set the deployed URL on Vercel as `VITE_MATCH_SERVER_URL` and redeploy the web
-app. The DO SQLite migration is declared in `wrangler.toml` (`v1`).
+app. Either an `https://` or a `wss://` origin works. The DO SQLite migration is
+declared in `wrangler.toml` (`v1`).
+
+`ALLOWED_ORIGIN` defaults to `*`, which accepts any upgrade. Set it to the app's
+origin — or a comma-separated list — to refuse rooms opened from another site.
+It can only speak about browsers, which always send `Origin`; a request without
+one is still accepted.
 
 ## Protocol
 
@@ -42,6 +48,12 @@ Client → server (`src/lib/multiplayer/wire.ts`):
 - `hello` — reserved; identity travels in the upgrade query string
 - `pin` / `lock` — own coordinates only
 - `intro`, `continue`, `rematch`, `start`, `ping`
+
+`pin`, `lock`, `intro` and `continue` carry an optional `questionIndex`. The
+room drops a command whose index is not the question it is on, so a packet the
+round outran — delayed on a slow link, or replayed from the client's outbox
+after a reconnect — cannot land on the round that followed. A client that omits
+the field is taken at its word.
 
 Server → client:
 

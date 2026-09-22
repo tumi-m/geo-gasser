@@ -163,6 +163,7 @@ export function MatchApp({
   const {
     selfId: socketSelfId,
     joined: socketJoined,
+    connected: socketConnected,
     send: socketSend,
     onMessage: socketOnMessage,
   } = socket;
@@ -405,28 +406,24 @@ export function MatchApp({
     return () => window.clearInterval(id);
   }, [mode, duelKind, serverMode, p2pSend, state.phase]);
 
+  // Whether the host's state actually has a seat for us yet.
+  const seated = Boolean(state.hostId) && state.players.some((p) => p.id === selfId);
+
   useEffect(() => {
     if (mode !== "duel" || duelKind !== "online" || serverMode) return;
     // Keep announcing until this player is IN the host's game — not merely
     // until a peer is visible. A host that received our hello may have had
     // its reply lost; a resend costs nothing and unsticks the room.
     if (hostRef.current) return;
+    // Once seated, stop: the host answers every hello with a full snapshot to
+    // the whole room, so announcing for the rest of the match floods the wire
+    // and re-renders both clients twice a second for nothing.
+    if (seated) return;
     const ping = () => p2pSend({ t: "hello", peerId: selfId, name, avatarId });
     ping();
     const id = window.setInterval(ping, 1500);
     return () => window.clearInterval(id);
-  }, [
-    mode,
-    duelKind,
-    serverMode,
-    p2pSend,
-    selfId,
-    name,
-    avatarId,
-    state.phase,
-    state.players,
-    state.hostId,
-  ]);
+  }, [mode, duelKind, serverMode, p2pSend, selfId, name, avatarId, seated]);
 
   useEffect(() => {
     if (
@@ -571,7 +568,7 @@ export function MatchApp({
     if (stateRef.current.phase !== "round_intro") return;
     const now = mode === "solo" ? performance.now() : Date.now();
     if (serverMode) {
-      socketSend({ t: "intro" });
+      socketSend({ t: "intro", questionIndex: stateRef.current.questionIndex });
       return;
     }
     if (mode === "duel" && duelKind === "online" && !hostRef.current) {
@@ -583,7 +580,7 @@ export function MatchApp({
   const continueRound = useCallback(() => {
     const now = mode === "solo" ? performance.now() : Date.now();
     if (serverMode) {
-      socketSend({ t: "continue" });
+      socketSend({ t: "continue", questionIndex: stateRef.current.questionIndex });
       return;
     }
     if (mode === "duel" && duelKind === "online" && !hostRef.current)
@@ -753,7 +750,13 @@ export function MatchApp({
           ),
         }));
       else dispatch({ type: "PLACE_PIN", playerId: actor, guess: p, now });
-      if (serverMode) socketSend({ t: "pin", lat: p.latitude, lng: p.longitude });
+      if (serverMode)
+        socketSend({
+          t: "pin",
+          lat: p.latitude,
+          lng: p.longitude,
+          questionIndex: state.questionIndex,
+        });
     } else dispatch({ type: "PLACE_PIN", playerId: actor, guess: p, now });
   };
 
@@ -771,17 +774,25 @@ export function MatchApp({
       return;
     if (duelKind === "hotseat" && current.phase === "waiting_for_opponent") return;
     audio.play("lock");
+    const pending = {
+      roundStartedAtMs: current.roundStartedAtMs,
+      questionIndex: current.questionIndex,
+      lat: me.guess.latitude,
+      lng: me.guess.longitude,
+    };
     if (serverMode) {
-      socketSend({ t: "lock", lat: me.guess.latitude, lng: me.guess.longitude });
+      // Hold it pending here too: the lock is only real once the server says
+      // so, and until then the button must not fire a second one.
+      setPendingLock(pending);
+      socketSend({
+        t: "lock",
+        lat: pending.lat,
+        lng: pending.lng,
+        questionIndex: pending.questionIndex,
+      });
       return;
     }
     if (mode === "duel" && duelKind === "online" && !hostRef.current) {
-      const pending = {
-        roundStartedAtMs: current.roundStartedAtMs,
-        questionIndex: current.questionIndex,
-        lat: me.guess.latitude,
-        lng: me.guess.longitude,
-      };
       setPendingLock(pending);
       p2pSend({ t: "lock", ...pending });
     } else
@@ -792,8 +803,11 @@ export function MatchApp({
       });
   }, [mode, duelKind, serverMode, socketSend, dispatch, p2pSend, selfId]);
 
+  // P2P has no delivery guarantee, so an unacknowledged lock is retried until
+  // the host's snapshot shows it. The socket transport replays from its own
+  // outbox instead, and needs no polling.
   useEffect(() => {
-    if (!pendingLock || you?.locked || state.revealed) return;
+    if (serverMode || !pendingLock || you?.locked || state.revealed) return;
     if (
       !matchesQuestion(
         { roundStartedAtMs: state.roundStartedAtMs, questionIndex: state.questionIndex },
@@ -804,6 +818,7 @@ export function MatchApp({
     const id = window.setInterval(() => p2pSend({ t: "lock", ...pendingLock }), 900);
     return () => window.clearInterval(id);
   }, [
+    serverMode,
     pendingLock,
     state.roundStartedAtMs,
     state.questionIndex,
@@ -852,6 +867,18 @@ export function MatchApp({
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [state.phase, showSettings, lock, finishIntro, continueRound, showingReveal, duelKind]);
+
+  // Both transports report trouble the same way: the P2P room through its
+  // error channel, the socket by not being open. Without this, a dropped
+  // match-server connection was invisible mid-round.
+  const connectionNotice =
+    mode === "duel" && duelKind === "online"
+      ? serverMode
+        ? socketConnected
+          ? null
+          : "Connection lost. Reconnecting…"
+        : p2pError
+      : null;
 
   const shareUrl = useMemo(() => {
     if (typeof window === "undefined" || !roomCode) return "";
@@ -912,7 +939,7 @@ export function MatchApp({
                 {(serverMode ? null : p2pError) ??
                   (failed
                     ? "Using the room relay to connect"
-                    : (serverMode ? socketJoined : p2pJoined)
+                    : (serverMode ? socketJoined && socketConnected : p2pJoined)
                       ? "Waiting for opponent"
                       : "Connecting…")}
               </li>
@@ -1228,12 +1255,12 @@ export function MatchApp({
         </p>
       )}
 
-      {p2pError && mode === "duel" && duelKind === "online" && (
+      {connectionNotice && (
         <p
           role="status"
           className="absolute top-32 left-4 z-30 rounded-xl bg-bg/95 border border-border px-4 py-2 text-xs"
         >
-          {p2pError}
+          {connectionNotice}
         </p>
       )}
       {showSettings && (

@@ -24,16 +24,19 @@ export type RoomCommand =
       now: number;
     }
   | { t: "start"; playerId: string; now: number }
-  | { t: "intro"; playerId: string; now: number }
-  | { t: "pin"; playerId: string; guess: LatLng; now: number }
-  | { t: "lock"; playerId: string; guess: LatLng; now: number }
-  | { t: "continue"; playerId: string; now: number }
+  | { t: "intro"; playerId: string; now: number; questionIndex?: number }
+  | { t: "pin"; playerId: string; guess: LatLng; now: number; questionIndex?: number }
+  | { t: "lock"; playerId: string; guess: LatLng; now: number; questionIndex?: number }
+  | { t: "continue"; playerId: string; now: number; questionIndex?: number }
   | { t: "rematch"; playerId: string; seed: number; now: number }
   | { t: "leave"; playerId: string; now: number }
   | { t: "timeout"; now: number };
 
 export function applyRoomCommand(state: MatchState, cmd: RoomCommand): MatchState {
   if (cmd.t !== "join" && cmd.t !== "timeout" && !state.players.some(p => p.id === cmd.playerId && p.connected)) return state;
+  // A command names the question it was made for. One delayed on the wire, or
+  // replayed after a reconnect, must not land on the round that followed.
+  if ("questionIndex" in cmd && cmd.questionIndex !== undefined && cmd.questionIndex !== state.questionIndex) return state;
   switch (cmd.t) {
     case "join": {
       // First socket in a fresh room bootstraps the duel; later ones take a seat.

@@ -104,13 +104,17 @@ export function PanoViewer({
     const width = Math.max(1, host.clientWidth);
     const height = Math.max(1, host.clientHeight);
     renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
-    renderer.setSize(width, height, false);
+    // `updateStyle` must stay on: the canvas carries no CSS size of its own, so
+    // skipping it lays the element out at its device-pixel width and a 2x
+    // screen shows only the top-left quarter of the panorama.
+    renderer.setSize(width, height, true);
     renderer.domElement.style.display = "block";
     host.appendChild(renderer.domElement);
 
     const scene = new THREE.Scene();
     const camera = new THREE.PerspectiveCamera(view.current.fov, width / height, 0.1, 1100);
-    const geometry = new THREE.SphereGeometry(500, 64, 40);
+    // Dense enough that a zoomed-in horizon stays a curve rather than a polygon.
+    const geometry = new THREE.SphereGeometry(500, 128, 64);
     geometry.scale(-1, 1, 1);
     const material = new THREE.MeshBasicMaterial({ color: 0x14161c });
     scene.add(new THREE.Mesh(geometry, material));
@@ -127,7 +131,9 @@ export function PanoViewer({
           return;
         }
         texture = loaded;
-        loaded.anisotropy = Math.min(8, renderer.capabilities.getMaxAnisotropy());
+        // The sphere is viewed at grazing angles almost everywhere, which is
+        // exactly where anisotropic filtering pays; take what the GPU offers.
+        loaded.anisotropy = renderer.capabilities.getMaxAnisotropy();
         loaded.colorSpace = THREE.SRGBColorSpace;
         material.map = loaded;
         // MeshBasicMaterial multiplies the map by `color`; white shows it as-is.
@@ -167,7 +173,7 @@ export function PanoViewer({
     const resize = () => {
       const w = Math.max(1, host.clientWidth);
       const h = Math.max(1, host.clientHeight);
-      renderer.setSize(w, h, false);
+      renderer.setSize(w, h, true);
       camera.aspect = w / h;
       camera.updateProjectionMatrix();
     };

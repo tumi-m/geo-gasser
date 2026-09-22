@@ -8,11 +8,18 @@
  */
 
 const GRAPH = "https://graph.mapillary.com";
+/**
+ * Widest first. A 360 plate is wrapped over a whole sphere, so a 2048 px
+ * equirectangular image is only ~5.7 px per degree — the original is worth
+ * asking for, and the smaller thumbs are the fallback when it is absent.
+ */
+const THUMB_FIELDS = ["thumb_original_url", "thumb_2048_url", "thumb_1024_url"] as const;
+
 const FIELDS = [
   "id",
   "is_pano",
   "compass_angle",
-  "thumb_2048_url",
+  ...THUMB_FIELDS,
   "captured_at",
   "computed_geometry",
   "quality_score",
@@ -22,7 +29,10 @@ export interface MapillaryImage {
   id: string;
   isPano: boolean;
   compassAngle?: number;
+  /** Highest resolution the API offered for this image. */
   thumbUrl?: string;
+  /** Every resolution that came back, widest first. */
+  thumbUrls: string[];
   capturedAt?: number;
   qualityScore?: number;
   latitude: number;
@@ -46,11 +56,15 @@ function parseImage(raw: Record<string, unknown>): MapillaryImage | null {
   const geometry = raw.computed_geometry as { coordinates?: [number, number] } | undefined;
   const coords = geometry?.coordinates;
   if (!coords || coords.length < 2) return null;
+  const thumbUrls = THUMB_FIELDS.map((field) => raw[field]).filter(
+    (url): url is string => typeof url === "string" && url.length > 0,
+  );
   return {
     id: String(raw.id),
     isPano: Boolean(raw.is_pano),
     compassAngle: typeof raw.compass_angle === "number" ? raw.compass_angle : undefined,
-    thumbUrl: typeof raw.thumb_2048_url === "string" ? raw.thumb_2048_url : undefined,
+    thumbUrl: thumbUrls[0],
+    thumbUrls,
     capturedAt: typeof raw.captured_at === "number" ? raw.captured_at : undefined,
     qualityScore: typeof raw.quality_score === "number" ? raw.quality_score : undefined,
     longitude: coords[0],
@@ -113,7 +127,7 @@ export async function mapillaryNearby(
   );
 }
 
-/** Resolve the display URL for a Mapillary image id. */
+/** Resolve the highest-resolution display URL for a Mapillary image id. */
 export async function mapillaryImageUrl(
   id: string,
   token = clientToken(),
