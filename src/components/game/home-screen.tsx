@@ -30,13 +30,15 @@ import {
   sanitizeAtlas,
   type GameSettings,
 } from "@/lib/game";
+import { Input } from "@/components/ui/input";
+import { sanitizeName } from "@/lib/multiplayer";
 import { cn } from "@/lib/utils";
 
 export function HomeScreen() {
   const navigate = useNavigate();
   const [settings, setSettings] = useState<GameSettings>(loadSettings);
   const [stats] = useState(loadStats);
-  const [panel, setPanel] = useState<"settings" | "atlas" | "help" | null>(null);
+  const [panel, setPanel] = useState<"settings" | "atlas" | "help" | "name" | null>(null);
   const [destination, setDestination] = useState(0);
   const destinations = [
     {
@@ -72,7 +74,25 @@ export function HomeScreen() {
   const play = (to: "/play" | "/duel") => {
     audio.unlock();
     audio.play("click");
+    // First solo game: ask what to call the player, so rounds and results say
+    // their name rather than "Traveler". Asked once; skipping is fine.
+    if (to === "/play" && !settings.namePrompted) {
+      setPanel("name");
+      return;
+    }
     void navigate({ to });
+  };
+  const startWithName = (name: string | null) => {
+    const next = {
+      ...settings,
+      namePrompted: true,
+      ...(name?.trim() ? { displayName: sanitizeName(name) } : {}),
+    };
+    // Saved now, not in the effect: the match route reads settings on mount.
+    saveSettings(next);
+    setSettings(next);
+    setPanel(null);
+    void navigate({ to: "/play" });
   };
   const choose = (preset: "sa-nl" | "world" | "custom") => {
     if (preset === "custom") {
@@ -281,6 +301,39 @@ export function HomeScreen() {
         <SettingsPanel settings={settings} onChange={setSettings} onClose={() => setPanel(null)} />
       )}
       {panel === "help" && <Tutorial onClose={() => setPanel(null)} />}
+      {panel === "name" && (
+        <ModalShell titleId="name-prompt-title" onClose={() => setPanel(null)}>
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              startWithName(new FormData(e.currentTarget).get("name") as string);
+            }}
+          >
+            <h2 id="name-prompt-title" className="font-display text-2xl">
+              What should we call you?
+            </h2>
+            <p className="mt-2 text-sm text-muted">
+              Your name goes on your pin, every round and the scoreboard.
+            </p>
+            <Input
+              name="name"
+              aria-label="Your name"
+              placeholder="Traveler"
+              maxLength={24}
+              autoComplete="nickname"
+              className="mt-5"
+            />
+            <div className="mt-5 flex gap-3">
+              <Button type="submit" className="flex-1">
+                Let’s go <ArrowRight size={17} />
+              </Button>
+              <Button type="button" variant="ghost" onClick={() => startWithName(null)}>
+                Skip
+              </Button>
+            </div>
+          </form>
+        </ModalShell>
+      )}
     </main>
   );
 }

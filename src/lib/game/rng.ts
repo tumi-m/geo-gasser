@@ -18,6 +18,11 @@ export function shuffle<T>(items: T[], rand: () => number): T[] {
   return arr;
 }
 
+/** A fresh 32-bit seed per match, from the platform's CSPRNG where there is one. */
 export function randomSeed(): number {
-  return (Math.random() * 0xffffffff) >>> 0;
+  // Typed by hand: the match worker's tsconfig has no DOM lib.
+  const c = (globalThis as { crypto?: { getRandomValues?: (a: Uint32Array) => Uint32Array } })
+    .crypto;
+  if (c?.getRandomValues) return c.getRandomValues(new Uint32Array(1))[0];
+  return (Math.random() * 0x100000000) >>> 0;
 }

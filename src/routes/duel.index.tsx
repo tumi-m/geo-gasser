@@ -33,7 +33,12 @@ function DuelLobby() {
   const [passPlay, setPassPlay] = useState(false);
 
   const persistMe = () => {
-    saveSettings({ ...loadSettings(), displayName: sanitizeName(name), avatarId });
+    saveSettings({
+      ...loadSettings(),
+      displayName: sanitizeName(name),
+      avatarId,
+      namePrompted: true,
+    });
   };
 
   const goOnline = (next: string, host?: boolean) => {

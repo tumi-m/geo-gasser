@@ -23,6 +23,8 @@ Round 4 is reserved for 3D reconstructions. OpenCode / GPT-6 Astra own that work
 
 **Your music** — play your own Spotify or Apple Music while you play, from the music button in any header or Settings → Sound. It keeps going between rounds and matches. Paste any playlist, album or track link, or connect an account (see `docs/env.template.md`).
 
+Every reveal shows who took the round, by name, with both players' points racing and the totals rolling over. Locations do not repeat between games until you have seen the whole pool; then the ones seen longest ago come back first.
+
 Drag the scene to look around, WASD to inspect, scroll to zoom. Unsubmitted pins score zero when the timer ends. South Africa uses a wider distance curve than the Netherlands; world sites are wider still.
 
 ## Setup

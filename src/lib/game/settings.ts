@@ -23,6 +23,8 @@ export interface GameSettings {
   difficulty: TimeDifficulty;
   matchLength: MatchLengthId;
   atlas: AtlasSpec;
+  /** The first-play "what should we call you?" prompt has been answered or skipped. */
+  namePrompted: boolean;
 }
 
 export const DEFAULT_SETTINGS: GameSettings = {
@@ -40,6 +42,7 @@ export const DEFAULT_SETTINGS: GameSettings = {
   difficulty: "medium",
   matchLength: "escape",
   atlas: DEFAULT_ATLAS,
+  namePrompted: false,
 };
 
 export function loadSettings(): GameSettings {
@@ -66,6 +69,9 @@ export function loadSettings(): GameSettings {
         ? parsed.matchLength
         : DEFAULT_SETTINGS.matchLength,
       atlas: sanitizeAtlas(parsed.atlas),
+      namePrompted:
+        parsed.namePrompted === true ||
+        (typeof parsed.displayName === "string" && parsed.displayName !== DEFAULT_SETTINGS.displayName),
     };
   } catch {
     return DEFAULT_SETTINGS;

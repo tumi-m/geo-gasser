@@ -68,10 +68,6 @@ export function isRound4Question(questionIndex: number, photoQuestions = PHOTO_Q
   return questionIndex >= photoQuestions;
 }
 
-function take(list: GeoLocation[], n: number): GeoLocation[] {
-  return list.splice(0, Math.max(0, Math.min(n, list.length)));
-}
-
 /**
  * Shuffle while round-robining cities (or regions) so one famous city cannot
  * dominate a round. Deterministic for a given rand.
@@ -99,31 +95,78 @@ function spread(list: GeoLocation[], rand: () => number): GeoLocation[] {
   return out;
 }
 
+/** How recently each site was seen: 0 is the latest. Unseen sites are absent. */
+type Recency = ReadonlyMap<string, number>;
+
+/**
+ * Unseen sites first (shuffled and spread across cities), then the ones seen
+ * longest ago. Nothing repeats while an unseen site is left, and when the pool
+ * is used up it cycles round from the oldest.
+ */
+function byFreshness(list: GeoLocation[], rand: () => number, recency: Recency): GeoLocation[] {
+  const unseen = spread(
+    list.filter((l) => !recency.has(l.id)),
+    rand,
+  );
+  const seen = list
+    .filter((l) => recency.has(l.id))
+    .sort((a, b) => recency.get(b.id)! - recency.get(a.id)!);
+  return [...unseen, ...seen];
+}
+
+/**
+ * Deal `want` sites, keeping the country quota where the unseen pool allows.
+ * Freshness beats balance: an unseen site from another country is dealt before
+ * a repeat that would keep the quota exact.
+ */
 function dealQuota(
   pool: GeoLocation[],
   quota: Record<CountryCode, number>,
   rand: () => number,
   want: number,
+  recency: Recency,
 ): GeoLocation[] {
-  const za = spread(
-    pool.filter((l) => l.country === "ZA"),
-    rand,
+  const fresh = (l: GeoLocation) => !recency.has(l.id);
+  const countries: CountryCode[] = ["ZA", "NL", "WORLD"];
+  const lists = new Map(
+    countries.map((c) => [
+      c,
+      byFreshness(
+        pool.filter((l) => l.country === c),
+        rand,
+        recency,
+      ),
+    ]),
   );
-  const nl = spread(
-    pool.filter((l) => l.country === "NL"),
-    rand,
-  );
-  const world = spread(
-    pool.filter((l) => l.country === "WORLD"),
-    rand,
-  );
-  const picked: GeoLocation[] = [...take(za, quota.ZA), ...take(nl, quota.NL), ...take(world, quota.WORLD)];
-  const used = new Set(picked.map((l) => l.id));
-  const rest = spread(
-    pool.filter((l) => !used.has(l.id)),
-    rand,
-  );
-  while (picked.length < want && rest.length) picked.push(rest.shift()!);
+  const picked: GeoLocation[] = [];
+  const used = new Set<string>();
+  const add = (l: GeoLocation) => {
+    picked.push(l);
+    used.add(l.id);
+  };
+  const count = (c: CountryCode) => picked.filter((l) => l.country === c).length;
+  const fill = (ok: (l: GeoLocation) => boolean, byQuota: boolean) => {
+    if (byQuota) {
+      for (const c of countries)
+        for (const l of lists.get(c)!) {
+          if (picked.length >= want || count(c) >= quota[c]) break;
+          if (!used.has(l.id) && ok(l)) add(l);
+        }
+    } else {
+      for (const l of byFreshness(
+        pool.filter((x) => !used.has(x.id)),
+        rand,
+        recency,
+      )) {
+        if (picked.length >= want) break;
+        if (ok(l)) add(l);
+      }
+    }
+  };
+  fill(fresh, true); // unseen, in the usual country mix
+  fill(fresh, false); // any unseen, before anything repeats
+  fill(() => true, true); // oldest repeats, back in the mix
+  fill(() => true, false);
   return shuffle(picked, rand).slice(0, want);
 }
 
@@ -132,8 +175,9 @@ function dealQuota(
  * SA × NL keeps a balanced 15/15 + 10 reconstructions.
  * Other atlases filter the 149-site pool and shrink the match if the map is smaller.
  *
- * `avoidLocationIds` (usually the last match or two) is honoured first; the
- * deal only falls back to those sites when the fresh pool runs out.
+ * `avoidLocationIds` is every site this player has been shown, newest first.
+ * Unseen sites are always dealt first; only when none are left does a site
+ * repeat, starting with the one seen longest ago.
  */
 export function planMatch(
   seed: number,
@@ -150,27 +194,44 @@ export function planMatch(
   };
   const cfg = MATCH_LENGTH[matchLength];
   const rand = mulberry32(seed);
+  // Most recent first → rank 0. Every dealing path below orders by this.
+  const recency: Recency = new Map(avoidLocationIds.map((id, i) => [id, i] as const));
+  const fresh = (l: GeoLocation) => !recency.has(l.id);
   if (matchLength === "escape") {
-    const all = pickPool(enabledLocations(), spec);
-    const recent = new Set(avoidLocationIds);
-    const fresh = all.filter(l => !recent.has(l.id));
-    const pool = fresh.length >= Math.min(5, all.length) ? fresh : all;
+    const pool = pickPool(enabledLocations(), spec);
     let picked: GeoLocation[];
     if (spec.preset === "sa-nl" && !spec.cities?.length) {
-      picked = dealQuota(pool, {ZA:2, NL:2, WORLD:0}, rand, 4);
-      const world = enabledLocations().filter(l => l.country === "WORLD");
-      const unseen = world.filter(l => !recent.has(l.id));
-      const finale = shuffle(unseen.length ? unseen : world, rand)[0];
+      picked = dealQuota(pool, { ZA: 2, NL: 2, WORLD: 0 }, rand, 4, recency);
+      const world = enabledLocations().filter((l) => l.country === "WORLD");
+      const finale = byFreshness(world, rand, recency)[0];
       if (finale) picked.push(finale);
     } else {
-      const remaining = shuffle([...pool], rand);
+      const remaining = byFreshness(pool, rand, recency);
       picked = [];
       while (picked.length < 5 && remaining.length) {
-        const fresh = remaining.findIndex(l => !picked.some(p => (p.nation ?? p.country) === (l.nation ?? l.country) && p.city === l.city));
-        picked.push(remaining.splice(fresh < 0 ? 0 : fresh, 1)[0]);
+        // A new city where possible, but never by reaching past an unseen site.
+        const tier = fresh(remaining[0]);
+        const diverse = remaining.findIndex(
+          (l) =>
+            fresh(l) === tier &&
+            !picked.some(
+              (p) => (p.nation ?? p.country) === (l.nation ?? l.country) && p.city === l.city,
+            ),
+        );
+        picked.push(remaining.splice(diverse < 0 ? 0 : diverse, 1)[0]);
       }
     }
-    return {seed, matchLength, atlas:spec, locationIds:picked.map(l=>l.id), envIds:[], photoQuestions:picked.length, totalQuestions:picked.length, photoRounds:picked.length, totalRounds:picked.length};
+    return {
+      seed,
+      matchLength,
+      atlas: spec,
+      locationIds: picked.map((l) => l.id),
+      envIds: [],
+      photoQuestions: picked.length,
+      totalQuestions: picked.length,
+      photoRounds: picked.length,
+      totalRounds: picked.length,
+    };
   }
   const reserved = new Set(ROUND4_LOCATIONS.map((l) => l.id));
   const photoPoolAll = enabledLocations().filter((l) => !reserved.has(l.id));
@@ -180,34 +241,21 @@ export function planMatch(
     photoPool = photoPoolAll;
     r4Pool = ROUND4_LOCATIONS;
   }
-  const avoid = new Set(avoidLocationIds);
-  const preferred = photoPool.filter((l) => !avoid.has(l.id));
   const available = photoPool.length + r4Pool.length;
   const target = Math.max(1, Math.min(cfg.totalQuestions, available || 1));
 
   const wantPhotos = Math.min(cfg.photoQuestions, photoPool.length);
-  let photos: GeoLocation[];
-  if (spec.preset === "sa-nl") {
-    photos = dealQuota(preferred, MATCH_QUOTA[matchLength], rand, Math.min(wantPhotos, preferred.length));
-  } else if (spec.preset === "mix") {
-    photos = dealQuota(preferred, MIX_QUOTA[matchLength], rand, Math.min(wantPhotos, preferred.length));
-  } else {
-    photos = spread(preferred, rand).slice(0, wantPhotos);
-  }
-  // Only revisit recently played sites when the fresh pool cannot fill the match.
-  if (photos.length < wantPhotos) {
-    const used = new Set(photos.map((l) => l.id));
-    const rest = spread(
-      photoPool.filter((l) => !used.has(l.id)),
-      rand,
-    );
-    while (photos.length < wantPhotos && rest.length) photos.push(rest.shift()!);
-  }
+  const photos =
+    spec.preset === "sa-nl"
+      ? dealQuota(photoPool, MATCH_QUOTA[matchLength], rand, wantPhotos, recency)
+      : spec.preset === "mix"
+        ? dealQuota(photoPool, MIX_QUOTA[matchLength], rand, wantPhotos, recency)
+        : byFreshness(photoPool, rand, recency).slice(0, wantPhotos);
 
   const r4Take = Math.min(r4Pool.length, Math.max(0, target - Math.min(photos.length, cfg.photoQuestions)));
   const photoTake = Math.min(photos.length, target - r4Take);
   const photoIds = (photos.length === photoTake ? photos : photos.slice(0, photoTake)).map((l) => l.id);
-  const reconstructions = shuffle([...r4Pool], rand).slice(0, r4Take);
+  const reconstructions = byFreshness(r4Pool, rand, recency).slice(0, r4Take);
   const locationIds = [...photoIds, ...reconstructions.map((l) => l.id)];
   const envIds = reconstructions.map(
     (l, i) => environmentForLocation(l.id)?.id ?? ROUND4_ENVIRONMENTS[i % ROUND4_ENVIRONMENTS.length].id,

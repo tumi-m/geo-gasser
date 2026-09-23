@@ -83,6 +83,7 @@ export function GuessMap({
   canLock,
   urgent,
   atlas,
+  selfName,
 }: {
   guess?: LatLng;
   onGuess: (p: LatLng) => void;
@@ -97,6 +98,8 @@ export function GuessMap({
   canLock?: boolean;
   urgent?: boolean;
   atlas?: AtlasSpec;
+  /** The name this player gave; labels their pin at the reveal. */
+  selfName?: string;
 }) {
   const hostRef = useRef<HTMLDivElement>(null);
   const wrapRef = useRef<HTMLDivElement>(null);
@@ -120,6 +123,8 @@ export function GuessMap({
   truthRef.current = truth;
   const opponentRef = useRef(opponent);
   opponentRef.current = opponent;
+  const selfNameRef = useRef(selfName);
+  selfNameRef.current = selfName;
   const atlasRef = useRef(atlas);
   atlasRef.current = atlas;
   const pendingFocus = useRef<"ZA" | "NL" | "world" | null>(atlas ? atlasFocus(atlas) : "world");
@@ -373,8 +378,8 @@ export function GuessMap({
   // Your pin follows the guess; its label explains its state.
   useEffect(() => {
     if (!guess) return;
-    placePin("you", guess, "you", reveal ? "YOU" : disabled ? "LOCKED" : undefined);
-  }, [guess, reveal, disabled]);
+    placePin("you", guess, "you", reveal ? selfName || "You" : disabled ? "LOCKED" : undefined);
+  }, [guess, reveal, disabled, selfName]);
 
   // Round reset: clear reveal layers, drop stale pins, frame both countries.
   useEffect(() => {
@@ -436,8 +441,8 @@ export function GuessMap({
     for (const layer of revealLayers.current) layer.remove();
     revealLayers.current = [];
 
-    if (guessKey && currentGuess) placePin("you", currentGuess, "you", "YOU");
-    placePin("truth", currentTruth, "truth", "TRUE");
+    if (guessKey && currentGuess) placePin("you", currentGuess, "you", selfNameRef.current || "You");
+    placePin("truth", currentTruth, "truth", "Answer");
     if (opponentKey && currentOpponent) placePin("opp", currentOpponent.guess, "opp", currentOpponent.name);
 
     const animateArc = (

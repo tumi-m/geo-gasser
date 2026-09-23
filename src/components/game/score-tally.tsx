@@ -5,12 +5,9 @@ import { cn } from "@/lib/utils";
 export function ScoreTally({
   players,
   selfId,
-  showRound,
 }: {
   players: PlayerState[];
   selfId?: string;
-  /** After reveal, show this question’s points next to the running total. */
-  showRound?: boolean;
 }) {
   if (players.length < 2) return null;
   const ordered = [...players].sort((a, b) => {
@@ -28,9 +25,7 @@ export function ScoreTally({
       aria-label="Score tally"
     >
       {ordered.map((p) => {
-        const you = p.id === selfId;
         const leading = !tied && p.totalScore === lead;
-        const round = showRound ? p.roundScore?.roundScore : undefined;
         return (
           <div
             key={p.id}
@@ -40,8 +35,8 @@ export function ScoreTally({
             <PlayerAvatar id={p.avatarId} size={28} title={p.name} />
             <div className="min-w-0 flex-1">
               <div className="flex items-center gap-1.5">
-                <span className="truncate text-xs text-fg">{you ? "You" : p.name}</span>
-                {p.locked && !showRound ? (
+                <span className="truncate text-xs text-fg">{p.name}</span>
+                {p.locked ? (
                   <span className="text-[10px] uppercase tracking-wider text-subtle">in</span>
                 ) : null}
               </div>
@@ -54,9 +49,6 @@ export function ScoreTally({
                 >
                   {p.totalScore.toLocaleString()}
                 </span>
-                {round != null ? (
-                  <span className="text-[11px] tabular text-subtle">+{round.toLocaleString()}</span>
-                ) : null}
               </div>
             </div>
           </div>

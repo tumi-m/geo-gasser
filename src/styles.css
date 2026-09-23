@@ -147,6 +147,19 @@ html.hc {
     0 0 6px rgba(9, 9, 11, 0.7);
 }
 
+/* Pins that land close together must not stack their labels: yours sits
+   above, the opponent's below, the answer's to the right. */
+.atlas-pin-kind-opp .atlas-pin-label {
+  top: auto;
+  bottom: -8px;
+}
+
+.atlas-pin-kind-truth .atlas-pin-label {
+  top: 50%;
+  left: calc(50% + 12px);
+  transform: translateY(-50%);
+}
+
 /* Guess-map heights. One source of truth for the sheet, the reveal card
    offset, and the round-4 caption. Phones get at least half the screen
    (and never under 360px) so the map is the primary guessing surface.
@@ -716,3 +729,18 @@ button:focus-visible,a:focus-visible {outline:2px solid var(--color-accent)!impo
   .music-bars.is-playing i {height:9px}
   .music-panel {transition:none}
 }
+
+/* Round verdict — who took the round, by name. Transform and opacity only:
+   no filters (see .atlas-rise). */
+.verdict-headline {min-height:2.6rem;margin-bottom:8px;opacity:0;transform:translateY(4px);transition:opacity .3s var(--ease-smooth-out),transform .3s var(--ease-smooth-out)}
+.verdict.is-settled .verdict-headline {opacity:1;transform:none}
+.verdict-rows {display:flex;flex-direction:column;gap:6px}
+.verdict-row {display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:10px;padding:8px 10px;border:1px solid var(--color-border);border-radius:var(--radius-md);background:#ffffff05;transition:border-color .35s var(--ease-out),background-color .35s var(--ease-out)}
+.verdict-row.is-winner {border-color:var(--color-accent);background:color-mix(in oklab,var(--color-accent) 9%,transparent)}
+.verdict-bar {height:4px;margin-top:6px;border-radius:2px;background:#ffffff12;overflow:hidden}
+.verdict-bar > i {display:block;height:100%;border-radius:2px;background:var(--color-muted);transform-origin:left;transform:scaleX(0);transition:transform 700ms var(--ease-smooth-out) 250ms,background-color .35s}
+.verdict.is-run .verdict-bar > i {transform:scaleX(var(--share,0))}
+.verdict-row.is-winner .verdict-bar > i {background:var(--color-accent)}
+.verdict-crown {display:inline-flex;color:var(--color-accent);animation:verdict-crown .45s var(--ease-smooth-out) backwards}
+@keyframes verdict-crown {from{opacity:0;transform:scale(.3) rotate(-25deg)}60%{transform:scale(1.25) rotate(6deg)}}
+.hc .verdict-row.is-winner {border-width:2px}

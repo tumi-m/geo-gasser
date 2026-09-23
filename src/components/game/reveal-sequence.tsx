@@ -1,30 +1,8 @@
-import { useEffect, useState } from "react";
 import { BADGE_COPY, FEEDBACK_COPY, formatDistance, type PlayerState, type RoundScore } from "@/lib/game";
 import { Button } from "@/components/ui/button";
-import { ScoreTally } from "./score-tally";
+import { RoundVerdictCard } from "./round-verdict";
+import { useCountUp } from "./use-count-up";
 import { cn } from "@/lib/utils";
-
-/** Counts a number up from 0 over `ms`, eased; instant when motion is reduced. */
-function useCountUp(target: number, ms: number, reduced: boolean) {
-  const [value, setValue] = useState(reduced ? target : 0);
-  useEffect(() => {
-    if (reduced || !Number.isFinite(target)) {
-      setValue(target);
-      return;
-    }
-    let raf = 0;
-    const start = performance.now();
-    const step = (now: number) => {
-      const t = Math.min(1, (now - start) / ms);
-      const eased = 1 - Math.pow(1 - t, 3);
-      setValue(target * eased);
-      if (t < 1) raf = requestAnimationFrame(step);
-    };
-    raf = requestAnimationFrame(step);
-    return () => cancelAnimationFrame(raf);
-  }, [target, ms, reduced]);
-  return value;
-}
 
 export function RevealOverlay({
   score,
@@ -39,6 +17,7 @@ export function RevealOverlay({
   expanded,
   timedOut,
   reducedMotion,
+  markSelf,
 }: {
   score: RoundScore;
   you: PlayerState;
@@ -52,6 +31,7 @@ export function RevealOverlay({
   expanded?: boolean;
   timedOut?: boolean;
   reducedMotion?: boolean;
+  markSelf?: boolean;
 }) {
   const hasPin = Number.isFinite(score.distanceKm);
   const headline = !hasPin ? "TIME’S UP" : timedOut ? `${FEEDBACK_COPY[score.feedback]} · TIMED OUT` : FEEDBACK_COPY[score.feedback];
@@ -105,11 +85,14 @@ export function RevealOverlay({
             ))}
           </div>
         )}
-        {opponent && (
-          <div className="mt-3">
-            <ScoreTally players={[you, opponent]} selfId={you.id} showRound />
-          </div>
-        )}
+        <div className="mt-3">
+          <RoundVerdictCard
+            players={opponent ? [you, opponent] : [you]}
+            selfId={you.id}
+            markSelf={markSelf}
+            reducedMotion={reducedMotion}
+          />
+        </div>
       </div>
     </div>
   );

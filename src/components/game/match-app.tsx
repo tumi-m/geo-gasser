@@ -515,6 +515,15 @@ export function MatchApp({
   useEffect(() => () => window.clearTimeout(grokTimer.current), []);
 
   const loc = activeLocation(state);
+  // Mark each site seen as soon as it is on screen (a guest learns it at the
+  // reveal), so a match left halfway still keeps the next one from repeating it.
+  const shownId =
+    loc && !["lobby", "waiting_for_players", "match_starting", "rematch_pending"].includes(state.phase)
+      ? loc.id
+      : undefined;
+  useEffect(() => {
+    if (shownId) rememberRecentIds([shownId]);
+  }, [shownId]);
   const scene = activeScene(state);
   const env = activeEnvironment(state);
   // If the 360 plate cannot render, fall back to the first flat candidate
@@ -728,10 +737,6 @@ export function MatchApp({
       countryHits: { ZA: za, NL: nl, WORLD: world },
       fastestAccurateMs: fastest.length ? Math.min(...fastest) : null,
     });
-    // Remember this deck so the next match favours sites you have not seen.
-    rememberRecentIds(
-      state.locationIds.length ? state.locationIds : state.roundHistory.map((r) => r.locationId),
-    );
   }, [
     state.phase,
     state.locationIds,
@@ -1228,6 +1233,7 @@ export function MatchApp({
                 : null
             }
             reveal={showingReveal}
+            selfName={you?.name}
             reducedMotion={settings.reducedMotion}
             urgent={urgent}
             onLock={canGuess ? lock : undefined}
@@ -1257,6 +1263,7 @@ export function MatchApp({
           expanded={expanded}
           timedOut={state.phase === "round_expired"}
           reducedMotion={settings.reducedMotion}
+          markSelf={duelKind !== "hotseat"}
           onContinue={continueRound}
         />
       )}
