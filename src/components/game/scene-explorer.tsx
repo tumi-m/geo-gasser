@@ -1,6 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { Maximize, Minimize, Minus, Plus, RotateCcw } from "lucide-react";
-import { resolveWikiImage, responsiveSceneSrcSet } from "@/lib/game";
+import { resolveWikiImage, responsiveSceneSrcSet, sceneOffset } from "@/lib/game";
 import { cn } from "@/lib/utils";
 
 type Probe = {
@@ -139,23 +139,21 @@ export function SceneExplorer({
       const box = hostRef.current;
       if (!img || !box) return;
       const { yaw, pitch, zoom } = sim.current;
-      const scale =
-        fit === "contain"
-          ? Math.min(
-              box.clientWidth / (img.naturalWidth || 1),
-              box.clientHeight / (img.naturalHeight || 1),
-            )
-          : Math.max(
-              box.clientWidth / (img.naturalWidth || 1),
-              box.clientHeight / (img.naturalHeight || 1),
-            );
-      const maxX = Math.max(0, (img.naturalWidth * scale * zoom - box.clientWidth) / 2);
-      const maxY = Math.max(0, (img.naturalHeight * scale * zoom - box.clientHeight) / 2);
-      const x = Math.max(-maxX, Math.min(maxX, yaw * box.clientWidth * 0.55));
-      const y = Math.max(-maxY, Math.min(maxY, pitch * box.clientHeight * 0.48));
-      sim.current.yaw = x / (box.clientWidth * 0.55 || 1);
-      sim.current.pitch = y / (box.clientHeight * 0.48 || 1);
-      img.style.transform = `translate(${x}px, ${y}px) scale(${zoom})`;
+      const next = sceneOffset(
+        {
+          naturalWidth: img.naturalWidth,
+          naturalHeight: img.naturalHeight,
+          boxWidth: box.clientWidth,
+          boxHeight: box.clientHeight,
+          fit,
+          zoom,
+        },
+        yaw,
+        pitch,
+      );
+      sim.current.yaw = next.yaw;
+      sim.current.pitch = next.pitch;
+      img.style.transform = `translate(${next.x}px, ${next.y}px) scale(${zoom})`;
     };
 
     const loop = (now: number) => {
@@ -171,7 +169,9 @@ export function SceneExplorer({
         if (keys.has("KeyW") || keys.has("ArrowUp")) s.zoom += ZOOM_RATE * dt;
         if (keys.has("KeyS") || keys.has("ArrowDown")) s.zoom -= ZOOM_RATE * dt;
         s.zoom = Math.max(ZOOM_MIN, Math.min(ZOOM_MAX, s.zoom));
-        s.pitch = Math.max(-0.7, Math.min(0.7, s.pitch));
+        // No pitch cap here: `apply` bounds both axes by how far the plate
+        // actually overhangs the frame, and renormalises so neither runs away.
+        // A fixed cap put the top and bottom of a tall photo out of reach.
       }
       if (!interactiveRef.current) {
         s.keys.clear();

@@ -10,6 +10,7 @@ export * from "./atlas.ts";
 export * from "./selection.ts";
 export * from "./environments.ts";
 export * from "./scene.ts";
+export * from "./scene-transform.ts";
 export * from "./mapillary.ts";
 export * from "./machine.ts";
 export * from "./rng.ts";

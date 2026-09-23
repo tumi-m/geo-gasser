@@ -598,11 +598,12 @@ export class P2PRoom {
 
   private emitPeers(): void {
     // Only notify when something observable actually changed — React state
-    // setters otherwise re-render consumers on every poll/ping.
+    // setters otherwise re-render consumers on every poll/ping. rttMs and
+    // candidateType are diagnostics that no screen reads, and rttMs changes
+    // on every 2s ping, so including them re-rendered the whole match tree
+    // twice a second for nothing. They stay on the object, out of the key.
     const list = this.peerList();
-    const fingerprint = JSON.stringify(
-      list.map((p) => [p.id, p.name, p.connectionState, p.candidateType, p.rttMs]),
-    );
+    const fingerprint = JSON.stringify(list.map((p) => [p.id, p.name, p.connectionState]));
     if (fingerprint === this.lastPeersFingerprint) return;
     this.lastPeersFingerprint = fingerprint;
     this.opts.onPeersChanged?.(list);

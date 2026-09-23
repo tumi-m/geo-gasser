@@ -2,7 +2,7 @@
 
 Quick Escape, longer expeditions, and private duels across South Africa, the Netherlands, and the world. Choose countries or cities, inspect a scene, and lock your pin.
 
-See [release notes and verification](docs/release-2026-09-22.md) for the latest changes and known limitations. Run `npm run test:game` for the gameplay and multiplayer regression suite.
+See [release notes and verification](docs/release-2026-09-23.md) for the latest changes and known limitations. Run `npm run test:game` for the gameplay and multiplayer regression suite.
 
 
 A geo-guessing duel. Pick an atlas, study a scene, drop a pin, lock in. Accuracy and speed both score.

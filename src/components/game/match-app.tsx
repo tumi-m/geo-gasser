@@ -86,7 +86,12 @@ export function MatchApp({
   const [exploring, setExploring] = useState(false);
   const [fullScreen, setFullScreen] = useState(false);
   const gameRoot = useRef<HTMLElement>(null);
+  // Reading `document` during render made the server emit nothing where the
+  // client emitted a button, and React threw out the whole match tree on
+  // hydration. Decide after mount, when both sides already agree.
+  const [canFullscreen, setCanFullscreen] = useState(false);
   useEffect(() => {
+    setCanFullscreen(document.fullscreenEnabled);
     const changed = () => setFullScreen(document.fullscreenElement === gameRoot.current);
     document.addEventListener("fullscreenchange", changed);
     return () => document.removeEventListener("fullscreenchange", changed);
@@ -1128,7 +1133,7 @@ export function MatchApp({
               <span>{exploring ? "Show map" : "Explore view"}</span>
             </button>
           )}
-          {typeof document !== "undefined" && document.fullscreenEnabled && (
+          {canFullscreen && (
             <Button
               variant="ghost"
               size="icon"
