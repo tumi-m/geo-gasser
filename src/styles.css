@@ -416,21 +416,20 @@ div.leaflet-container {
   animation: atlas-modal-in var(--motion-fast) var(--ease-smooth-out);
 }
 
+/* Opacity and a short lift only. No filter: a filtered element is drawn as its
+   own layer, and iOS Safari rasterises a tall one at reduced resolution — the
+   results list came out blurred with a magenta seam along its top edge.
+   `backwards` holds the start frame through the stagger delay, then lets go, so
+   no transform or layer stays on the text once it has arrived. */
 @keyframes atlas-rise {
   from {
     opacity: 0;
     transform: translateY(var(--motion-y-medium));
-    filter: blur(4px);
-  }
-  to {
-    opacity: 1;
-    transform: none;
-    filter: blur(0);
   }
 }
 
 .atlas-rise {
-  animation: atlas-rise var(--motion-slow) var(--ease-smooth-out) both;
+  animation: atlas-rise var(--motion-slow) var(--ease-smooth-out) backwards;
 }
 
 .atlas-rise-1 {
