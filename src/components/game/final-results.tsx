@@ -1,6 +1,7 @@
 import { useNavigate } from "@tanstack/react-router";
 import { Button } from "@/components/ui/button";
 import { formatDistance, getLocation, locationCountryLabel, type MatchState } from "@/lib/game";
+import { MusicHudButton } from "./music-player";
 import { PlayerAvatar } from "./player-avatar";
 import { ScoreTally } from "./score-tally";
 import { cn } from "@/lib/utils";
@@ -46,7 +47,12 @@ export function FinalResults({
   return (
     <main className="result-shell min-h-dvh px-5 py-10 pt-[max(2.5rem,env(safe-area-inset-top))] pb-[max(2.5rem,env(safe-area-inset-bottom))]">
       <div className="mx-auto flex min-h-[calc(100dvh-5rem)] max-w-lg flex-col justify-center">
-        <p className="atlas-rise text-xs uppercase tracking-[0.28em] text-muted">{kicker}</p>
+        <div className="atlas-rise flex items-center justify-between gap-3">
+          <p className="text-xs uppercase tracking-[0.28em] text-muted">{kicker}</p>
+          <div className="-my-2">
+            <MusicHudButton />
+          </div>
+        </div>
         <div className="atlas-rise atlas-rise-1 mt-3 flex items-center gap-3">
           <PlayerAvatar id={(youWin || state.mode === "solo" ? you : other)?.avatarId} size={56} />
           <h1 className="font-display text-5xl leading-none tracking-tight sm:text-6xl">{headline}</h1>

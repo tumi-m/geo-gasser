@@ -48,6 +48,7 @@ import {
   type WireMessage,
 } from "@/lib/multiplayer";
 import { GuessMap } from "./guess-map";
+import { MusicHudButton } from "./music-player";
 import { PanoViewer } from "./pano-viewer";
 import { PlayerAvatar } from "./player-avatar";
 import { RevealOverlay } from "./reveal-sequence";
@@ -900,7 +901,12 @@ export function MatchApp({
     return (
       <main className="min-h-dvh bg-bg px-5 py-10 pt-[max(2.5rem,env(safe-area-inset-top))] pb-[max(2.5rem,env(safe-area-inset-bottom))]">
         <div className="mx-auto max-w-md">
-          <p className="text-xs uppercase tracking-[0.28em] text-muted">Private room</p>
+          <div className="flex items-center justify-between gap-3">
+            <p className="text-xs uppercase tracking-[0.28em] text-muted">Private room</p>
+            <div className="-my-2">
+              <MusicHudButton />
+            </div>
+          </div>
           <h1 className="font-display mt-2 text-5xl tracking-tight">{roomCode}</h1>
           <p className="mt-3 text-muted">Share the invite. Start when you’re both ready.</p>
           <div className="mt-6 flex gap-2">
@@ -1156,6 +1162,7 @@ export function MatchApp({
               </div>
             </div>
           )}
+          <MusicHudButton />
           <Button
             variant="ghost"
             size="icon"

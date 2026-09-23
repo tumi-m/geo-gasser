@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
+import { MusicHudButton } from "./music-player";
 import {
   ArrowRight,
   Check,
@@ -116,6 +117,7 @@ export function HomeScreen() {
           <button className="nav-link" onClick={() => setPanel("help")}>
             How to play
           </button>
+          <MusicHudButton />
           <Button
             variant="ghost"
             size="icon"

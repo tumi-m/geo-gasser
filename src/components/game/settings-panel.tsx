@@ -12,7 +12,9 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { atlasLabel, planMatch, sanitizeAvatar, type GameSettings } from "@/lib/game";
+import { useMusic } from "@/lib/music/use-music";
 import { AtlasPicker } from "./atlas-picker";
+import { MusicSettingsSection } from "./music-player";
 import { AvatarPicker } from "./player-avatar";
 import { cn } from "@/lib/utils";
 import { ModalShell } from "./modal-shell";
@@ -37,6 +39,7 @@ export function SettingsPanel({
   onQuit?: () => void;
 }) {
   const [tab, setTab] = useState<TabId>(onQuit ? "picture" : "game");
+  const music = useMusic();
   const update = (patch: Partial<GameSettings>) => onChange({ ...settings, ...patch });
   const plan = planMatch(1, settings.matchLength, settings.atlas);
   const slider = (key: "master" | "music" | "sfx", label: string, hint: string) => (
@@ -241,6 +244,14 @@ export function SettingsPanel({
             {slider("master", "Overall volume", "The volume of everything you hear.")}
             {slider("music", "Atmosphere", "Ambient sound while you explore.")}
             {slider("sfx", "Game sounds", "Pins, countdowns and celebrations.")}
+            <div className="settings-switches">
+              <MusicSettingsSection
+                onOpenPlayer={() => {
+                  onClose();
+                  music.setOpen(true);
+                }}
+              />
+            </div>
           </>
         )}
         {tab === "profile" && (

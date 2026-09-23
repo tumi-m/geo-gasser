@@ -1,6 +1,8 @@
 import { createRootRoute, HeadContent, Outlet, Scripts } from "@tanstack/react-router";
 import { AuthProvider } from "@/lib/auth/provider";
+import { MusicProvider } from "@/lib/music/music-context";
 import { PreviewHostBridge } from "@/components/preview-host-bridge";
+import { MusicPlayer } from "@/components/game/music-player";
 import appCss from "../styles.css?url";
 
 const APP_NAME = "ATLAS DUEL";
@@ -38,7 +40,12 @@ export const Route = createRootRoute({
       <body className="bg-bg text-fg antialiased">
         <PreviewHostBridge />
         <AuthProvider>
-          <Outlet />
+          {/* Beside the outlet, not inside a screen: routes and match phases
+              swap whole trees, and the player must survive all of them. */}
+          <MusicProvider>
+            <Outlet />
+            <MusicPlayer />
+          </MusicProvider>
         </AuthProvider>
         <Scripts />
       </body>

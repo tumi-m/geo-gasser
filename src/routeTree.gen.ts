@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as DuelRouteImport } from './routes/duel'
 import { Route as PlayRouteImport } from './routes/play'
+import { Route as ApiAppleMusicTokenRouteImport } from './routes/api/apple-music-token'
 import { Route as ApiRtcRouteImport } from './routes/api/rtc'
 import { Route as DuelIndexRouteImport } from './routes/duel.index'
 import { Route as DuelCodeRouteImport } from './routes/duel.$code'
@@ -31,6 +32,11 @@ const DuelRoute = DuelRouteImport.update({
 const PlayRoute = PlayRouteImport.update({
   id: '/play',
   path: '/play',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiAppleMusicTokenRoute = ApiAppleMusicTokenRouteImport.update({
+  id: '/api/apple-music-token',
+  path: '/api/apple-music-token',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiRtcRoute = ApiRtcRouteImport.update({
@@ -63,6 +69,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/duel': typeof DuelRouteWithChildren
   '/play': typeof PlayRoute
+  '/api/apple-music-token': typeof ApiAppleMusicTokenRoute
   '/api/rtc': typeof ApiRtcRoute
   '/duel/$code': typeof DuelCodeRoute
   '/duel/bot': typeof DuelBotRoute
@@ -72,6 +79,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/play': typeof PlayRoute
+  '/api/apple-music-token': typeof ApiAppleMusicTokenRoute
   '/api/rtc': typeof ApiRtcRoute
   '/duel/$code': typeof DuelCodeRoute
   '/duel/bot': typeof DuelBotRoute
@@ -83,6 +91,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/duel': typeof DuelRouteWithChildren
   '/play': typeof PlayRoute
+  '/api/apple-music-token': typeof ApiAppleMusicTokenRoute
   '/api/rtc': typeof ApiRtcRoute
   '/duel/$code': typeof DuelCodeRoute
   '/duel/bot': typeof DuelBotRoute
@@ -95,6 +104,7 @@ export interface FileRouteTypes {
     | '/'
     | '/duel'
     | '/play'
+    | '/api/apple-music-token'
     | '/api/rtc'
     | '/duel/$code'
     | '/duel/bot'
@@ -104,6 +114,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/play'
+    | '/api/apple-music-token'
     | '/api/rtc'
     | '/duel/$code'
     | '/duel/bot'
@@ -114,6 +125,7 @@ export interface FileRouteTypes {
     | '/'
     | '/duel'
     | '/play'
+    | '/api/apple-music-token'
     | '/api/rtc'
     | '/duel/$code'
     | '/duel/bot'
@@ -125,6 +137,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   DuelRoute: typeof DuelRouteWithChildren
   PlayRoute: typeof PlayRoute
+  ApiAppleMusicTokenRoute: typeof ApiAppleMusicTokenRoute
   ApiRtcRoute: typeof ApiRtcRoute
 }
 
@@ -149,6 +162,13 @@ declare module '@tanstack/react-router' {
       path: '/play'
       fullPath: '/play'
       preLoaderRoute: typeof PlayRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/apple-music-token': {
+      id: '/api/apple-music-token'
+      path: '/api/apple-music-token'
+      fullPath: '/api/apple-music-token'
+      preLoaderRoute: typeof ApiAppleMusicTokenRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/rtc': {
@@ -209,6 +229,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   DuelRoute: DuelRouteWithChildren,
   PlayRoute: PlayRoute,
+  ApiAppleMusicTokenRoute: ApiAppleMusicTokenRoute,
   ApiRtcRoute: ApiRtcRoute,
 }
 export const routeTree = rootRouteImport

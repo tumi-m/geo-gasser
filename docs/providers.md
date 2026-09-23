@@ -13,6 +13,9 @@
 | Signaling | App database (PGLite preview / Neon deploy) | Roster + SDP/ICE only (P2P fallback). |
 | Match server | Cloudflare Durable Objects (`workers/match`) | Server-authoritative rooms over WebSockets. |
 | Multiplayer data (fallback) | WebRTC data channels | Browser to browser. |
+| Player's music (links) | Spotify and Apple Music official embeds | `open.spotify.com/embed/…`, `embed.music.apple.com/…`. URLs are rebuilt from validated ids on those two hosts only (`src/lib/music/links.ts`). No keys. |
+| Player's music (Spotify account) | Spotify Web API + Web Playback SDK | Authorization Code with PKCE (`VITE_SPOTIFY_CLIENT_ID`), no client secret. In-page playback needs Premium. The SDK loads only after sign-in. |
+| Player's music (Apple account) | Apple MusicKit JS v3 | Developer token signed server-side by `/api/apple-music-token` (ES256, `APPLE_MUSIC_*`). MusicKit loads only when the Apple tab is opened on a configured deployment. |
 
 Do not ship provider API keys in the client beyond public client tokens
 (Mapillary). Google Street View is not used: its terms forbid Street View

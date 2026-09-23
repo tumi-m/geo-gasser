@@ -21,6 +21,8 @@ Round 4 is reserved for 3D reconstructions. OpenCode / GPT-6 Astra own that work
 - **Play solo** — personal best stored on this device.
 - **Two player duel** — Grok, pass-and-play, or a private room.
 
+**Your music** — play your own Spotify or Apple Music while you play, from the music button in any header or Settings → Sound. It keeps going between rounds and matches. Paste any playlist, album or track link, or connect an account (see `docs/env.template.md`).
+
 Drag the scene to look around, WASD to inspect, scroll to zoom. Unsubmitted pins score zero when the timer ends. South Africa uses a wider distance curve than the Netherlands; world sites are wider still.
 
 ## Setup
