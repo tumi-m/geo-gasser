@@ -48,7 +48,7 @@ export function RevealOverlay({
         <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
           <div className="min-w-0 text-left">
             <p className="text-[10px] uppercase tracking-[0.2em] text-muted">{roundLabel}</p>
-            <p className="font-display mt-0.5 text-xl tracking-tight sm:text-2xl">{headline}</p>
+            <p className="reveal-pop font-display mt-0.5 text-xl tracking-tight sm:text-2xl">{headline}</p>
             <p className="mt-0.5 truncate text-sm text-muted">
               {locationTitle}
               {city ? ` · ${city}` : ""} · {country}

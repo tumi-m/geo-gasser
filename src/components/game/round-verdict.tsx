@@ -101,7 +101,11 @@ function Row({
   const total = useCountUp(row.total, TOTAL_MS, reduced, row.before, SETTLE_AT);
   return (
     <li
-      className={cn("verdict-row atlas-rise", index === 1 && "atlas-rise-1", winner && "is-winner")}
+      className={cn(
+        "verdict-row",
+        index === 0 ? "is-left-in" : "is-right-in",
+        winner && "is-winner",
+      )}
     >
       <PlayerAvatar id={row.avatarId} size={34} />
       <div className="min-w-0">

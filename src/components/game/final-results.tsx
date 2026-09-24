@@ -2,6 +2,8 @@ import { useNavigate } from "@tanstack/react-router";
 import { Button } from "@/components/ui/button";
 import { formatDistance, getLocation, locationCountryLabel, type MatchState } from "@/lib/game";
 import { MusicHudButton } from "./music-player";
+import { Sparks } from "./round-splash";
+import { useCountUp } from "./use-count-up";
 import { PlayerAvatar } from "./player-avatar";
 import { ScoreTally } from "./score-tally";
 import { cn } from "@/lib/utils";
@@ -11,11 +13,13 @@ export function FinalResults({
   selfId,
   onRematch,
   onHome,
+  reducedMotion,
 }: {
   state: MatchState;
   selfId: string;
   onRematch: () => void;
   onHome: () => void;
+  reducedMotion?: boolean;
 }) {
   const navigate = useNavigate();
   const you = state.players.find((p) => p.id === selfId);
@@ -54,7 +58,10 @@ export function FinalResults({
           </div>
         </div>
         <div className="atlas-rise atlas-rise-1 mt-3 flex items-center gap-3">
-          <PlayerAvatar id={(youWin || state.mode === "solo" ? you : other)?.avatarId} size={56} />
+          <span className="result-burst">
+            <PlayerAvatar id={(youWin || state.mode === "solo" ? you : other)?.avatarId} size={56} />
+            {!reducedMotion && !shared && <Sparks count={20} spread={130} />}
+          </span>
           <h1 className="font-display text-5xl leading-none tracking-tight sm:text-6xl">{headline}</h1>
         </div>
         {duel ? (
@@ -66,7 +73,7 @@ export function FinalResults({
           </div>
         ) : (
           <p className="atlas-rise atlas-rise-2 mt-6 result-score tabular">
-            {(you?.totalScore ?? 0).toLocaleString()}
+            <FinalScore value={you?.totalScore ?? 0} reduced={Boolean(reducedMotion)} />
           </p>
         )}
         <ol className="atlas-rise atlas-rise-3 mt-8 space-y-5">
@@ -170,4 +177,10 @@ export function FinalResults({
       </div>
     </main>
   );
+}
+
+/** The final score rolls up from zero as the screen settles in. */
+function FinalScore({ value, reduced }: { value: number; reduced: boolean }) {
+  const shown = useCountUp(value, 1400, reduced, 0, 250);
+  return <>{Math.round(shown).toLocaleString()}</>;
 }

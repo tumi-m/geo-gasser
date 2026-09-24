@@ -11,6 +11,8 @@ type SfxName =
   | "bullseye"
   | "win"
   | "lose"
+  | "roundWin"
+  | "roundLose"
   | "click";
 
 class AudioManager {
@@ -147,6 +149,14 @@ class AudioManager {
         beep(659, 0.14, "triangle", 0.1, t + 0.12);
         beep(784, 0.14, "triangle", 0.1, t + 0.24);
         beep(1046, 0.28, "triangle", 0.12, t + 0.36);
+        break;
+      case "roundWin":
+        beep(659, 0.1, "triangle", 0.1);
+        beep(988, 0.22, "triangle", 0.11, t + 0.09);
+        break;
+      case "roundLose":
+        beep(440, 0.12, "sine", 0.07);
+        beep(370, 0.2, "sine", 0.06, t + 0.1);
         break;
       case "lose":
         beep(392, 0.18, "sine", 0.08);

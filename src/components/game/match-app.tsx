@@ -11,6 +11,7 @@ import {
   createLobbyState,
   getLocation,
   grokGuess,
+  FEEDBACK_COPY,
   grokThinkMs,
   GROK_BOT_ID,
   GROK_BOT_NAME,
@@ -52,6 +53,8 @@ import { MusicHudButton } from "./music-player";
 import { PanoViewer } from "./pano-viewer";
 import { PlayerAvatar } from "./player-avatar";
 import { RevealOverlay } from "./reveal-sequence";
+import { RollingScore } from "./rolling-score";
+import { RoundSplash } from "./round-splash";
 import { Round4Scene } from "./round4-scene";
 import { SceneExplorer } from "./scene-explorer";
 import { SettingsPanel } from "./settings-panel";
@@ -569,6 +572,11 @@ export function MatchApp({
     state.phase === "round_expired" ||
     state.phase === "round_results";
   const lastRound = state.questionIndex >= (state.totalQuestions || TOTAL_QUESTIONS) - 1;
+  // The end-of-round splash plays once per reveal; the result card follows it,
+  // so the card's own animation runs while the player is looking at it.
+  const revealKey = showingReveal ? `${state.questionIndex}:${state.roundStartedAtMs ?? 0}` : null;
+  const [splashSeen, setSplashSeen] = useState<string | null>(null);
+  const splashing = revealKey !== null && splashSeen !== revealKey && Boolean(you?.roundScore);
   const canGuess =
     Boolean(you) &&
     !you?.locked &&
@@ -991,6 +999,7 @@ export function MatchApp({
       <FinalResults
         state={state}
         selfId={selfId}
+        reducedMotion={settings.reducedMotion}
         onRematch={() => {
           statsRecorded.current = false;
           const seed = randomSeed();
@@ -1162,7 +1171,10 @@ export function MatchApp({
               <div className="rounded-[var(--radius-sm)] border border-border bg-bg/70 px-3 py-2 text-right">
                 <div className="text-[10px] uppercase tracking-wider text-subtle">Score</div>
                 <div className="font-display tabular text-lg leading-none">
-                  {(you?.totalScore ?? 0).toLocaleString()}
+                  <RollingScore
+                    value={you?.totalScore ?? 0}
+                    reducedMotion={settings.reducedMotion}
+                  />
                 </div>
               </div>
             </div>
@@ -1250,7 +1262,25 @@ export function MatchApp({
         </div>
       )}
 
-      {showingReveal && you?.roundScore && loc && (
+      {splashing && you?.roundScore && (
+        <RoundSplash
+          key={revealKey}
+          players={opponent ? [you, opponent] : [you]}
+          selfId={you.id}
+          score={you.roundScore}
+          headline={
+            Number.isFinite(you.roundScore.distanceKm)
+              ? FEEDBACK_COPY[you.roundScore.feedback]
+              : "TIME’S UP"
+          }
+          roundLabel={roundLabel}
+          markSelf={duelKind !== "hotseat"}
+          reducedMotion={settings.reducedMotion}
+          onDone={() => setSplashSeen(revealKey)}
+        />
+      )}
+
+      {showingReveal && !splashing && you?.roundScore && loc && (
         <RevealOverlay
           score={you.roundScore}
           you={you}
