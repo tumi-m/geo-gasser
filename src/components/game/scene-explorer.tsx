@@ -37,6 +37,21 @@ function typingTarget(el: EventTarget | null) {
   );
 }
 
+/** Crop (0–1) that filling the frame would cost; below this, fill. */
+const FILL_WHEN_CROP_BELOW = 0.1;
+
+function effectiveFit(
+  fit: "cover" | "contain",
+  natural: { w: number; h: number } | null,
+  box: { w: number; h: number } | null,
+): "cover" | "contain" {
+  if (fit === "cover" || !natural || !box || !natural.h || !box.h) return fit;
+  const photo = natural.w / natural.h;
+  const frame = box.w / box.h;
+  const crop = 1 - Math.min(photo, frame) / Math.max(photo, frame);
+  return crop < FILL_WHEN_CROP_BELOW ? "cover" : "contain";
+}
+
 /**
  * GeoGuessr-style inspect for still plates: drag to look, WASD to pan/zoom,
  * wheel / pinch to close in on a clue. Not live Street View — the photo is
@@ -90,6 +105,14 @@ export function SceneExplorer({
   const [retry, setRetry] = useState(0);
   const [hint, setHint] = useState(true);
   const [current, setCurrent] = useState(src);
+  // "contain" shows the whole photo; it only fills the frame when that would
+  // crop almost nothing. Wide and portrait photos keep every edge and get a
+  // blurred copy of themselves behind them instead of empty bars.
+  const [natural, setNatural] = useState<{ w: number; h: number } | null>(null);
+  const [box, setBox] = useState<{ w: number; h: number } | null>(null);
+  const shown = effectiveFit(fit, natural, box);
+  const fitRef = useRef(shown);
+  fitRef.current = shown;
   const queue = useRef<string[]>([]);
   const wikiTried = useRef(false);
   const fallbackKey = (fallbacks ?? []).join("|");
@@ -120,9 +143,20 @@ export function SceneExplorer({
     return () => window.clearTimeout(hide);
   }, [src, reducedMotion, fallbackKey, sourceUrl, title, retry, fit]);
 
+  useEffect(() => {
+    const host = hostRef.current;
+    if (!host) return;
+    const read = () => setBox({ w: host.clientWidth, h: host.clientHeight });
+    read();
+    const observer = new ResizeObserver(read);
+    observer.observe(host);
+    return () => observer.disconnect();
+  }, []);
+
   useLayoutEffect(() => {
     const img = imgRef.current;
     if (img?.complete && img.naturalWidth > 0) {
+      setNatural({ w: img.naturalWidth, h: img.naturalHeight });
       setFailed(false);
       onReady?.();
     }
@@ -145,7 +179,7 @@ export function SceneExplorer({
           naturalHeight: img.naturalHeight,
           boxWidth: box.clientWidth,
           boxHeight: box.clientHeight,
-          fit,
+          fit: fitRef.current,
           zoom,
         },
         yaw,
@@ -308,7 +342,7 @@ export function SceneExplorer({
       host.removeEventListener("wheel", onWheel);
       if (window.__controlsTest) delete window.__controlsTest;
     };
-  }, [src, fit]);
+  }, [src]);
 
   return (
     <div className="absolute inset-0 bg-bg-subtle">
@@ -317,6 +351,9 @@ export function SceneExplorer({
         className="absolute inset-0 cursor-grab touch-none overflow-hidden bg-[#0a1117]"
         aria-label="Look around the location. Drag to look, WASD to inspect, scroll to zoom."
       >
+        {shown === "contain" && !failed && (
+          <img src={current} alt="" aria-hidden className="scene-backdrop" draggable={false} />
+        )}
         <img
           key={retry}
           ref={imgRef}
@@ -329,11 +366,15 @@ export function SceneExplorer({
           decoding="async"
           fetchPriority="high"
           className={cn(
-            "pointer-events-none h-full w-full min-h-full min-w-full origin-center select-none will-change-transform",
-            fit === "contain" ? "object-contain" : "object-cover",
+            // No will-change: it pins the photo's raster at its fitted size, so
+            // zooming stretched that copy — measured ~3x softer at 2.8x.
+            "relative pointer-events-none h-full w-full min-h-full min-w-full origin-center select-none",
+            shown === "contain" ? "object-contain" : "object-cover",
             failed ? "opacity-0" : "opacity-100",
           )}
-          onLoad={() => {
+          onLoad={(e) => {
+            const loaded = e.currentTarget;
+            setNatural({ w: loaded.naturalWidth, h: loaded.naturalHeight });
             setFailed(false);
             onReady?.();
           }}

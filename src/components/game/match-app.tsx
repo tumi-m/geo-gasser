@@ -92,6 +92,18 @@ export function MatchApp({
   const [exploring, setExploring] = useState(false);
   const [fullScreen, setFullScreen] = useState(false);
   const gameRoot = useRef<HTMLElement>(null);
+  // Phones place the photo below the HUD instead of under it (styles.css),
+  // so nothing in the frame hides behind the timer and score.
+  const measureHud = useCallback((el: HTMLElement | null) => {
+    if (!el) return;
+    const root = el.parentElement;
+    const set = () =>
+      root?.style.setProperty("--atlas-hud-h", `${Math.round(el.offsetTop + el.offsetHeight)}px`);
+    set();
+    const observer = new ResizeObserver(set);
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
   // Reading `document` during render made the server emit nothing where the
   // client emitted a button, and React threw out the whole match tree on
   // hydration. Decide after mount, when both sides already agree.
@@ -1053,6 +1065,7 @@ export function MatchApp({
       className={cn(
         "match-stage relative min-h-dvh overflow-hidden bg-bg",
         exploring && !showingReveal && "is-exploring",
+        showingReveal && "is-revealing",
         shake && "atlas-shake",
       )}
     >
@@ -1132,7 +1145,9 @@ export function MatchApp({
         <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(180deg,rgba(9,9,11,0.22)_0%,transparent_18%,transparent_78%,rgba(9,9,11,0.28)_100%)]" />
       </div>
 
-      <header className="match-hud relative z-20 flex items-start justify-between gap-3 px-4 py-3 pt-[max(0.75rem,env(safe-area-inset-top))]">
+      <header
+        ref={measureHud}
+        className="match-hud relative z-20 flex items-start justify-between gap-3 px-4 py-3 pt-[max(0.75rem,env(safe-area-inset-top))]">
         <div className="flex flex-col gap-2">
           {!showingReveal && (
             <TimerRing
