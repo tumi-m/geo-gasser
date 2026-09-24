@@ -11,6 +11,7 @@ import {
   createLobbyState,
   getLocation,
   grokGuess,
+  endsRound,
   FEEDBACK_COPY,
   grokThinkMs,
   GROK_BOT_ID,
@@ -55,6 +56,7 @@ import { PlayerAvatar } from "./player-avatar";
 import { RevealOverlay } from "./reveal-sequence";
 import { RollingScore } from "./rolling-score";
 import { RoundSplash } from "./round-splash";
+import { RoundSummarySplash } from "./round-summary-splash";
 import { Round4Scene } from "./round4-scene";
 import { SceneExplorer } from "./scene-explorer";
 import { SettingsPanel } from "./settings-panel";
@@ -576,7 +578,14 @@ export function MatchApp({
   // so the card's own animation runs while the player is looking at it.
   const revealKey = showingReveal ? `${state.questionIndex}:${state.roundStartedAtMs ?? 0}` : null;
   const [splashSeen, setSplashSeen] = useState<string | null>(null);
-  const splashing = revealKey !== null && splashSeen !== revealKey && Boolean(you?.roundScore);
+  const [summarySeen, setSummarySeen] = useState<string | null>(null);
+  const questionSplash =
+    revealKey !== null && splashSeen !== revealKey && Boolean(you?.roundScore);
+  // When the question closes a multi-question round (Quick is one round of
+  // ten), the round summary follows the question's own splash.
+  const summarySplash =
+    revealKey !== null && !questionSplash && summarySeen !== revealKey && endsRound(state);
+  const splashing = questionSplash || summarySplash;
   const canGuess =
     Boolean(you) &&
     !you?.locked &&
@@ -1262,7 +1271,21 @@ export function MatchApp({
         </div>
       )}
 
-      {splashing && you?.roundScore && (
+      {summarySplash && you && (
+        <RoundSummarySplash
+          key={`${revealKey}:summary`}
+          history={state.roundHistory}
+          players={opponent ? [you, opponent] : [you]}
+          selfId={you.id}
+          roundIndex={state.roundIndex}
+          totalRounds={state.totalRounds || 1}
+          markSelf={duelKind !== "hotseat"}
+          reducedMotion={settings.reducedMotion}
+          onDone={() => setSummarySeen(revealKey)}
+        />
+      )}
+
+      {questionSplash && you?.roundScore && (
         <RoundSplash
           key={revealKey}
           players={opponent ? [you, opponent] : [you]}
@@ -1274,6 +1297,11 @@ export function MatchApp({
               : "TIME’S UP"
           }
           roundLabel={roundLabel}
+          winUnit={
+            state.matchLength === "escape"
+              ? "the round"
+              : `question ${questionInRound(state.questionIndex) + 1}`
+          }
           markSelf={duelKind !== "hotseat"}
           reducedMotion={settings.reducedMotion}
           onDone={() => setSplashSeen(revealKey)}

@@ -21,3 +21,4 @@ export * from "./audio.ts";
 export * from "./avatars.ts";
 export * from "./bot.ts";
 export * from "./verdict.ts";
+export * from "./round-summary.ts";

@@ -21,7 +21,9 @@ import { ModalShell } from "./modal-shell";
 import { Tutorial } from "./tutorial";
 import {
   audio,
+  DEFAULT_SETTINGS,
   DIFFICULTY_SECONDS,
+  EMPTY_STATS,
   enabledLocations,
   loadSettings,
   loadStats,
@@ -36,8 +38,17 @@ import { cn } from "@/lib/utils";
 
 export function HomeScreen() {
   const navigate = useNavigate();
-  const [settings, setSettings] = useState<GameSettings>(loadSettings);
-  const [stats] = useState(loadStats);
+  // Stored settings and stats are read after mount: the server renders the
+  // defaults, and the first client render has to match it or React throws the
+  // page away and rebuilds it.
+  const [settings, setSettings] = useState<GameSettings>(DEFAULT_SETTINGS);
+  const [stats, setStats] = useState(EMPTY_STATS);
+  const [loaded, setLoaded] = useState(false);
+  useEffect(() => {
+    setSettings(loadSettings());
+    setStats(loadStats());
+    setLoaded(true);
+  }, []);
   const [panel, setPanel] = useState<"settings" | "atlas" | "help" | "name" | null>(null);
   const [destination, setDestination] = useState(0);
   const destinations = [
@@ -66,11 +77,12 @@ export function HomeScreen() {
   const featured = destinations[destination];
   const plan = planMatch(1, settings.matchLength, settings.atlas);
   useEffect(() => {
+    if (!loaded) return; // never write the defaults over what is stored
     document.documentElement.classList.toggle("hc", settings.highContrast);
     document.documentElement.classList.toggle("reduce-motion", settings.reducedMotion);
     audio.setSettings(settings);
     saveSettings(settings);
-  }, [settings]);
+  }, [settings, loaded]);
   const play = (to: "/play" | "/duel") => {
     audio.unlock();
     audio.play("click");

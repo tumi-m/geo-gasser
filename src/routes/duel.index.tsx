@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,6 +8,7 @@ import { AvatarPicker, PlayerAvatar } from "@/components/game/player-avatar";
 import {
   atlasLabel,
   DEFAULT_AVATAR,
+  DEFAULT_SETTINGS,
   DIFFICULTY_SECONDS,
   loadSettings,
   MATCH_LENGTH,
@@ -23,10 +24,17 @@ const HOTSEAT_KEY = "atlas-hotseat-v1";
 
 function DuelLobby() {
   const navigate = useNavigate();
-  const initial = loadSettings();
+  // Read stored settings after mount so the first render matches the server's.
+  const [initial, setInitial] = useState(DEFAULT_SETTINGS);
 
-  const [name, setName] = useState(initial.displayName);
-  const [avatarId, setAvatarId] = useState<AvatarId>(sanitizeAvatar(initial.avatarId));
+  const [name, setName] = useState(DEFAULT_SETTINGS.displayName);
+  const [avatarId, setAvatarId] = useState<AvatarId>(sanitizeAvatar(DEFAULT_SETTINGS.avatarId));
+  useEffect(() => {
+    const stored = loadSettings();
+    setInitial(stored);
+    setName(stored.displayName);
+    setAvatarId(sanitizeAvatar(stored.avatarId));
+  }, []);
   const [guestName, setGuestName] = useState("Rival");
   const [guestAvatar, setGuestAvatar] = useState<AvatarId>("canal");
   const [code, setCode] = useState("");
