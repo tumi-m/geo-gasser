@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { MusicHudButton } from "./music-player";
 import {
@@ -35,6 +35,11 @@ import {
 import { Input } from "@/components/ui/input";
 import { sanitizeName } from "@/lib/multiplayer";
 import { cn } from "@/lib/utils";
+import { BrushUnderline, FlightPath, WordRise } from "@/components/motion/motion";
+import { useRevealOnScroll } from "@/components/motion/use-reveal";
+
+/** How long each featured destination holds before the hero moves on. */
+const DESTINATION_MS = 7000;
 
 export function HomeScreen() {
   const navigate = useNavigate();
@@ -75,6 +80,22 @@ export function HomeScreen() {
     },
   ];
   const featured = destinations[destination];
+  // The hero tours its destinations on its own until the player picks one;
+  // it waits while they hover or tab through it, and stays put with reduced
+  // motion. The active thumbnail shows how long until the next.
+  const [touring, setTouring] = useState(true);
+  const [held, setHeld] = useState(false);
+  const autoplay = touring && !held && loaded && !settings.reducedMotion;
+  useEffect(() => {
+    if (!autoplay) return;
+    const id = window.setTimeout(
+      () => setDestination((d) => (d + 1) % destinations.length),
+      DESTINATION_MS,
+    );
+    return () => window.clearTimeout(id);
+  }, [autoplay, destination, destinations.length]);
+  const homeRef = useRef<HTMLElement>(null);
+  useRevealOnScroll(homeRef);
   const plan = planMatch(1, settings.matchLength, settings.atlas);
   useEffect(() => {
     if (!loaded) return; // never write the defaults over what is stored
@@ -137,7 +158,7 @@ export function HomeScreen() {
     },
   ] as const;
   return (
-    <main className="expedition-home">
+    <main ref={homeRef} className="expedition-home">
       <header className="expedition-nav">
         <a href="/" className="brand-lockup" aria-label="Atlas Duel home">
           <Compass size={32} strokeWidth={1.5} />
@@ -160,23 +181,38 @@ export function HomeScreen() {
           </Button>
         </nav>
       </header>
-      <section className="journey-hero" aria-label="Your next adventure">
-        <img
-          key={featured.src}
-          className="journey-image"
-          src={featured.src}
-          alt={`${featured.name}, ${featured.country}`}
-          fetchPriority="high"
-        />
+      <section
+        className={cn("journey-hero", autoplay && "is-touring")}
+        aria-label="Your next adventure"
+        onPointerEnter={() => setHeld(true)}
+        onPointerLeave={() => setHeld(false)}
+        onFocus={() => setHeld(true)}
+        onBlur={() => setHeld(false)}
+      >
+        {/* All three stay mounted so the change is a crossfade, not a cut. */}
+        {destinations.map((place, index) => (
+          <img
+            key={place.src}
+            className={cn("journey-image", index === destination && "is-active")}
+            src={place.src}
+            alt={index === destination ? `${place.name}, ${place.country}` : ""}
+            aria-hidden={index !== destination}
+            fetchPriority={index === 0 ? "high" : "low"}
+          />
+        ))}
         <div className="journey-shade" />
+        <FlightPath still={settings.reducedMotion} />
         <div className="journey-copy">
           <p className="eyebrow">
             <span className="status-dot" /> THE WORLD IS YOUR PLAYGROUND
           </p>
           <h1>
-            Go somewhere
+            <WordRise text="Go somewhere" delay={120} />
             <br />
-            <span className="serif-word">unexpected.</span>
+            <span className="serif-word">
+              <WordRise text="unexpected." delay={300} />
+              <BrushUnderline delay={750} />
+            </span>
           </h1>
           <p>
             A little instinct. A few clues.
@@ -207,18 +243,32 @@ export function HomeScreen() {
             <MapPin size={14} />
             {featured.country}
           </p>
-          <h2>{featured.name}</h2>
-          <span>{featured.note}</span>
+          <h2 key={featured.name} className="journey-swap">
+            {featured.name}
+          </h2>
+          <span key={featured.note} className="journey-swap is-late">
+            {featured.note}
+          </span>
           <div className="destination-switcher" aria-label="Featured destinations">
             {destinations.map((place, index) => (
               <button
                 key={place.name}
                 aria-label={`Preview ${place.name}`}
                 aria-pressed={index === destination}
-                onClick={() => setDestination(index)}
+                onClick={() => {
+                  setTouring(false);
+                  setDestination(index);
+                }}
               >
                 <img src={place.src} alt="" />
                 <span>{String(index + 1).padStart(2, "0")}</span>
+                {index === destination && autoplay && (
+                  <i
+                    key={destination}
+                    className="destination-progress"
+                    style={{ animationDuration: `${DESTINATION_MS}ms` }}
+                  />
+                )}
               </button>
             ))}
           </div>
@@ -228,14 +278,14 @@ export function HomeScreen() {
         </div>
       </section>
       <section className="expedition-packs" aria-labelledby="atlas-title">
-        <div className="section-heading">
+        <div className="section-heading" data-reveal>
           <h2 id="atlas-title">Choose your playground.</h2>
           <button className="nav-link" onClick={() => setPanel("atlas")}>
             Explore maps <ArrowRight size={15} />
           </button>
         </div>
         <div className="pack-grid">
-          {cards.map((card) => {
+          {cards.map((card, cardIndex) => {
             const selected =
               card.id === "custom"
                 ? !["sa-nl", "world"].includes(settings.atlas.preset)
@@ -244,6 +294,8 @@ export function HomeScreen() {
               <button
                 className={cn("pack-card", selected && "is-selected")}
                 key={card.id}
+                data-reveal
+                style={{ "--i": cardIndex } as React.CSSProperties}
                 aria-pressed={selected}
                 onClick={() => choose(card.id)}
               >

@@ -55,6 +55,8 @@ import { PanoViewer } from "./pano-viewer";
 import { PlayerAvatar } from "./player-avatar";
 import { RevealOverlay } from "./reveal-sequence";
 import { RollingScore } from "./rolling-score";
+import { LockStamp } from "./lock-stamp";
+import { RoundIntro } from "./round-intro";
 import { RoundSplash } from "./round-splash";
 import { RoundSummarySplash } from "./round-summary-splash";
 import { Round4Scene } from "./round4-scene";
@@ -636,12 +638,14 @@ export function MatchApp({
     else dispatch({ type: "CONTINUE", now });
   }, [mode, duelKind, serverMode, dispatch, p2pSend, socketSend]);
 
+  // Long enough for the intro's title sequence (round-intro.tsx), whose ring
+  // shows this hold; with reduced motion the card is still, so it is shorter.
+  const introHoldMs = settings.reducedMotion ? 1200 : 2200;
   useEffect(() => {
     if (state.phase !== "round_intro") return;
-    const wait = settings.reducedMotion ? 400 : 1600;
-    const id = setTimeout(finishIntro, wait);
+    const id = setTimeout(finishIntro, introHoldMs);
     return () => clearTimeout(id);
-  }, [state.phase, settings.reducedMotion, finishIntro]);
+  }, [state.phase, introHoldMs, finishIntro]);
 
   useEffect(() => {
     const ticking =
@@ -1057,7 +1061,14 @@ export function MatchApp({
     state.matchLength === "escape"
       ? `Round ${state.roundIndex + 1} of ${rounds}${state.questionIndex === 4 && state.atlas.preset === "sa-nl" && !state.atlas.cities?.length ? " · World wildcard" : ""}`
       : `Round ${state.roundIndex + 1} of ${rounds} · Q${qNum}/${Math.min(QUESTIONS_PER_ROUND, state.totalQuestions - state.roundIndex * QUESTIONS_PER_ROUND)}`;
-  const urgent = remaining <= 10 && state.phase === "round_active" && !you?.locked;
+  // Same test as the clock itself: your time is still running after the other
+  // player locks (the duel is then "waiting_for_opponent"), so the last ten
+  // seconds must still read as urgent — they are the tensest of the round.
+  const clockRunning =
+    state.phase === "round_active" ||
+    ((state.phase === "waiting_for_opponent" || state.phase === "player_locked") &&
+      duelKind !== "hotseat");
+  const urgent = remaining <= 10 && clockRunning && !you?.locked;
 
   return (
     <main
@@ -1070,33 +1081,34 @@ export function MatchApp({
       )}
     >
       {state.phase === "round_intro" && (
-        <div
-          className="absolute inset-0 z-40 flex cursor-pointer flex-col items-center justify-center bg-bg text-center"
-          onClick={finishIntro}
-          onKeyDown={(e) => {
-            if (e.key === "Enter" || e.key === " ") finishIntro();
-          }}
-          role="button"
-          tabIndex={0}
-          aria-label="Start round"
-        >
-          <p className="atlas-rise text-xs uppercase tracking-[0.28em] text-muted">
-            {atlasLabel(state.atlas)} · {roundLabel}
-          </p>
-          <h1 className="atlas-rise atlas-rise-1 font-display mt-3 text-5xl sm:text-7xl">
-            Locate this
-          </h1>
-          <p className="atlas-rise atlas-rise-2 mt-4 max-w-sm text-sm text-muted">
-            {reconstructionRound
+        <RoundIntro
+          key={`${state.questionIndex}:${state.roundIndex}`}
+          round={state.roundIndex + 1}
+          totalRounds={rounds}
+          question={state.matchLength === "escape" ? undefined : qNum}
+          questionsInRound={Math.min(
+            QUESTIONS_PER_ROUND,
+            state.totalQuestions - state.roundIndex * QUESTIONS_PER_ROUND,
+          )}
+          atlasLabel={atlasLabel(state.atlas)}
+          seconds={state.durationSec || 45}
+          wildcard={
+            state.matchLength === "escape" &&
+            state.questionIndex === 4 &&
+            state.atlas.preset === "sa-nl" &&
+            !state.atlas.cities?.length
+          }
+          note={
+            reconstructionRound
               ? ROUND4_3D_LIVE
-                ? "3D reconstruction · not a live photograph"
-                : "Reconstruction · illustrated geography"
-              : `${state.durationSec || 45} seconds · trust your instincts`}
-          </p>
-          <p className="atlas-rise atlas-rise-3 mt-8 text-xs uppercase tracking-[0.2em] text-subtle">
-            Tap or Enter to start
-          </p>
-        </div>
+                ? "3D reconstruction"
+                : "Reconstruction"
+              : undefined
+          }
+          holdMs={introHoldMs}
+          reducedMotion={settings.reducedMotion}
+          onStart={finishIntro}
+        />
       )}
 
       <div className="scene-viewport">
@@ -1215,8 +1227,17 @@ export function MatchApp({
         </div>
       </header>
 
+      {you?.locked && !showingReveal && (
+        <LockStamp key={`lock:${state.questionIndex}:${state.roundStartedAtMs ?? 0}`} />
+      )}
+
       {(you?.locked || (pendingLock && matchesQuestion(state, pendingLock))) && !showingReveal && (
-        <p className="relative z-20 mx-4 mt-1 w-fit rounded-full border border-border bg-bg/80 px-3 py-1 text-xs uppercase tracking-wider">
+        <p className="waiting-chip relative z-20 mx-4 mt-1 flex w-fit items-center gap-2 rounded-full border border-border bg-bg/80 px-3 py-1 text-xs uppercase tracking-wider">
+          <span className="waiting-dots" aria-hidden>
+            <i />
+            <i />
+            <i />
+          </span>
           {!you?.locked
             ? "Sending your guess…"
             : opponent?.kind === "bot"

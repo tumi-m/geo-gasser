@@ -69,6 +69,16 @@ function makePin(kind: PinKind, label?: string) {
   return el;
 }
 
+/** A ring that spreads from your pin each time it lands somewhere new. */
+function ripple(marker: import("leaflet").Marker | undefined) {
+  const host = marker?.getElement()?.querySelector(".atlas-pin");
+  if (!host || document.documentElement.classList.contains("reduce-motion")) return;
+  const ring = document.createElement("span");
+  ring.className = "atlas-pin-ripple";
+  ring.addEventListener("animationend", () => ring.remove());
+  host.appendChild(ring);
+}
+
 export function GuessMap({
   guess,
   onGuess,
@@ -297,7 +307,9 @@ export function GuessMap({
     if (!map || !L) return;
     const existing = pins.current[key];
     if (existing) {
+      const moved = !existing.getLatLng().equals([point.latitude, point.longitude]);
       existing.setLatLng([point.latitude, point.longitude]);
+      if (key === "you" && moved && !revealRef.current) ripple(existing);
       const el = existing.getElement();
       if (el) {
         const tag = el.querySelector(".atlas-pin-label");
@@ -326,6 +338,7 @@ export function GuessMap({
       keyboard: false,
       zIndexOffset: kind === "truth" ? 600 : kind === "you" ? 400 : 200,
     }).addTo(map);
+    if (key === "you" && !revealRef.current) ripple(marker);
     if (key === "you") {
       marker.on("dragstart", () => buzz(6));
       marker.on("dragend", () => {

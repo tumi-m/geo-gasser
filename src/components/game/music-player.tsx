@@ -480,6 +480,9 @@ function PasteLink() {
       <div className="music-paste-row">
         <Input
           id="music-link"
+          // Chromium's autofill stamps an empty style attribute on this field
+          // before hydration; that attribute is the browser's, not ours.
+          suppressHydrationWarning
           value={value}
           onChange={(e) => {
             setValue(e.target.value);

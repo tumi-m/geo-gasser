@@ -109,6 +109,8 @@ export function SceneExplorer({
   // crop almost nothing. Wide and portrait photos keep every edge and get a
   // blurred copy of themselves behind them instead of empty bars.
   const [natural, setNatural] = useState<{ w: number; h: number } | null>(null);
+  // The plate "develops" in when it has loaded, rather than popping in.
+  const [ready, setReady] = useState(false);
   const [box, setBox] = useState<{ w: number; h: number } | null>(null);
   const shown = effectiveFit(fit, natural, box);
   const fitRef = useRef(shown);
@@ -127,6 +129,7 @@ export function SceneExplorer({
     s.dragging = false;
     s.pointers.clear();
     setFailed(false);
+    setReady(false);
     setHint(true);
     wikiTried.current = false;
     const seen = new Set<string>();
@@ -157,6 +160,7 @@ export function SceneExplorer({
     const img = imgRef.current;
     if (img?.complete && img.naturalWidth > 0) {
       setNatural({ w: img.naturalWidth, h: img.naturalHeight });
+      setReady(true);
       setFailed(false);
       onReady?.();
     }
@@ -351,6 +355,7 @@ export function SceneExplorer({
         className="absolute inset-0 cursor-grab touch-none overflow-hidden bg-[#0a1117]"
         aria-label="Look around the location. Drag to look, WASD to inspect, scroll to zoom."
       >
+        {ready && !failed && <span key={current} className="scene-sheen" aria-hidden />}
         {shown === "contain" && !failed && (
           <img src={current} alt="" aria-hidden className="scene-backdrop" draggable={false} />
         )}
@@ -370,11 +375,13 @@ export function SceneExplorer({
             // zooming stretched that copy — measured ~3x softer at 2.8x.
             "relative pointer-events-none h-full w-full min-h-full min-w-full origin-center select-none",
             shown === "contain" ? "object-contain" : "object-cover",
-            failed ? "opacity-0" : "opacity-100",
+            "transition-opacity duration-700 ease-out",
+            failed || !ready ? "opacity-0" : "opacity-100",
           )}
           onLoad={(e) => {
             const loaded = e.currentTarget;
             setNatural({ w: loaded.naturalWidth, h: loaded.naturalHeight });
+            setReady(true);
             setFailed(false);
             onReady?.();
           }}

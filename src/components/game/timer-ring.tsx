@@ -18,8 +18,20 @@ export function TimerRing({
   const label = locked ? "Guess locked" : `${Math.ceil(remaining)} seconds remaining`;
   return (
     <div className="flex items-center gap-3" role="timer" aria-live="off" aria-label={label}>
-      <svg viewBox="0 0 44 44" className="size-11 -rotate-90" aria-hidden="true">
-        <circle cx="22" cy="22" r={r} fill="none" stroke="currentColor" className="text-border" strokeWidth="3" />
+      <svg
+        viewBox="0 0 44 44"
+        className={cn("size-11 -rotate-90", urgent && !locked && "timer-urgent")}
+        aria-hidden="true"
+      >
+        <circle
+          cx="22"
+          cy="22"
+          r={r}
+          fill="none"
+          stroke="currentColor"
+          className="text-border"
+          strokeWidth="3"
+        />
         <circle
           cx="22"
           cy="22"
@@ -34,9 +46,11 @@ export function TimerRing({
         />
       </svg>
       <span
+        // Re-keyed each second while urgent, so the heartbeat replays per tick.
+        key={urgent && !locked ? Math.ceil(remaining) : "calm"}
         className={cn(
           "font-display tabular text-3xl leading-none tracking-tight",
-          urgent && !locked && "text-danger",
+          urgent && !locked && "text-danger timer-beat",
           locked && "text-muted",
         )}
       >
@@ -64,7 +78,10 @@ export function RoundPips({ index, total = 4 }: { index: number; total?: number 
 
 export function QuestionMark({ current, total = 10 }: { current: number; total?: number }) {
   return (
-    <p className="text-[10px] uppercase tracking-[0.18em] text-muted" aria-label={`Question ${current} of ${total}`}>
+    <p
+      className="text-[10px] uppercase tracking-[0.18em] text-muted"
+      aria-label={`Question ${current} of ${total}`}
+    >
       Q {current} / {total}
     </p>
   );
