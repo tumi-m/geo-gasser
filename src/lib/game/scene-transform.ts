@@ -4,8 +4,8 @@
  */
 
 /** Fraction of the frame a full yaw/pitch sweep travels. */
-const YAW_SPAN = 0.55;
-const PITCH_SPAN = 0.48;
+export const YAW_SPAN = 0.55;
+export const PITCH_SPAN = 0.48;
 
 export interface SceneFrame {
   naturalWidth: number;
@@ -16,7 +16,9 @@ export interface SceneFrame {
   zoom: number;
 }
 
-function fitScale(frame: SceneFrame): number {
+export function fitScale(
+  frame: Pick<SceneFrame, "naturalWidth" | "naturalHeight" | "boxWidth" | "boxHeight" | "fit">,
+): number {
   const w = frame.naturalWidth || 1;
   const h = frame.naturalHeight || 1;
   return frame.fit === "contain"

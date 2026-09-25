@@ -182,15 +182,15 @@ export function SettingsPanel({
               <div className="settings-choices two">
                 <Choice
                   label="Cinematic"
-                  hint="Fill the frame · some cropping"
+                  hint="Fill the frame · drag to look around"
                   active={settings.photoFit === "cover"}
-                  onClick={() => update({ photoFit: "cover" })}
+                  onClick={() => update({ photoFit: "cover", photoFitChosen: true })}
                 />
                 <Choice
                   label="Full photograph"
-                  hint="Every detail · no cropping"
+                  hint="Every edge at once · smaller"
                   active={settings.photoFit === "contain"}
-                  onClick={() => update({ photoFit: "contain" })}
+                  onClick={() => update({ photoFit: "contain", photoFitChosen: true })}
                 />
               </div>
             </Section>

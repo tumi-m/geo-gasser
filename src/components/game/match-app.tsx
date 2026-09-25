@@ -1141,6 +1141,7 @@ export function MatchApp({
               setSettings((current) => ({
                 ...current,
                 photoFit: current.photoFit === "contain" ? "cover" : "contain",
+                photoFitChosen: true,
               }))
             }
             showHints={settings.showHints}

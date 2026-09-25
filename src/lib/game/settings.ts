@@ -19,6 +19,12 @@ export interface GameSettings {
   cameraShake: boolean;
   highContrast: boolean;
   photoFit: "cover" | "contain";
+  /**
+   * Set once the player picks a fit themselves. Before that the photo fills
+   * the frame (drag to look around): the old default showed the whole photo
+   * small with bars, and cannot be told apart from a deliberate choice.
+   */
+  photoFitChosen?: boolean;
   showHints: boolean;
   difficulty: TimeDifficulty;
   matchLength: MatchLengthId;
@@ -37,7 +43,7 @@ export const DEFAULT_SETTINGS: GameSettings = {
   reducedMotion: false,
   cameraShake: true,
   highContrast: false,
-  photoFit: "contain",
+  photoFit: "cover",
   showHints: true,
   difficulty: "medium",
   matchLength: "escape",
@@ -60,7 +66,7 @@ export function loadSettings(): GameSettings {
     return {
       ...DEFAULT_SETTINGS,
       ...parsed,
-      photoFit: parsed.photoFit === "cover" ? "cover" : "contain",
+      photoFit: parsed.photoFitChosen && parsed.photoFit === "contain" ? "contain" : "cover",
       showHints: typeof parsed.showHints === "boolean" ? parsed.showHints : true,
       difficulty: isTimeDifficulty(parsed.difficulty)
         ? parsed.difficulty
