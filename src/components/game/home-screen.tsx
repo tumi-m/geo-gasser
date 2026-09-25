@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { MusicHudButton } from "./music-player";
+import { AvatarBuilder, PlayerAvatar } from "./player-avatar";
 import {
   ArrowRight,
   Check,
@@ -30,6 +31,7 @@ import {
   planMatch,
   saveSettings,
   sanitizeAtlas,
+  sanitizeAvatar,
   type GameSettings,
 } from "@/lib/game";
 import { Input } from "@/components/ui/input";
@@ -377,12 +379,19 @@ export function HomeScreen() {
               What should we call you?
             </h2>
             <p className="mt-2 text-sm text-muted">
-              Your name goes on your pin, every round and the scoreboard.
+              Build your bot and name it. It goes on your pin, every round and the scoreboard.
             </p>
+            <div className="mt-5 flex flex-col items-center gap-4">
+              <PlayerAvatar id={settings.avatarId} size={96} live track />
+              <AvatarBuilder
+                value={sanitizeAvatar(settings.avatarId)}
+                onChange={(avatarId) => setSettings((s) => ({ ...s, avatarId }))}
+              />
+            </div>
             <Input
               name="name"
               aria-label="Your name"
-              placeholder="Traveler"
+              placeholder="Name your bot"
               maxLength={24}
               autoComplete="nickname"
               className="mt-5"

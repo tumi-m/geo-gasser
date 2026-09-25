@@ -98,7 +98,14 @@ export function RoundSummarySplash({
                   )}
                 >
                   <div className="splash-avatar">
-                    <PlayerAvatar id={row.avatarId} size={64} />
+                    <PlayerAvatar
+                      id={row.avatarId}
+                      size={64}
+                      live
+                      mood={
+                        isWinner ? "happy" : crowned && s.winnerId ? "sad" : "focus"
+                      }
+                    />
                     {isWinner && (
                       <span className="splash-trophy" aria-hidden>
                         <Trophy size={20} />

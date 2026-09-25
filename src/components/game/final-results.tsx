@@ -71,6 +71,8 @@ export function FinalResults({
             <PlayerAvatar
               id={(youWin || state.mode === "solo" ? you : other)?.avatarId}
               size={56}
+              live
+              mood={shared ? "neutral" : "happy"}
             />
             {!reducedMotion && !shared && <Sparks count={20} spread={130} />}
           </span>

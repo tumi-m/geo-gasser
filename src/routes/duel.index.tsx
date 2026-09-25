@@ -3,7 +3,7 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { MusicHudButton } from "@/components/game/music-player";
-import { AvatarPicker, PlayerAvatar } from "@/components/game/player-avatar";
+import { AvatarBuilder, PlayerAvatar } from "@/components/game/player-avatar";
 
 import {
   atlasLabel,
@@ -36,7 +36,7 @@ function DuelLobby() {
     setAvatarId(sanitizeAvatar(stored.avatarId));
   }, []);
   const [guestName, setGuestName] = useState("Rival");
-  const [guestAvatar, setGuestAvatar] = useState<AvatarId>("canal");
+  const [guestAvatar, setGuestAvatar] = useState<AvatarId>("square-blue");
   const [code, setCode] = useState("");
   const [passPlay, setPassPlay] = useState(false);
 
@@ -80,7 +80,7 @@ function DuelLobby() {
 
         <label className="mt-8 text-xs uppercase tracking-wider text-subtle">Your name</label>
         <div className="mt-2 flex items-center gap-3">
-          <PlayerAvatar id={avatarId} size={52} title={sanitizeName(name)} />
+          <PlayerAvatar id={avatarId} size={60} title={sanitizeName(name)} live track />
           <Input
             value={name}
             maxLength={24}
@@ -90,7 +90,7 @@ function DuelLobby() {
           />
         </div>
         <div className="mt-4">
-          <AvatarPicker value={avatarId} onChange={setAvatarId} />
+          <AvatarBuilder value={avatarId} onChange={setAvatarId} />
         </div>
 
         <Button
@@ -124,7 +124,7 @@ function DuelLobby() {
               onChange={(e) => setGuestName(e.target.value)}
             />
             <div className="mt-3">
-              <AvatarPicker value={guestAvatar} onChange={setGuestAvatar} />
+              <AvatarBuilder value={guestAvatar} onChange={setGuestAvatar} />
             </div>
             <Button
               className="mt-4 w-full"

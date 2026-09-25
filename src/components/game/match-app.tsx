@@ -977,7 +977,7 @@ export function MatchApp({
                 key={p.id}
                 className="flex items-center gap-3 rounded-[var(--radius-md)] border border-border px-3 py-3"
               >
-                <PlayerAvatar id={p.avatarId} size={40} />
+                <PlayerAvatar id={p.avatarId} size={40} live />
                 <span className="min-w-0 truncate">
                   {p.name} {p.id === state.hostId ? "· host" : ""}
                 </span>
@@ -1203,7 +1203,12 @@ export function MatchApp({
             <ScoreTally players={state.players} selfId={you?.id} />
           ) : mode === "duel" && showingReveal ? null : (
             <div className="flex items-center gap-2">
-              <PlayerAvatar id={you?.avatarId} size={36} />
+              <PlayerAvatar
+                id={you?.avatarId}
+                size={36}
+                live
+                mood={urgent ? "surprised" : you?.locked ? "happy" : "neutral"}
+              />
               <div className="rounded-[var(--radius-sm)] border border-border bg-bg/70 px-3 py-2 text-right">
                 <div className="text-[10px] uppercase tracking-wider text-subtle">Score</div>
                 <div className="font-display tabular text-lg leading-none">
@@ -1249,7 +1254,7 @@ export function MatchApp({
 
       {duelKind === "hotseat" && state.phase === "waiting_for_opponent" && (
         <div className="absolute inset-0 z-40 flex flex-col items-center justify-center bg-bg/92 px-6 text-center">
-          <PlayerAvatar id={you?.avatarId} size={72} />
+          <PlayerAvatar id={you?.avatarId} size={72} live track />
           <p className="mt-5 text-xs uppercase tracking-[0.28em] text-muted">Pass the phone</p>
           <h2 className="font-display mt-2 text-4xl">{you?.name}</h2>
           <p className="mt-3 max-w-sm text-muted">

@@ -1,27 +1,96 @@
-export const AVATAR_IDS = ["grok", "atlas", "veld", "canal", "ember", "frost", "nova", "dune"] as const;
-export type AvatarId = (typeof AVATAR_IDS)[number];
+// Player bots: a body shape, a colour and a two-stroke face. An avatar id is
+// "shape-color" (e.g. "hexagon-blue"), or "grok" for Grok's own bot. Ids travel
+// over the wire as plain strings (≤24 chars), so every reader sanitises them.
 
-export const AVATAR_META: Record<
-  AvatarId,
-  { label: string; skin: string; visor: string; mark: string }
-> = {
-  grok: { label: "Grok", skin: "#141416", visor: "#f4f4f0", mark: "#c45c2a" },
-  atlas: { label: "Atlas", skin: "#1c1c22", visor: "#d5d8de", mark: "#3d8f6e" },
-  veld: { label: "Veld", skin: "#1a2a22", visor: "#e6f0e8", mark: "#3d8f6e" },
-  canal: { label: "Canal", skin: "#1a222c", visor: "#e4eaf2", mark: "#6a8caf" },
-  ember: { label: "Ember", skin: "#2a1c16", visor: "#f3e6d8", mark: "#c45c2a" },
-  frost: { label: "Frost", skin: "#222428", visor: "#f4f4f0", mark: "#9aa4b5" },
-  nova: { label: "Nova", skin: "#1a1a1e", visor: "#f4f4f0", mark: "#d5d8de" },
-  dune: { label: "Dune", skin: "#2a2418", visor: "#f0e6d0", mark: "#c4a574" },
+export const AVATAR_SHAPES = [
+  "circle",
+  "blob",
+  "square",
+  "pill",
+  "triangle",
+  "hexagon",
+  "cloud",
+  "drop",
+] as const;
+export type AvatarShape = (typeof AVATAR_SHAPES)[number];
+
+/** Vivid bodies for a dark UI; lime is the game's own accent. */
+export const AVATAR_COLORS = {
+  lime: "#c9ec52",
+  white: "#f1f0ea",
+  brown: "#9c5b2e",
+  red: "#f0303f",
+  orange: "#f5620f",
+  amber: "#f6a312",
+  green: "#23c45e",
+  teal: "#16b3a2",
+  blue: "#2170ff",
+  purple: "#9a5cf6",
+  pink: "#f03a90",
+  grey: "#7b7b80",
+} as const;
+export type AvatarColor = keyof typeof AVATAR_COLORS;
+export const AVATAR_COLOR_IDS = Object.keys(AVATAR_COLORS) as AvatarColor[];
+
+export type AvatarId = `${AvatarShape}-${AvatarColor}` | "grok";
+
+export const GROK_AVATAR: AvatarId = "grok";
+export const DEFAULT_AVATAR: AvatarId = "blob-lime";
+
+/** The first-generation avatar ids, so stored settings and old peers still render. */
+const LEGACY: Record<string, AvatarId> = {
+  atlas: "circle-teal",
+  veld: "blob-green",
+  canal: "square-blue",
+  ember: "hexagon-orange",
+  frost: "pill-white",
+  nova: "cloud-purple",
+  dune: "drop-amber",
 };
 
-export const DEFAULT_AVATAR: AvatarId = "atlas";
-export const GROK_AVATAR: AvatarId = "grok";
-
 export function isAvatarId(value: string | undefined): value is AvatarId {
-  return !!value && (AVATAR_IDS as readonly string[]).includes(value);
+  if (!value) return false;
+  if (value === "grok") return true;
+  const [shape, color, extra] = value.split("-");
+  return (
+    extra === undefined &&
+    (AVATAR_SHAPES as readonly string[]).includes(shape) &&
+    Object.prototype.hasOwnProperty.call(AVATAR_COLORS, color)
+  );
 }
 
 export function sanitizeAvatar(value: string | undefined): AvatarId {
-  return isAvatarId(value) ? value : DEFAULT_AVATAR;
+  if (isAvatarId(value)) return value;
+  return (value && LEGACY[value]) || DEFAULT_AVATAR;
+}
+
+export interface AvatarParts {
+  shape: AvatarShape;
+  color: AvatarColor | "ink";
+  body: string;
+  grok: boolean;
+}
+
+/** What an id draws. Grok is an ink hexagon with white eyes and its star. */
+export function avatarParts(id: string | undefined): AvatarParts {
+  const avatar = sanitizeAvatar(id);
+  if (avatar === "grok") return { shape: "hexagon", color: "ink", body: "#1d1d21", grok: true };
+  const [shape, color] = avatar.split("-") as [AvatarShape, AvatarColor];
+  return { shape, color, body: AVATAR_COLORS[color], grok: false };
+}
+
+export function avatarIdFor(shape: AvatarShape, color: AvatarColor): AvatarId {
+  return `${shape}-${color}`;
+}
+
+export function avatarLabel(id: string | undefined): string {
+  const { shape, color, grok } = avatarParts(id);
+  return grok ? "Grok" : `${color} ${shape} bot`;
+}
+
+/** A small stable hash, so each bot blinks on its own rhythm (and SSR agrees). */
+export function avatarSeed(text: string): number {
+  let h = 2166136261;
+  for (let i = 0; i < text.length; i++) h = Math.imul(h ^ text.charCodeAt(i), 16777619);
+  return (h >>> 0) / 4294967295;
 }

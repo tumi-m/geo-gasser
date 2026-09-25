@@ -15,7 +15,7 @@ import { atlasLabel, planMatch, sanitizeAvatar, type GameSettings } from "@/lib/
 import { useMusic } from "@/lib/music/use-music";
 import { AtlasPicker } from "./atlas-picker";
 import { MusicSettingsSection } from "./music-player";
-import { AvatarPicker } from "./player-avatar";
+import { AvatarBuilder, PlayerAvatar } from "./player-avatar";
 import { cn } from "@/lib/utils";
 import { ModalShell } from "./modal-shell";
 
@@ -268,11 +268,20 @@ export function SettingsPanel({
                 onChange={(e) => update({ displayName: e.target.value })}
               />
             </Section>
-            <Section title="Pick your travel companion">
-              <AvatarPicker
-                value={sanitizeAvatar(settings.avatarId)}
-                onChange={(avatarId) => update({ avatarId })}
-              />
+            <Section title="Build your bot">
+              <div className="flex flex-col items-center gap-4">
+                <PlayerAvatar
+                  id={settings.avatarId}
+                  size={88}
+                  title={settings.displayName}
+                  live
+                  track
+                />
+                <AvatarBuilder
+                  value={sanitizeAvatar(settings.avatarId)}
+                  onChange={(avatarId) => update({ avatarId })}
+                />
+              </div>
             </Section>
             {onQuit && (
               <p className="settings-footnote">Your name and avatar update in your next room.</p>

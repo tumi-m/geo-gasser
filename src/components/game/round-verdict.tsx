@@ -107,7 +107,7 @@ function Row({
         winner && "is-winner",
       )}
     >
-      <PlayerAvatar id={row.avatarId} size={34} />
+      <PlayerAvatar id={row.avatarId} size={34} mood={winner ? "happy" : "neutral"} />
       <div className="min-w-0">
         <p className="flex items-center gap-1.5 text-sm">
           <span className="truncate font-medium text-fg">{row.name}</span>

@@ -151,7 +151,12 @@ function SplashPlayer({
   return (
     <div className={cn("splash-player", `is-${side}`, winner && "is-winner", loser && "is-loser")}>
       <div className="splash-avatar">
-        <PlayerAvatar id={avatarId} size={76} />
+        <PlayerAvatar
+          id={avatarId}
+          size={76}
+          live
+          mood={winner ? "happy" : loser ? "sad" : "focus"}
+        />
         {winner && (
           <span className="splash-trophy" aria-hidden>
             <Trophy size={22} />
