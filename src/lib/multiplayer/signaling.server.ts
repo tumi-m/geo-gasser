@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { HOST_TABLE_SQL, CLAIM_HOST_SQL } from "./room-host.ts";
 import type { PeerRow, RtcPollResponse, SignalRow } from "./p2p";
 
 const ID = z.string().regex(/^[a-zA-Z0-9_-]{1,64}$/);
@@ -26,9 +27,21 @@ const postSchema = z.discriminatedUnion("op", [signalSchema, leaveSchema, mailSc
 
 const PEER_TTL_MS = 30_000;
 const SIGNAL_TTL_MS = 60_000;
+// Keep ownership through a refresh or short network interruption. Only the
+// owner's polling renews the lease; two invite-only clients can claim an
+// abandoned room without depending on browser navigation history.
+const HOST_TTL_MS = 120_000;
 
 type MemPeer = { room: string; id: string; name: string; lastSeen: number };
-type MemSignal = { id: number; room: string; to: string; from: string; kind: SignalRow["kind"] | "mail"; payload: unknown; createdAt: number };
+type MemSignal = {
+  id: number;
+  room: string;
+  to: string;
+  from: string;
+  kind: SignalRow["kind"] | "mail";
+  payload: unknown;
+  createdAt: number;
+};
 
 const mem = globalThis as typeof globalThis & {
   __atlasRtc__?: { peers: Map<string, MemPeer>; signals: MemSignal[]; seq: number };
@@ -36,6 +49,24 @@ const mem = globalThis as typeof globalThis & {
 function store() {
   mem.__atlasRtc__ ??= { peers: new Map(), signals: [], seq: 1 };
   return mem.__atlasRtc__;
+}
+
+const roomHosts = globalThis as typeof globalThis & {
+  __atlasRoomHosts__?: Map<string, { peer: string; lastSeen: number }>;
+};
+function claimMemoryHost(room: string, peer: string): string {
+  const hosts = (roomHosts.__atlasRoomHosts__ ??= new Map());
+  const now = Date.now();
+  for (const [key, host] of hosts) {
+    if (now - host.lastSeen >= HOST_TTL_MS) hosts.delete(key);
+  }
+  let host = hosts.get(room);
+  if (!host) {
+    host = { peer, lastSeen: now };
+    hosts.set(room, host);
+  }
+  if (host.peer === peer) host.lastSeen = now;
+  return host.peer;
 }
 
 function pruneMem() {
@@ -84,11 +115,27 @@ async function handleGet(url: URL): Promise<Response> {
     .slice(0, 32)
     .map((p) => ({ id: p.id, name: p.name }));
   // One ordered page for both channels: separate limits can skip older mail.
-  const page = s.signals.filter(sig => sig.room === room && sig.id > since && sig.from !== peer &&
-    (sig.to === peer || sig.kind === "mail" && sig.to === "*")).slice(0,200);
-  const signals = page.filter(sig=>sig.kind !== "mail").map(sig=>({id:sig.id,from:sig.from,kind:sig.kind as SignalRow["kind"],payload:sig.payload}));
-  const mail = page.filter(sig=>sig.kind === "mail").map(sig=>({id:sig.id,from:sig.from,payload:sig.payload}));
-  const body: RtcPollResponse = { peers, signals, mail };
+  const page = s.signals
+    .filter(
+      (sig) =>
+        sig.room === room &&
+        sig.id > since &&
+        sig.from !== peer &&
+        (sig.to === peer || (sig.kind === "mail" && sig.to === "*")),
+    )
+    .slice(0, 200);
+  const signals = page
+    .filter((sig) => sig.kind !== "mail")
+    .map((sig) => ({
+      id: sig.id,
+      from: sig.from,
+      kind: sig.kind as SignalRow["kind"],
+      payload: sig.payload,
+    }));
+  const mail = page
+    .filter((sig) => sig.kind === "mail")
+    .map((sig) => ({ id: sig.id, from: sig.from, payload: sig.payload }));
+  const body: RtcPollResponse = { peers, signals, mail, hostId: claimMemoryHost(room, peer) };
   return json(body);
 }
 
@@ -135,19 +182,25 @@ async function handlePost(request: Request): Promise<Response> {
 let tableSetup: Promise<void> | undefined;
 function ensureTables(sql: import("../db").Sql): Promise<void> {
   tableSetup ??= (async () => {
-  await sql.query(
-    `CREATE TABLE IF NOT EXISTS webrtc_peers (
+    await sql.query(
+      `CREATE TABLE IF NOT EXISTS webrtc_peers (
        room TEXT NOT NULL, peer_id TEXT NOT NULL, name TEXT NOT NULL DEFAULT '',
        last_seen TIMESTAMPTZ NOT NULL DEFAULT now(), PRIMARY KEY (room, peer_id))`,
-  );
-  await sql.query(
-    `CREATE TABLE IF NOT EXISTS webrtc_signals (
+    );
+    await sql.query(
+      `CREATE TABLE IF NOT EXISTS webrtc_signals (
        id BIGSERIAL PRIMARY KEY, room TEXT NOT NULL, to_peer TEXT NOT NULL,
        from_peer TEXT NOT NULL, kind TEXT NOT NULL, payload JSONB NOT NULL,
        created_at TIMESTAMPTZ NOT NULL DEFAULT now())`,
-  );
-  await sql.query(`CREATE INDEX IF NOT EXISTS webrtc_signals_delivery ON webrtc_signals (room, id)`);
-  })().catch(error => {tableSetup=undefined; throw error;});
+    );
+    await sql.query(HOST_TABLE_SQL);
+    await sql.query(
+      `CREATE INDEX IF NOT EXISTS webrtc_signals_delivery ON webrtc_signals (room, id)`,
+    );
+  })().catch((error) => {
+    tableSetup = undefined;
+    throw error;
+  });
   return tableSetup;
 }
 
@@ -160,6 +213,9 @@ async function sqlGet(room: string, peer: string, name: string, since: number): 
      ON CONFLICT (room, peer_id) DO UPDATE SET last_seen = now(), name = EXCLUDED.name`,
     [room, peer, name],
   );
+  // A single UPSERT arbitrates simultaneous joins across server instances.
+  // Non-owners cannot extend the absent host's lease.
+  const hosts = await sql.query<{ peer_id: string }>(CLAIM_HOST_SQL, [room, peer]);
   const rows = await sql.query<{ id: number; from_peer: string; kind: string; payload: unknown }>(
     `SELECT id, from_peer, kind, payload FROM webrtc_signals
      WHERE room = $1 AND (to_peer = $2 OR (kind = 'mail' AND to_peer = '*')) AND from_peer <> $2 AND created_at > now() - interval '60 seconds' AND id > $3 ORDER BY id LIMIT 200`,
@@ -172,10 +228,16 @@ async function sqlGet(room: string, peer: string, name: string, since: number): 
     [room],
   );
   const body: RtcPollResponse = {
+    hostId: hosts[0].peer_id,
     peers: roster.map((r) => ({ id: r.peer_id, name: r.name })),
     signals: rows
       .filter((r) => r.kind === "offer" || r.kind === "answer" || r.kind === "ice")
-      .map((r) => ({ id: r.id, from: r.from_peer, kind: r.kind as SignalRow["kind"], payload: r.payload })),
+      .map((r) => ({
+        id: r.id,
+        from: r.from_peer,
+        kind: r.kind as SignalRow["kind"],
+        payload: r.payload,
+      })),
     mail: rows
       .filter((r) => r.kind === "mail" && r.from_peer !== peer)
       .map((r) => ({ id: r.id, from: r.from_peer, payload: r.payload })),
@@ -184,14 +246,12 @@ async function sqlGet(room: string, peer: string, name: string, since: number): 
 }
 
 async function sqlPost(
-  msg:
-    | z.infer<typeof signalSchema>
-    | z.infer<typeof leaveSchema>
-    | z.infer<typeof mailSchema>,
+  msg: z.infer<typeof signalSchema> | z.infer<typeof leaveSchema> | z.infer<typeof mailSchema>,
 ): Promise<Response> {
   const { getSql } = await import("@/lib/db");
   const sql = await getSql();
   await ensureTables(sql);
+  await sql.query(`DELETE FROM webrtc_room_hosts WHERE last_seen < now() - interval '2 hours'`);
   // Bound transient signaling storage. Never keep game payloads indefinitely.
   await sql.query(`DELETE FROM webrtc_signals WHERE created_at < now() - interval '2 minutes'`);
   await sql.query(`DELETE FROM webrtc_peers WHERE last_seen < now() - interval '2 minutes'`);
@@ -206,7 +266,10 @@ async function sqlPost(
       [msg.room, msg.to, msg.from, "mail", JSON.stringify(msg.payload)],
     );
   } else {
-    await sql.query(`DELETE FROM webrtc_peers WHERE room = $1 AND peer_id = $2`, [msg.room, msg.peer]);
+    await sql.query(`DELETE FROM webrtc_peers WHERE room = $1 AND peer_id = $2`, [
+      msg.room,
+      msg.peer,
+    ]);
   }
   return json({ ok: true });
 }

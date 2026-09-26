@@ -77,12 +77,10 @@ function applyDocumentSettings(settings: GameSettings) {
 export function MatchApp({
   mode,
   roomCode,
-  isCreator = false,
   duelKind = "online",
 }: {
   mode: "solo" | "duel";
   roomCode?: string;
-  isCreator?: boolean;
   duelKind?: "online" | "bot" | "hotseat";
 }) {
   const navigate = useNavigate();
@@ -179,6 +177,7 @@ export function MatchApp({
   });
   const {
     selfId: p2pSelfId,
+    hostId: p2pHostId,
     peers: p2pPeers,
     joined: p2pJoined,
     error: p2pError,
@@ -198,7 +197,13 @@ export function MatchApp({
         ? socketSelfId || playerIdRef.current
         : p2pSelfId
       : selfIdRef.current;
-  const hostRef = useRef(mode === "solo" || duelKind !== "online" || isCreator);
+  const hostRef = useRef(false);
+  // The relay assigns one owner even when both players open an invite directly.
+  // Router history is only a navigation hint, never room ownership.
+  hostRef.current =
+    mode === "solo" ||
+    duelKind !== "online" ||
+    (!serverMode && (state.hostId === selfId || (state.phase === "lobby" && p2pHostId === selfId)));
   const stateRef = useRef(state);
   stateRef.current = state;
 
@@ -304,7 +309,7 @@ export function MatchApp({
 
   useEffect(() => {
     if (mode !== "duel" || duelKind !== "online" || serverMode) return;
-    if (isCreator && state.phase === "lobby") {
+    if (p2pHostId === selfId && state.phase === "lobby") {
       hostRef.current = true;
       try {
         const raw = sessionStorage.getItem(`atlas-host:${roomCode}`);
@@ -343,7 +348,7 @@ export function MatchApp({
     mode,
     duelKind,
     serverMode,
-    isCreator,
+    p2pHostId,
     selfId,
     name,
     avatarId,
@@ -362,6 +367,7 @@ export function MatchApp({
       const msg = data as WireMessage;
       if (msg.t === "snapshot") {
         if (hostRef.current || msg.state.hostId !== _from) return;
+        if (p2pHostId && p2pHostId !== _from) return;
         if (stateRef.current.hostId && stateRef.current.hostId !== _from) return;
         clockOffset.current = msg.sentAt - Date.now();
         setState((prev) => mergeHostSnapshot(prev, msg.state, selfId));
@@ -396,7 +402,7 @@ export function MatchApp({
       if (msg.t === "rematch" && ["final_reveal", "match_complete"].includes(current.phase))
         dispatch({ type: "REMATCH", seed: msg.nextSeed, now });
     });
-  }, [mode, serverMode, p2pOnMessage, p2pSend, dispatch, selfId]);
+  }, [mode, serverMode, p2pOnMessage, p2pSend, dispatch, selfId, p2pHostId]);
 
   useEffect(() => {
     if (!serverMode) return;
@@ -429,7 +435,7 @@ export function MatchApp({
     send();
     const id = window.setInterval(send, 2500);
     return () => window.clearInterval(id);
-  }, [mode, duelKind, serverMode, p2pSend, state.phase]);
+  }, [mode, duelKind, serverMode, p2pSend, state.phase, p2pHostId]);
 
   // Whether the host's state actually has a seat for us yet.
   const seated = Boolean(state.hostId) && state.players.some((p) => p.id === selfId);
@@ -448,7 +454,7 @@ export function MatchApp({
     ping();
     const id = window.setInterval(ping, 1500);
     return () => window.clearInterval(id);
-  }, [mode, duelKind, serverMode, p2pSend, selfId, name, avatarId, seated]);
+  }, [mode, duelKind, serverMode, p2pSend, selfId, name, avatarId, seated, p2pHostId]);
 
   useEffect(() => {
     if (
@@ -537,7 +543,8 @@ export function MatchApp({
   // Mark each site seen as soon as it is on screen (a guest learns it at the
   // reveal), so a match left halfway still keeps the next one from repeating it.
   const shownId =
-    loc && !["lobby", "waiting_for_players", "match_starting", "rematch_pending"].includes(state.phase)
+    loc &&
+    !["lobby", "waiting_for_players", "match_starting", "rematch_pending"].includes(state.phase)
       ? loc.id
       : undefined;
   useEffect(() => {
@@ -593,8 +600,7 @@ export function MatchApp({
   const revealKey = showingReveal ? `${state.questionIndex}:${state.roundStartedAtMs ?? 0}` : null;
   const [splashSeen, setSplashSeen] = useState<string | null>(null);
   const [summarySeen, setSummarySeen] = useState<string | null>(null);
-  const questionSplash =
-    revealKey !== null && splashSeen !== revealKey && Boolean(you?.roundScore);
+  const questionSplash = revealKey !== null && splashSeen !== revealKey && Boolean(you?.roundScore);
   // When the question closes a multi-question round (Quick is one round of
   // ten), the round summary follows the question's own splash.
   const summarySplash =
@@ -989,11 +995,18 @@ export function MatchApp({
                   (failed
                     ? "Using the room relay to connect"
                     : (serverMode ? socketJoined && socketConnected : p2pJoined)
-                      ? "Waiting for opponent"
+                      ? state.players.length === 0
+                        ? "Joining room…"
+                        : "Waiting for opponent"
                       : "Connecting…")}
               </li>
             )}
           </ul>
+          {!hostRef.current && state.players.length === 2 && !serverMode && (
+            <p role="status" className="mt-6 text-center text-sm text-muted">
+              Both players are here. Waiting for the host to start.
+            </p>
+          )}
           {hostRef.current && !serverMode && (
             <Button
               className="mt-8 w-full"
@@ -1160,7 +1173,8 @@ export function MatchApp({
 
       <header
         ref={measureHud}
-        className="match-hud relative z-20 flex items-start justify-between gap-3 px-4 py-3 pt-[max(0.75rem,env(safe-area-inset-top))]">
+        className="match-hud relative z-20 flex items-start justify-between gap-3 px-4 py-3 pt-[max(0.75rem,env(safe-area-inset-top))]"
+      >
         <div className="flex flex-col gap-2">
           {!showingReveal && (
             <TimerRing

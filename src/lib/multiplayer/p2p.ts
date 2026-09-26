@@ -32,6 +32,7 @@ export interface MailRow {
   payload: unknown;
 }
 export interface RtcPollResponse {
+  hostId?: string;
   peers: PeerRow[];
   signals: SignalRow[];
   mail?: MailRow[];
@@ -58,6 +59,7 @@ export interface P2PRoomOptions {
   onMessage?: (from: string, data: unknown, channel: "state" | "reliable") => void;
   /** Fires once, on the first successful signaling poll (registration). */
   onConnected?: () => void;
+  onRoomHost?: (hostId: string) => void;
   onError?: (error: string | null) => void;
 }
 
@@ -166,10 +168,18 @@ export class P2PRoom {
   send(data: unknown, peerId?: string): void {
     const wire = JSON.stringify({ t: "d", d: data });
     const targets = peerId ? [this.peers.get(peerId)] : [...this.peers.values()];
-    if (!targets.length) { void this.postMail(data, peerId); return; }
+    if (!targets.length) {
+      void this.postMail(data, peerId);
+      return;
+    }
     for (const slot of targets) {
       if (slot?.reliable?.readyState === "open") {
-        try { slot.reliable.send(wire); continue; } catch { /* Fall back to relay. */ }
+        try {
+          slot.reliable.send(wire);
+          continue;
+        } catch {
+          /* Fall back to relay. */
+        }
       }
       void this.postMail(data, slot?.info.id ?? peerId);
     }
@@ -225,7 +235,7 @@ export class P2PRoom {
       name: this.opts.name ?? "",
       since: String(this.cursor),
     });
-    const res = await fetch(`/api/rtc?${params}`, {signal: AbortSignal.timeout(10000)});
+    const res = await fetch(`/api/rtc?${params}`, { signal: AbortSignal.timeout(10000) });
     if (this.closed) return;
     if (!res.ok) throw new Error(`signaling poll failed: ${res.status}`);
     this.opts.onError?.(null);
@@ -235,6 +245,7 @@ export class P2PRoom {
       this.everPolled = true;
       this.opts.onConnected?.();
     }
+    if (body.hostId) this.opts.onRoomHost?.(body.hostId);
     this.reconcileRoster(body.peers);
     const roster = new Set(body.peers.map((p) => p.id));
     for (const sig of body.signals) {

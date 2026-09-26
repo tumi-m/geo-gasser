@@ -9,6 +9,7 @@ export interface UseP2PRoomOptions {
 
 export interface P2PRoomHandle {
   selfId: string;
+  hostId: string | null;
   room: string;
   peers: PeerInfo[];
   joined: boolean;
@@ -33,13 +34,16 @@ export function useP2PRoom(options: UseP2PRoomOptions = {}): P2PRoomHandle {
       const key = `atlas-peer:${options.room}`;
       const saved = sessionStorage.getItem(key);
       if (saved) return saved;
-      sessionStorage.setItem(key,fresh);
-    } catch { /* Session storage is optional. */ }
+      sessionStorage.setItem(key, fresh);
+    } catch {
+      /* Session storage is optional. */
+    }
     return fresh;
   });
   const [room] = useState(() => options.room ?? defaultRoom());
   const [name] = useState(() => options.name ?? selfId);
   const [peers, setPeers] = useState<PeerInfo[]>([]);
+  const [hostId, setHostId] = useState<string | null>(null);
   const [joined, setJoined] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const roomRef = useRef<P2PRoom | null>(null);
@@ -56,10 +60,14 @@ export function useP2PRoom(options: UseP2PRoomOptions = {}): P2PRoomHandle {
       selfId,
       name,
       onPeersChanged: setPeers,
+      onRoomHost: setHostId,
       onMessage: (from, data, channel) => {
         for (const fn of listeners.current) fn(from, data, channel);
       },
-      onConnected: () => {setJoined(true);setError(null);},
+      onConnected: () => {
+        setJoined(true);
+        setError(null);
+      },
       onError: setError,
     });
     roomRef.current = p2p;
@@ -85,5 +93,5 @@ export function useP2PRoom(options: UseP2PRoomOptions = {}): P2PRoomHandle {
     [],
   );
 
-  return { selfId, room, peers, joined, error, broadcast, send, onMessage };
+  return { selfId, hostId, room, peers, joined, error, broadcast, send, onMessage };
 }
