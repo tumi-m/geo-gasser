@@ -26,3 +26,9 @@ After the first deployment, an eight-client concurrent live probe returned four 
 The app now supports both `DATABASE_URL` and Vercel's `POSTGRES_URL` alias consistently in its database client, relay, and migrator. A Vercel deployment with neither variable returns an explicit unavailable response instead of silently creating separate rooms. Production requires provisioning shared Postgres and redeploying; the code-only deployment is not a completed multiplayer repair.
 
 A Neon **Free** database is now connected to this project. Vercel shows `DATABASE_URL` and `POSTGRES_URL` assigned to Production and Preview. A fresh deployment is required to activate these settings.
+
+## Verified production recovery
+
+Deployment `b013ea7` activated the shared database and completed successfully on Vercel. Repeating the eight-client concurrent test returned the same host to all eight clients and a complete shared roster of eight peers.
+
+Two fresh live browser clients opened the same invite directly, saw both players, started round one, placed and locked guesses, and received matching results (6,250 and 5,994). Both clients were then refreshed; the scores and match were restored. The guest's Continue action advanced both clients into round two. The host client reported no runtime console errors during this check.
