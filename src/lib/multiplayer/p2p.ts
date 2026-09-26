@@ -104,6 +104,12 @@ export function defaultIceServers(): RTCIceServer[] {
   ];
 }
 
+class RoomStorageUnavailable extends Error {
+  constructor() {
+    super("Online rooms are temporarily unavailable. Please try again later.");
+  }
+}
+
 export class P2PRoom {
   private readonly opts: P2PRoomOptions;
   private readonly peers = new Map<string, PeerSlot>();
@@ -128,8 +134,12 @@ export class P2PRoom {
   async join(): Promise<void> {
     try {
       await this.pollOnce();
-    } catch {
-      this.opts.onError?.("Room service is unavailable. Retrying…");
+    } catch (error) {
+      this.opts.onError?.(
+        error instanceof RoomStorageUnavailable
+          ? error.message
+          : "Room service is unavailable. Retrying…",
+      );
       // First poll can fail transiently; the scheduled loop below retries.
     }
     if (this.closed) return;
@@ -237,7 +247,11 @@ export class P2PRoom {
     });
     const res = await fetch(`/api/rtc?${params}`, { signal: AbortSignal.timeout(10000) });
     if (this.closed) return;
-    if (!res.ok) throw new Error(`signaling poll failed: ${res.status}`);
+    if (!res.ok) {
+      const failure = await res.json().catch(() => null);
+      if (failure?.error === "ROOM_STORAGE_UNAVAILABLE") throw new RoomStorageUnavailable();
+      throw new Error(`signaling poll failed: ${res.status}`);
+    }
     this.opts.onError?.(null);
     const body = (await res.json()) as RtcPollResponse;
     if (this.closed) return;
@@ -264,8 +278,12 @@ export class P2PRoom {
     if (this.closed) return;
     try {
       await this.pollOnce();
-    } catch {
-      this.opts.onError?.("Connection interrupted. Reconnecting…");
+    } catch (error) {
+      this.opts.onError?.(
+        error instanceof RoomStorageUnavailable
+          ? error.message
+          : "Connection interrupted. Reconnecting…",
+      );
       // Transient poll failures are expected (tab sleep, deploy roll); retry.
     }
     this.schedulePoll(this.anyPairConnecting() ? FAST_POLL_MS : IDLE_POLL_MS);

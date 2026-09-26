@@ -14,7 +14,15 @@ Both direct invite links and normal lobby navigation use this assignment. Guests
 
 - Reproduced the original two-client failure on the live Vercel app.
 - Two local invite-only browser clients: both seated, host started the match, both guessed and locked, matching round results appeared, and the host recovered after reload.
-- 190 tests passed, including invite-only relay-to-match integration, simultaneous Postgres claims, ownership through refresh, lease expiration, and renewal.
+- 192 tests passed, including invite-only relay-to-match integration, simultaneous Postgres claims, ownership through refresh, lease expiration, and renewal.
 - App and worker TypeScript checks passed.
 
 Production still requires shared signaling storage (`DATABASE_URL`) when serving multiple processes; the in-memory store is for a single development server. The optional Cloudflare match-server transport is unchanged.
+
+## Production finding
+
+After the first deployment, an eight-client concurrent live probe returned four different hosts and inconsistent rosters for the same test room. Vercel's environment-variable screen confirmed **no variables configured**. The relay was therefore using isolated process memory, which cannot coordinate Vercel functions. This is a separate deployment issue from the missing navigation host flag.
+
+The app now supports both `DATABASE_URL` and Vercel's `POSTGRES_URL` alias consistently in its database client, relay, and migrator. A Vercel deployment with neither variable returns an explicit unavailable response instead of silently creating separate rooms. Production requires provisioning shared Postgres and redeploying; the code-only deployment is not a completed multiplayer repair.
+
+A Neon **Free** database is now connected to this project. Vercel shows `DATABASE_URL` and `POSTGRES_URL` assigned to Production and Preview. A fresh deployment is required to activate these settings.

@@ -92,3 +92,26 @@ test("active hosts retain their lease across many refresh windows", async (t) =>
     assert.equal((await poll(room, "guest")).hostId, "host");
   }
 });
+
+test("Vercel without shared storage fails explicitly instead of splitting players into memory rooms", async () => {
+  const saved = {
+    VERCEL: process.env.VERCEL,
+    DATABASE_URL: process.env.DATABASE_URL,
+    POSTGRES_URL: process.env.POSTGRES_URL,
+  };
+  try {
+    process.env.VERCEL = "1";
+    delete process.env.DATABASE_URL;
+    delete process.env.POSTGRES_URL;
+    const response = await handleSignaling(
+      new Request("https://example.com/api/rtc?room=DEPLOY&peer=test"),
+    );
+    assert.equal(response.status, 503);
+    assert.deepEqual(await response.json(), { error: "ROOM_STORAGE_UNAVAILABLE" });
+  } finally {
+    for (const [key, value] of Object.entries(saved)) {
+      if (value === undefined) delete process.env[key];
+      else process.env[key] = value;
+    }
+  }
+});

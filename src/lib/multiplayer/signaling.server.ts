@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { databaseConnectionUrl, requiresSharedRoomStorage } from "../database-config.ts";
 import { HOST_TABLE_SQL, CLAIM_HOST_SQL } from "./room-host.ts";
 import type { PeerRow, RtcPollResponse, SignalRow } from "./p2p";
 
@@ -84,7 +85,7 @@ function json(body: unknown, status = 200): Response {
 }
 
 function sqlBacked(): boolean {
-  return Boolean(typeof process !== "undefined" && process.env.DATABASE_URL?.trim());
+  return Boolean(typeof process !== "undefined" && databaseConnectionUrl(process.env));
 }
 
 async function handleGet(url: URL): Promise<Response> {
@@ -276,6 +277,11 @@ async function sqlPost(
 
 export async function handleSignaling(request: Request): Promise<Response> {
   try {
+    // Per-process memory cannot connect players across Vercel instances.
+    // Fail explicitly rather than putting both players in separate ghost rooms.
+    if (typeof process !== "undefined" && requiresSharedRoomStorage(process.env)) {
+      return json({ error: "ROOM_STORAGE_UNAVAILABLE" }, 503);
+    }
     if (request.method === "GET") return await handleGet(new URL(request.url));
     if (request.method === "POST") return await handlePost(request);
     return json({ error: "method not allowed" }, 405);
