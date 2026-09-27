@@ -1,6 +1,15 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
-import { Eye, Map, Maximize, Minimize, Settings as SettingsIcon } from "lucide-react";
+import {
+  Check,
+  Copy,
+  Eye,
+  Map,
+  Maximize,
+  Minimize,
+  Settings as SettingsIcon,
+  Share2,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   atlasLabel,
@@ -66,7 +75,7 @@ import { SettingsPanel } from "./settings-panel";
 import { QuestionMark, RoundPips, TimerRing } from "./timer-ring";
 import { ScoreTally } from "./score-tally";
 import { FinalResults } from "./final-results";
-import { cn } from "@/lib/utils";
+import { cn, copyText } from "@/lib/utils";
 
 function applyDocumentSettings(settings: GameSettings) {
   document.documentElement.classList.toggle("hc", settings.highContrast);
@@ -124,6 +133,10 @@ export function MatchApp({
     }
   };
   const [copied, setCopied] = useState(false);
+  // The native share sheet exists only on some browsers; learn that after mount
+  // so the server and first client render agree.
+  const [canShare, setCanShare] = useState(false);
+  useEffect(() => setCanShare(typeof navigator.share === "function"), []);
   const [shake, setShake] = useState(false);
   const [panoFailed, setPanoFailed] = useState(false);
   const [scene3dFailed, setScene3dFailed] = useState(false);
@@ -969,22 +982,40 @@ export function MatchApp({
           <h1 className="font-display mt-2 text-5xl tracking-tight">{roomCode}</h1>
           <p className="mt-3 text-muted">Share the invite. Start when you’re both ready.</p>
           <div className="mt-6 flex gap-2">
+            {canShare && (
+              <Button
+                className="flex-1"
+                onClick={async () => {
+                  try {
+                    await navigator.share({
+                      title: "Atlas Duel",
+                      text: `Join my Atlas Duel room ${roomCode}`,
+                      url: shareUrl,
+                    });
+                  } catch {
+                    // Dismissed, or the share target failed: the copy button remains.
+                  }
+                }}
+              >
+                <Share2 size={16} /> Share invite
+              </Button>
+            )}
             <Button
               variant="secondary"
               className="flex-1"
               onClick={async () => {
-                try {
-                  await navigator.clipboard.writeText(shareUrl || roomCode || "");
-                  setCopied(true);
-                  window.setTimeout(() => setCopied(false), 1600);
-                } catch {
-                  setCopied(false);
-                }
+                const ok = await copyText(shareUrl || roomCode || "");
+                setCopied(ok);
+                if (ok) window.setTimeout(() => setCopied(false), 1600);
               }}
             >
-              {copied ? "Copied" : "Copy invite"}
+              {copied ? <Check size={16} /> : <Copy size={16} />}
+              {copied ? "Copied" : canShare ? "Copy link" : "Copy invite"}
             </Button>
           </div>
+          <p className="sr-only" role="status" aria-live="polite">
+            {copied ? "Invite link copied" : ""}
+          </p>
           <input
             aria-label="Invite link"
             readOnly
@@ -1005,7 +1036,9 @@ export function MatchApp({
               </li>
             ))}
             {state.players.length < 2 && (
-              <li className="rounded-[var(--radius-md)] border border-dashed border-border px-4 py-3 text-muted">
+              <li className="lobby-empty flex items-center gap-3 rounded-[var(--radius-md)] border border-dashed border-border px-3 py-3 text-muted">
+                <span className="lobby-seat" aria-hidden />
+                <span className="min-w-0 flex-1">
                 {(serverMode ? null : p2pError) ??
                   (failed
                     ? "Using the room relay to connect"
@@ -1014,6 +1047,12 @@ export function MatchApp({
                         ? "Joining room…"
                         : "Waiting for opponent"
                       : "Connecting…")}
+                </span>
+                <span className="waiting-dots" aria-hidden>
+                  <i />
+                  <i />
+                  <i />
+                </span>
               </li>
             )}
           </ul>
@@ -1028,7 +1067,7 @@ export function MatchApp({
               disabled={state.players.length < 2}
               onClick={() => dispatch({ type: "START_MATCH", now: Date.now() })}
             >
-              {state.players.length < 2 ? "Waiting for opponent" : "Start match"}
+              {state.players.length < 2 ? "Start when they join" : "Start match"}
             </Button>
           )}
           <Button
