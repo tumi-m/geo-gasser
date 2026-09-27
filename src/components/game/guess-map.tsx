@@ -530,7 +530,7 @@ export function GuessMap({
   }, [reveal, truthKey, guessKey, opponentKey, reducedMotion]);
 
   const chip =
-    "inline-flex h-9 items-center gap-1.5 rounded-full border border-border bg-bg/85 px-3 text-[11px] font-medium uppercase tracking-wider text-fg backdrop-blur-sm active:scale-95 transition-transform";
+    "hit-44 inline-flex h-10 items-center gap-1.5 rounded-full border border-border bg-bg/85 px-3 text-[11px] font-medium uppercase tracking-wider text-fg backdrop-blur-sm active:scale-95 transition-transform";
 
   return (
     <div

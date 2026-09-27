@@ -1002,3 +1002,20 @@ html.reduce-motion::view-transition-old(root),html.reduce-motion::view-transitio
 .scene-hint-arrows.is-tall {animation:hint-sway-y 1.6s ease-in-out infinite}
 @keyframes hint-sway-x {50%{transform:translateX(3px)}}
 @keyframes hint-sway-y {50%{transform:translateY(3px)}}
+
+/* ───────────────────────── Touch targets ───────────────────────── */
+/* An invisible 44px hit area around small controls, without resizing them. */
+.hit-44 {position:relative}
+.hit-44::after {content:"";position:absolute;inset:-2px}
+.settings-toggle.is-clickable {cursor:pointer}
+@media (pointer: coarse) {
+  .leaflet-touch .leaflet-control-zoom.leaflet-bar a {width:44px;height:44px;line-height:44px;font-size:20px}
+  .scene-explorer-controls.scene-controls button,.scene-controls button {width:42px;height:42px}
+  .avatar-swatch {position:relative}
+  .avatar-swatch::after {content:"";position:absolute;inset:-7px;border-radius:999px}
+  .journey-credit {display:inline-block;padding:10px 0;margin-top:1px}
+  input[type="range"] {height:32px;background:linear-gradient(var(--color-bg-subtle),var(--color-bg-subtle)) center / 100% 6px no-repeat}
+  input[type="range"]::-webkit-slider-thumb {width:26px;height:26px}
+  .settings-switch {position:relative}
+  .settings-switch::after {content:"";position:absolute;inset:-9px -4px}
+}

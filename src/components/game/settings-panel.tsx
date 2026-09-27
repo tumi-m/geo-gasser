@@ -366,7 +366,14 @@ function Toggle({
   disabled?: boolean;
 }) {
   return (
-    <div className={cn("settings-toggle", disabled && "opacity-45")}>
+    // The whole row is the target, not just the 46×27 switch.
+    <div
+      className={cn("settings-toggle", !disabled && "is-clickable", disabled && "opacity-45")}
+      onClick={(e) => {
+        if (disabled || (e.target as HTMLElement).closest("button")) return;
+        onChange(!checked);
+      }}
+    >
       <span>
         <strong>{label}</strong>
         <small>{hint}</small>
