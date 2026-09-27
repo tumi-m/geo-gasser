@@ -1,7 +1,14 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { Button } from "@/components/ui/button";
-import { formatDistance, getLocation, locationCountryLabel, type MatchState } from "@/lib/game";
+import { Check, Share2 } from "lucide-react";
+import {
+  formatDistance,
+  getLocation,
+  locationCountryLabel,
+  shareCard,
+  type MatchState,
+} from "@/lib/game";
 import { MusicHudButton } from "./music-player";
 import { Sparks } from "./round-splash";
 import { useCountUp } from "./use-count-up";
@@ -9,7 +16,7 @@ import { WordRise } from "@/components/motion/motion";
 import { useRevealOnScroll } from "@/components/motion/use-reveal";
 import { PlayerAvatar } from "./player-avatar";
 import { ScoreTally } from "./score-tally";
-import { cn } from "@/lib/utils";
+import { cn, copyText } from "@/lib/utils";
 
 export function FinalResults({
   state,
@@ -34,10 +41,9 @@ export function FinalResults({
   const closest = state.roundHistory
     .map((r) => r.guesses[selfId]?.score.distanceKm)
     .filter((d) => Number.isFinite(d)) as number[];
-  const fastest = state.roundHistory
-    .map((r) => r.guesses[selfId]?.score)
-    .filter((s) => s && s.distanceKm <= 5)
-    .map((s) => s!.responseMs);
+  const scores = state.roundHistory
+    .map((r) => r.guesses[selfId]?.score.roundScore)
+    .filter((n): n is number => Number.isFinite(n));
   const avgResponse =
     you && state.roundHistory.length ? you.totalResponseMs / state.roundHistory.length / 1000 : 0;
   const headline = shared ? "Draw" : state.mode === "solo" || youWin ? you?.name : other?.name;
@@ -199,31 +205,58 @@ export function FinalResults({
           />
           <Stat
             i={3}
-            label="Fast accurate"
+            label="Best question"
             reduced={Boolean(reducedMotion)}
-            value={fastest.length ? Math.min(...fastest) / 1000 : null}
-            format={(v) => `${v.toFixed(1)}s`}
+            value={scores.length ? Math.max(...scores) : null}
+            format={(v) => Math.round(v).toLocaleString()}
           />
         </dl>
         <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-          <Button className="flex-1 rematch-nudge" onClick={onRematch}>
+          <Button className="rematch-nudge sm:flex-1" onClick={onRematch}>
             Rematch
           </Button>
           {state.mode === "duel" && (
             <Button
               variant="secondary"
-              className="flex-1"
+              className="sm:flex-1"
               onClick={() => void navigate({ to: "/duel" })}
             >
               New opponent
             </Button>
           )}
-          <Button variant="secondary" className="flex-1" onClick={onHome}>
+          <ShareResult state={state} selfId={selfId} />
+          <Button variant="secondary" className="sm:flex-1" onClick={onHome}>
             Home
           </Button>
         </div>
       </div>
     </main>
+  );
+}
+
+/** Share a spoiler-free card: the share sheet where there is one, else the clipboard. */
+function ShareResult({ state, selfId }: { state: MatchState; selfId: string }) {
+  const [copied, setCopied] = useState(false);
+  const share = async () => {
+    const url = `${window.location.origin}/`;
+    const text = shareCard(state, selfId, url);
+    if (typeof navigator.share === "function") {
+      try {
+        await navigator.share({ title: "Atlas Duel", text });
+        return;
+      } catch (e) {
+        if ((e as Error)?.name === "AbortError") return;
+      }
+    }
+    const ok = await copyText(text);
+    setCopied(ok);
+    if (ok) window.setTimeout(() => setCopied(false), 1800);
+  };
+  return (
+    <Button variant="secondary" className="sm:flex-1" onClick={() => void share()}>
+      {copied ? <Check size={16} /> : <Share2 size={16} />}
+      <span aria-live="polite">{copied ? "Copied" : "Share"}</span>
+    </Button>
   );
 }
 
