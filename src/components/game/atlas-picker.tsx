@@ -36,7 +36,7 @@ export function AtlasPicker({
 
   return (
     <div className="flex flex-col gap-2">
-      <div className="grid grid-cols-3 gap-2">
+      <div className="grid grid-cols-2 gap-2 min-[420px]:grid-cols-3">
         {ATLAS_PRESETS.map((p) => (
           <button
             key={p.id}
@@ -53,8 +53,8 @@ export function AtlasPicker({
               spec.preset === p.id ? "border-accent bg-accent/15 text-fg" : "border-border bg-bg/40 text-muted",
             )}
           >
-            <span className="block text-sm font-medium text-fg">{p.label}</span>
-            <span className="mt-0.5 block text-[11px] text-muted">{p.hint}</span>
+            <span className="block text-sm leading-tight font-medium text-fg">{p.label}</span>
+            <span className="mt-0.5 block text-[11px] leading-snug text-muted">{p.hint}</span>
           </button>
         ))}
       </div>
