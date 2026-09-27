@@ -1196,12 +1196,14 @@ export function MatchApp({
           {!showingReveal && (
             <button
               type="button"
-              className="view-mode-button"
+              className="view-mode-button shrink-0"
               aria-pressed={exploring}
+              aria-label={exploring ? "Show map" : "Explore view"}
+              title={exploring ? "Show map" : "Explore view: the photo, full screen"}
               onClick={() => setExploring((v) => !v)}
             >
               {exploring ? <Map size={17} /> : <Eye size={17} />}
-              <span>{exploring ? "Show map" : "Explore view"}</span>
+              <span className="view-mode-label">{exploring ? "Show map" : "Explore view"}</span>
             </button>
           )}
           {canFullscreen && (
@@ -1217,15 +1219,17 @@ export function MatchApp({
           {mode === "duel" && state.players.length > 1 && !showingReveal ? (
             <ScoreTally players={state.players} selfId={you?.id} />
           ) : mode === "duel" && showingReveal ? null : (
-            <div className="flex items-center gap-2">
+            <div className="hud-score flex items-center gap-2 rounded-[var(--radius-md)] border border-border bg-bg/70 py-1.5 pl-1.5 pr-3">
               <PlayerAvatar
                 id={you?.avatarId}
-                size={36}
+                size={32}
                 live
                 mood={urgent ? "surprised" : you?.locked ? "happy" : "neutral"}
               />
-              <div className="rounded-[var(--radius-sm)] border border-border bg-bg/70 px-3 py-2 text-right">
-                <div className="text-[10px] uppercase tracking-wider text-subtle">Score</div>
+              <div className="text-right">
+                <div className="hud-score-label text-[10px] uppercase tracking-wider text-subtle">
+                  Score
+                </div>
                 <div className="font-display tabular text-lg leading-none">
                   <RollingScore
                     value={you?.totalScore ?? 0}
@@ -1240,6 +1244,7 @@ export function MatchApp({
             variant="ghost"
             size="icon"
             aria-label="Settings"
+            className="shrink-0"
             onClick={() => setShowSettings(true)}
           >
             <SettingsIcon className="size-5" />

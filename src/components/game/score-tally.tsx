@@ -20,7 +20,7 @@ export function ScoreTally({
 
   return (
     <div
-      className="min-w-[10.5rem] rounded-[var(--radius-md)] border border-border bg-bg/75 px-2.5 py-2"
+      className="score-tally min-w-[10.5rem] rounded-[var(--radius-md)] border border-border bg-bg/75 px-2.5 py-2"
       role="table"
       aria-label="Score tally"
     >
@@ -34,7 +34,8 @@ export function ScoreTally({
           >
             <PlayerAvatar id={p.avatarId} size={28} title={p.name} />
             <div className="min-w-0 flex-1">
-              <div className="flex items-center gap-1.5">
+              {/* Names drop out of the phone HUD (styles.css); bots tell players apart. */}
+              <div className="tally-name-line flex items-center gap-1.5">
                 <span className="truncate text-xs text-fg">{p.name}</span>
                 {p.locked ? (
                   <span className="text-[10px] uppercase tracking-wider text-subtle">in</span>
@@ -49,6 +50,7 @@ export function ScoreTally({
                 >
                   {p.totalScore.toLocaleString()}
                 </span>
+                {p.locked ? <span className="tally-in-dot" aria-label="locked in" /> : null}
               </div>
             </div>
           </div>
