@@ -159,15 +159,18 @@ export function GuessMap({
   function framePad(): { paddingTopLeft: [number, number]; paddingBottomRight: [number, number] } {
     // Reveal only shows the expand button; guessing adds chips + bottom bar.
     const top = revealRef.current ? 64 : 108;
-    const bottom = revealRef.current ? 28 : 60;
+    const bottom = revealRef.current ? 36 : 60;
+    // At the reveal pin labels ("Answer", names) sit to the right of their
+    // pins; leave room so a pin in the corner keeps its label on screen.
+    const right = revealRef.current ? 72 : 20;
     // Desktop keeps the 32vh corner sheet; that whole map is short.
     if (typeof window !== "undefined" && !window.matchMedia("(max-width: 640px)").matches) {
       return {
         paddingTopLeft: [12, Math.min(top, 84)],
-        paddingBottomRight: [12, Math.min(bottom, 48)],
+        paddingBottomRight: [Math.max(12, right), Math.min(bottom, 48)],
       };
     }
-    return { paddingTopLeft: [20, top], paddingBottomRight: [20, bottom] };
+    return { paddingTopLeft: [20, top], paddingBottomRight: [right, bottom] };
   }
 
   useEffect(() => {
@@ -538,6 +541,7 @@ export function GuessMap({
       className={cn(
         "relative overflow-hidden border border-border bg-[#243044] shadow-[var(--shadow-panel)] transition-[width,height,inset,border-radius,box-shadow] duration-300",
         urgent && !reveal && "atlas-map-urgent",
+        reveal && "is-reveal",
         expanded
           ? "fixed inset-3 z-30 rounded-[var(--radius-xl)]"
           : reveal

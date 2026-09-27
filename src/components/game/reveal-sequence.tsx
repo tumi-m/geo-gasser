@@ -49,9 +49,16 @@ export function RevealOverlay({
           <div className="min-w-0 text-left">
             <p className="text-[10px] uppercase tracking-[0.2em] text-muted">{roundLabel}</p>
             <p className="reveal-pop font-display mt-0.5 text-xl tracking-tight sm:text-2xl">{headline}</p>
-            <p className="mt-0.5 truncate text-sm text-muted">
-              {locationTitle}
-              {city ? ` · ${city}` : ""} · {country}
+            {/* The country is the answer: it never truncates; the city gives way first. */}
+            <p className="mt-0.5 truncate text-sm text-fg">{locationTitle}</p>
+            <p className="flex min-w-0 items-center gap-1.5 text-xs text-muted">
+              {city ? (
+                <>
+                  <span className="truncate">{city}</span>
+                  <span aria-hidden>·</span>
+                </>
+              ) : null}
+              <span className="shrink-0 font-medium text-fg">{country}</span>
             </p>
           </div>
           <Button className="w-full sm:w-auto sm:shrink-0" onClick={onContinue}>

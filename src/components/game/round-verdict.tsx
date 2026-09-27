@@ -77,6 +77,8 @@ export function RoundVerdictCard({
             winner={duel && settled && row.id === verdict.winnerId}
             you={duel && markSelf && row.id === selfId}
             reduced={reduced}
+            // Solo has no winner to wait for: the total rolls with the round.
+            totalDelay={duel ? SETTLE_AT : BAR_DELAY}
           />
         ))}
       </ol>
@@ -90,15 +92,17 @@ function Row({
   winner,
   you,
   reduced,
+  totalDelay,
 }: {
   row: VerdictRow;
   index: number;
   winner: boolean;
   you: boolean;
   reduced: boolean;
+  totalDelay: number;
 }) {
   const round = useCountUp(row.round, BAR_MS, reduced, 0, BAR_DELAY);
-  const total = useCountUp(row.total, TOTAL_MS, reduced, row.before, SETTLE_AT);
+  const total = useCountUp(row.total, TOTAL_MS, reduced, row.before, totalDelay);
   return (
     <li
       className={cn(

@@ -1043,3 +1043,11 @@ html.reduce-motion::view-transition-old(root),html.reduce-motion::view-transitio
   .match-hud .hud-score-label {display:none}
   .match-hud {padding-inline:8px}
 }
+
+/* Reveal map: pin labels on small dark pills so they read over anything,
+   and the map's own country names step back so they stop colliding. */
+.atlas-pin-label {padding:1px 6px;border-radius:999px;background:#0b1620d9;line-height:1.5;text-shadow:none}
+.is-reveal .atlas-country-label,.is-reveal .atlas-province-label,.is-reveal .atlas-city-label {opacity:.32;transition:opacity .4s}
+/* On touch screens the reveal map is pinch-zoomable; its +/- would only
+   cover pins in the corner. */
+@media (pointer: coarse) {.is-reveal .leaflet-control-zoom {display:none}}
