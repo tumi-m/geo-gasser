@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import {
   Check,
@@ -60,7 +60,6 @@ import {
 } from "@/lib/multiplayer";
 import { GuessMap } from "./guess-map";
 import { MusicHudButton } from "./music-player";
-import { PanoViewer } from "./pano-viewer";
 import { PlayerAvatar } from "./player-avatar";
 import { RevealOverlay } from "./reveal-sequence";
 import { RollingScore } from "./rolling-score";
@@ -69,13 +68,17 @@ import { LockStamp } from "./lock-stamp";
 import { RoundIntro } from "./round-intro";
 import { RoundSplash } from "./round-splash";
 import { RoundSummarySplash } from "./round-summary-splash";
-import { Round4Scene } from "./round4-scene";
 import { SceneExplorer } from "./scene-explorer";
 import { SettingsPanel } from "./settings-panel";
 import { QuestionMark, RoundPips, TimerRing } from "./timer-ring";
 import { ScoreTally } from "./score-tally";
 import { FinalResults } from "./final-results";
 import { cn, copyText } from "@/lib/utils";
+
+// three.js and the reconstruction scene load only when a round needs them, so
+// flat-photo matches (most of them) never download the 3D code.
+const PanoViewer = lazy(() => import("./pano-viewer").then((m) => ({ default: m.PanoViewer })));
+const Round4Scene = lazy(() => import("./round4-scene").then((m) => ({ default: m.Round4Scene })));
 
 function applyDocumentSettings(settings: GameSettings) {
   document.documentElement.classList.toggle("hc", settings.highContrast);
@@ -1179,49 +1182,51 @@ export function MatchApp({
       )}
 
       <div className="scene-viewport">
-        {live3d && env && !scene3dFailed ? (
-          <Round4Scene
-            key={env.id}
-            env={env}
-            reducedMotion={settings.reducedMotion}
-            onUnavailable={() => setScene3dFailed(true)}
-          />
-        ) : scene?.isPano && !panoFailed ? (
-          <PanoViewer
-            key={scene.src}
-            src={scene.src}
-            imageId={scene.imageId}
-            provider={scene.provider}
-            heading={scene.heading}
-            pitch={scene.pitch}
-            alt="Location to identify"
-            reducedMotion={settings.reducedMotion}
-            interactive={canGuess && !showSettings && !showingReveal}
-            onError={() => setPanoFailed(true)}
-          />
-        ) : flatScene ? (
-          <SceneExplorer
-            key={flatScene.src}
-            src={flatScene.src}
-            fit={settings.photoFit}
-            onToggleFit={() =>
-              setSettings((current) => ({
-                ...current,
-                photoFit: current.photoFit === "contain" ? "cover" : "contain",
-                photoFitChosen: true,
-              }))
-            }
-            showHints={settings.showHints}
-            fallbacks={flatScene.fallbacks}
-            sourceUrl={loc?.sourceUrl}
-            title={loc?.title}
-            alt="Location to identify"
-            reducedMotion={settings.reducedMotion}
-            interactive={canGuess && !showSettings && !showingReveal}
-          />
-        ) : (
-          <div className="absolute inset-0 bg-bg-subtle" />
-        )}
+        <Suspense fallback={<div className="absolute inset-0 bg-bg-subtle" />}>
+          {live3d && env && !scene3dFailed ? (
+            <Round4Scene
+              key={env.id}
+              env={env}
+              reducedMotion={settings.reducedMotion}
+              onUnavailable={() => setScene3dFailed(true)}
+            />
+          ) : scene?.isPano && !panoFailed ? (
+            <PanoViewer
+              key={scene.src}
+              src={scene.src}
+              imageId={scene.imageId}
+              provider={scene.provider}
+              heading={scene.heading}
+              pitch={scene.pitch}
+              alt="Location to identify"
+              reducedMotion={settings.reducedMotion}
+              interactive={canGuess && !showSettings && !showingReveal}
+              onError={() => setPanoFailed(true)}
+            />
+          ) : flatScene ? (
+            <SceneExplorer
+              key={flatScene.src}
+              src={flatScene.src}
+              fit={settings.photoFit}
+              onToggleFit={() =>
+                setSettings((current) => ({
+                  ...current,
+                  photoFit: current.photoFit === "contain" ? "cover" : "contain",
+                  photoFitChosen: true,
+                }))
+              }
+              showHints={settings.showHints}
+              fallbacks={flatScene.fallbacks}
+              sourceUrl={loc?.sourceUrl}
+              title={loc?.title}
+              alt="Location to identify"
+              reducedMotion={settings.reducedMotion}
+              interactive={canGuess && !showSettings && !showingReveal}
+            />
+          ) : (
+            <div className="absolute inset-0 bg-bg-subtle" />
+          )}
+        </Suspense>
         <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(180deg,rgba(9,9,11,0.22)_0%,transparent_18%,transparent_78%,rgba(9,9,11,0.28)_100%)]" />
       </div>
 
