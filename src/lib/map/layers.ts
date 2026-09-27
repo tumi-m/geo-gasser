@@ -120,11 +120,14 @@ export function provinceLayer(L: Leaflet, provinces: RegionCollection) {
 export function graticuleLayer(L: Leaflet) {
   const group = L.layerGroup();
   const style = { color: MAP_COLORS.graticule, weight: 1, interactive: false, pane: "tilePane" } as const;
-  for (let lng = -180; lng <= 180; lng += 5) {
+  // The grid runs three worlds wide. On a panel wider than the world at its
+  // zoom (a wide reveal on desktop), the sides past the date line read as
+  // open ocean instead of blank panel. Land is drawn once; clicks unchanged.
+  for (let lng = -540; lng <= 540; lng += 5) {
     L.polyline([[-85, lng], [85, lng]], style).addTo(group);
   }
   for (let lat = -80; lat <= 80; lat += 5) {
-    L.polyline([[lat, -180], [lat, 180]], style).addTo(group);
+    L.polyline([[lat, -540], [lat, 540]], style).addTo(group);
   }
   return group;
 }
