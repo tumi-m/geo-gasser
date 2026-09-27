@@ -55,6 +55,7 @@ import { PanoViewer } from "./pano-viewer";
 import { PlayerAvatar } from "./player-avatar";
 import { RevealOverlay } from "./reveal-sequence";
 import { RollingScore } from "./rolling-score";
+import { useMusic } from "@/lib/music/use-music";
 import { LockStamp } from "./lock-stamp";
 import { RoundIntro } from "./round-intro";
 import { RoundSplash } from "./round-splash";
@@ -643,6 +644,20 @@ export function MatchApp({
       });
     else dispatch({ type: "CONTINUE", now });
   }, [mode, duelKind, serverMode, dispatch, p2pSend, socketSend]);
+
+  // The Atmosphere bed plays while a round is live (the clock running) and
+  // fades out for intros, reveals and results. The player's own Spotify or
+  // Apple Music takes precedence: no bed underneath it.
+  const ownMusic = useMusic().active;
+  const roundLive =
+    state.phase === "round_active" ||
+    state.phase === "player_locked" ||
+    state.phase === "waiting_for_opponent";
+  useEffect(() => {
+    if (roundLive && !ownMusic) audio.startAmbience();
+    else audio.stopAmbience();
+  }, [roundLive, ownMusic]);
+  useEffect(() => () => audio.stopAmbience(), []);
 
   // Long enough for the intro's title sequence (round-intro.tsx), whose ring
   // shows this hold; with reduced motion the card is still, so it is shorter.

@@ -21,7 +21,7 @@ class AudioManager {
   private music: GainNode | null = null;
   private sfx: GainNode | null = null;
   private unlocked = false;
-  private drone: OscillatorNode | null = null;
+  private ambience: { bed: GainNode; sources: AudioScheduledSourceNode[] } | null = null;
   private settings: GameSettings | null = null;
 
   unlock() {
@@ -56,26 +56,101 @@ class AudioManager {
     this.sfx.gain.setTargetAtTime(curve(this.settings.sfx), this.ctx.currentTime, 0.02);
   }
 
+  /**
+   * The Atmosphere bed under a round: wind (looped noise through a slowly
+   * sweeping band-pass) over a quiet low pad that breathes. It fades in and
+   * out rather than cutting, and runs through the `music` bus, so the
+   * Atmosphere slider and mute control it.
+   */
   startAmbience() {
-    if (!this.ctx || !this.music || this.drone) return;
-    const osc = this.ctx.createOscillator();
-    const g = this.ctx.createGain();
-    osc.type = "sine";
-    osc.frequency.value = 72;
-    g.gain.value = 0.03;
-    osc.connect(g);
-    g.connect(this.music);
-    osc.start();
-    this.drone = osc;
+    if (!this.unlocked) this.unlock();
+    if (!this.ctx || !this.music || this.ambience) return;
+    const ctx = this.ctx;
+    const t = ctx.currentTime;
+    const bed = ctx.createGain();
+    bed.gain.setValueAtTime(0.0001, t);
+    bed.gain.exponentialRampToValueAtTime(1, t + 1.6);
+    bed.connect(this.music);
+    const sources: AudioScheduledSourceNode[] = [];
+
+    // Wind: four seconds of noise, looped, band-passed around 420Hz; a slow
+    // LFO sweeps the band so it gusts instead of hissing.
+    const len = ctx.sampleRate * 4;
+    const buffer = ctx.createBuffer(1, len, ctx.sampleRate);
+    const data = buffer.getChannelData(0);
+    let brown = 0;
+    for (let i = 0; i < len; i++) {
+      brown = (brown + 0.02 * (Math.random() * 2 - 1)) / 1.02;
+      data[i] = brown * 3.2;
+    }
+    const wind = ctx.createBufferSource();
+    wind.buffer = buffer;
+    wind.loop = true;
+    const band = ctx.createBiquadFilter();
+    band.type = "bandpass";
+    band.frequency.value = 420;
+    band.Q.value = 0.6;
+    const windGain = ctx.createGain();
+    windGain.gain.value = 0.62;
+    const gust = ctx.createOscillator();
+    gust.frequency.value = 0.07;
+    const gustDepth = ctx.createGain();
+    gustDepth.gain.value = 260;
+    gust.connect(gustDepth).connect(band.frequency);
+    wind.connect(band).connect(windGain).connect(bed);
+    sources.push(wind, gust);
+
+    // Pad: a low open fifth, gently detuned, swelling on a slow LFO.
+    const pad = ctx.createGain();
+    pad.gain.value = 0.06;
+    const breathe = ctx.createOscillator();
+    breathe.frequency.value = 0.045;
+    const breatheDepth = ctx.createGain();
+    breatheDepth.gain.value = 0.03;
+    breathe.connect(breatheDepth).connect(pad.gain);
+    const warm = ctx.createBiquadFilter();
+    warm.type = "lowpass";
+    warm.frequency.value = 900;
+    for (const [freq, detune] of [
+      [110, -6],
+      [164.81, 5],
+      [220, 3],
+    ] as const) {
+      const osc = ctx.createOscillator();
+      osc.type = "triangle";
+      osc.frequency.value = freq;
+      osc.detune.value = detune;
+      osc.connect(warm);
+      sources.push(osc);
+    }
+    warm.connect(pad).connect(bed);
+    sources.push(breathe);
+
+    sources.forEach((src) => src.start(t));
+    this.ambience = { bed, sources };
   }
 
   stopAmbience() {
-    try {
-      this.drone?.stop();
-    } catch {
-      /* already stopped */
+    const amb = this.ambience;
+    if (!amb || !this.ctx) return;
+    this.ambience = null;
+    const t = this.ctx.currentTime;
+    amb.bed.gain.cancelScheduledValues(t);
+    amb.bed.gain.setValueAtTime(Math.max(0.0001, amb.bed.gain.value), t);
+    amb.bed.gain.exponentialRampToValueAtTime(0.0001, t + 0.9);
+    for (const src of amb.sources) {
+      try {
+        src.stop(t + 1);
+      } catch {
+        /* already stopped */
+      }
     }
-    this.drone = null;
+    window.setTimeout(() => amb.bed.disconnect(), 1200);
+  }
+
+  /** Whether the Atmosphere bed is playing (for tests and the settings UI). */
+  get ambiencePlaying(): boolean {
+    return this.ambience !== null;
   }
 
   play(name: SfxName) {
@@ -167,3 +242,8 @@ class AudioManager {
 }
 
 export const audio = new AudioManager();
+
+// Dev builds only: lets browser tests read what is playing.
+if (typeof window !== "undefined" && import.meta.env?.DEV) {
+  (window as unknown as { __atlasAudio?: AudioManager }).__atlasAudio = audio;
+}
