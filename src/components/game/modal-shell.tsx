@@ -1,4 +1,5 @@
 import { useEffect, useRef } from "react";
+import { createPortal } from "react-dom";
 import { cn } from "@/lib/utils";
 
 export function ModalShell({
@@ -32,6 +33,16 @@ export function ModalShell({
         ),
       ).filter((node) => node.tabIndex >= 0 && node.getClientRects().length > 0);
     focusable()[0]?.focus();
+    // Everything outside the dialog goes inert while it is open: out of the
+    // tab order, unclickable, and hidden from screen readers and swipe
+    // navigation — not just skipped by the Tab trap below.
+    const host = root.closest("[data-modal-root]");
+    const shut = Array.from(document.body.children).filter(
+      (el): el is HTMLElement => el instanceof HTMLElement && el !== host && !el.inert,
+    );
+    shut.forEach((el) => {
+      el.inert = true;
+    });
     const overflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
     const onKey = (e: KeyboardEvent) => {
@@ -60,13 +71,21 @@ export function ModalShell({
     document.addEventListener("keydown", onKey);
     return () => {
       document.removeEventListener("keydown", onKey);
+      shut.forEach((el) => {
+        el.inert = false;
+      });
       document.body.style.overflow = overflow;
       prev?.focus?.();
     };
   }, []);
 
-  return (
+  // Rendered at the top of <body>, so the rest of the page can be made inert
+  // around it. Modals only open after an interaction, so this never runs on
+  // the server.
+  if (typeof document === "undefined") return null;
+  return createPortal(
     <div
+      data-modal-root
       className="fixed inset-0 z-50 flex items-end justify-center bg-bg/75 backdrop-blur-md p-3 sm:p-5 pt-[max(1rem,env(safe-area-inset-top))] pb-[max(1rem,env(safe-area-inset-bottom))] sm:items-center"
       role="dialog"
       aria-modal="true"
@@ -86,6 +105,7 @@ export function ModalShell({
       >
         {children}
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
