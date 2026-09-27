@@ -1039,14 +1039,14 @@ export function MatchApp({
               <li className="lobby-empty flex items-center gap-3 rounded-[var(--radius-md)] border border-dashed border-border px-3 py-3 text-muted">
                 <span className="lobby-seat" aria-hidden />
                 <span className="min-w-0 flex-1">
-                {(serverMode ? null : p2pError) ??
-                  (failed
-                    ? "Using the room relay to connect"
-                    : (serverMode ? socketJoined && socketConnected : p2pJoined)
-                      ? state.players.length === 0
-                        ? "Joining room…"
-                        : "Waiting for opponent"
-                      : "Connecting…")}
+                  {(serverMode ? null : p2pError) ??
+                    (failed
+                      ? "Using the room relay to connect"
+                      : (serverMode ? socketJoined && socketConnected : p2pJoined)
+                        ? state.players.length === 0
+                          ? "Joining room…"
+                          : "Waiting for opponent"
+                        : "Connecting…")}
                 </span>
                 <span className="waiting-dots" aria-hidden>
                   <i />
