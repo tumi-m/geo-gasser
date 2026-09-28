@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { ArrowRight, Check, ChevronDown, Link2, Pencil } from "lucide-react";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -17,6 +18,7 @@ import {
   type AvatarId,
 } from "@/lib/game";
 import { makeRoomCode, sanitizeName } from "@/lib/multiplayer";
+import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/duel/")({ component: DuelLobby });
 
@@ -39,6 +41,8 @@ function DuelLobby() {
   const [guestAvatar, setGuestAvatar] = useState<AvatarId>("square-blue");
   const [code, setCode] = useState("");
   const [passPlay, setPassPlay] = useState(false);
+  const [editMe, setEditMe] = useState(false);
+  const [editGuest, setEditGuest] = useState(false);
 
   const persistMe = () => {
     saveSettings({
@@ -60,122 +64,211 @@ function DuelLobby() {
 
   return (
     <main className="duel-lobby relative min-h-dvh overflow-hidden">
-
-      <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(9,9,11,0.35)_0%,rgba(9,9,11,0.88)_55%,rgba(9,9,11,0.96)_100%)]" />
-      <div className="relative z-10 mx-auto flex min-h-dvh max-w-md flex-col justify-center px-5 py-10 pt-[max(2.5rem,env(safe-area-inset-top))] pb-[max(2.5rem,env(safe-area-inset-bottom))]">
-        <div className="flex items-center justify-between gap-3">
+      <div className="duel-orbit" aria-hidden />
+      <div className="duel-orbit is-b" aria-hidden />
+      <div className="relative z-10 mx-auto flex min-h-dvh max-w-md flex-col justify-center px-5 py-8 pt-[max(2rem,env(safe-area-inset-top))] pb-[max(2rem,env(safe-area-inset-bottom))]">
+        <div className="atlas-rise flex items-center justify-between gap-3">
           <p className="text-xs uppercase tracking-[0.28em] text-muted">Two player</p>
           <div className="-my-2">
             <MusicHudButton />
           </div>
         </div>
-        <h1 className="font-display mt-2 text-5xl">Duel</h1>
-        <p className="mt-3 text-muted">Good friends. Better rivals.</p>
-        <p className="mt-2 text-xs uppercase tracking-wider text-subtle">
-          {atlasLabel(initial.atlas)} · {initial.difficulty} · {DIFFICULTY_SECONDS[initial.difficulty]}s ·{" "}
-          {MATCH_LENGTH[initial.matchLength].totalRounds === 1
-            ? "quick · 10"
-            : `${MATCH_LENGTH[initial.matchLength].totalRounds} rounds`}
+        <h1 className="atlas-rise font-display mt-1 text-5xl tracking-tight">Duel</h1>
+        <p className="atlas-rise atlas-rise-1 mt-2 text-muted">Good friends. Better rivals.</p>
+
+        {/* You: name and bot in one row; the builder waits behind "Edit". */}
+        <section className="duel-card atlas-rise atlas-rise-1 mt-6" aria-label="You">
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              className="duel-avatar-button"
+              aria-label="Edit your bot"
+              aria-expanded={editMe}
+              onClick={() => setEditMe((v) => !v)}
+            >
+              <PlayerAvatar id={avatarId} size={52} title={sanitizeName(name)} live track />
+            </button>
+            <Input
+              value={name}
+              maxLength={24}
+              autoComplete="nickname"
+              aria-label="Your name"
+              onChange={(e) => setName(e.target.value)}
+            />
+            <button
+              type="button"
+              className={cn("duel-edit", editMe && "is-on")}
+              aria-expanded={editMe}
+              onClick={() => setEditMe((v) => !v)}
+            >
+              {editMe ? <Check className="size-4" /> : <Pencil className="size-4" />}
+              <span>{editMe ? "Done" : "Edit"}</span>
+            </button>
+          </div>
+          <Collapse open={editMe}>
+            <AvatarBuilder className="pt-4" value={avatarId} onChange={setAvatarId} />
+          </Collapse>
+        </section>
+
+        <p className="atlas-rise atlas-rise-2 mt-6 text-xs uppercase tracking-[0.2em] text-subtle">
+          Choose your rival
         </p>
 
-        <label className="mt-8 text-xs uppercase tracking-wider text-subtle">Your name</label>
-        <div className="mt-2 flex items-center gap-3">
-          <PlayerAvatar id={avatarId} size={60} title={sanitizeName(name)} live track />
-          <Input
-            value={name}
-            maxLength={24}
-            autoComplete="nickname"
-            aria-label="Your name"
-            onChange={(e) => setName(e.target.value)}
-          />
-        </div>
-        <div className="mt-4">
-          <AvatarBuilder value={avatarId} onChange={setAvatarId} />
-        </div>
-
-        <Button
-          className="mt-8 w-full"
-          size="lg"
+        <button
+          type="button"
+          className="duel-mode is-primary atlas-rise atlas-rise-2 mt-2"
           onClick={() => {
             persistMe();
             void navigate({ to: "/duel/bot" });
           }}
         >
-          <PlayerAvatar id="grok" size={28} />
-          Duel Grok
-        </Button>
+          <span className="duel-mode-art">
+            <PlayerAvatar id="grok" size={40} live />
+          </span>
+          <span className="min-w-0 flex-1">
+            <span className="block font-medium">Duel Grok</span>
+            <span className="block text-xs text-muted">A bot rival, ready now</span>
+          </span>
+          <ArrowRight className="duel-mode-go size-5" aria-hidden />
+        </button>
 
-        <Button
-          className="mt-3 w-full"
-          size="lg"
-          variant="secondary"
-          onClick={() => setPassPlay((v) => !v)}
-        >
-          Pass and play
-        </Button>
-        {passPlay && (
-          <div className="mt-3 rounded-[var(--radius-md)] border border-border bg-bg/70 p-3">
-            <p className="text-xs uppercase tracking-wider text-subtle">Player two</p>
-            <Input
-              className="mt-2"
-              value={guestName}
-              maxLength={24}
-              aria-label="Player two name"
-              onChange={(e) => setGuestName(e.target.value)}
-            />
-            <div className="mt-3">
-              <AvatarBuilder value={guestAvatar} onChange={setGuestAvatar} />
+        <section className={cn("duel-mode atlas-rise atlas-rise-3 mt-2", passPlay && "is-open")}>
+          <button
+            type="button"
+            className="duel-mode-head"
+            aria-expanded={passPlay}
+            onClick={() => setPassPlay((v) => !v)}
+          >
+            <span className="duel-mode-art is-pair">
+              <PlayerAvatar id={avatarId} size={30} />
+              <PlayerAvatar id={guestAvatar} size={30} />
+            </span>
+            <span className="min-w-0 flex-1 text-left">
+              <span className="block font-medium">Pass and play</span>
+              <span className="block text-xs text-muted">One screen, taking turns</span>
+            </span>
+            <ChevronDown className="duel-mode-go size-5" aria-hidden />
+          </button>
+          <Collapse open={passPlay}>
+            <div className="pt-3">
+              <div className="flex items-center gap-3">
+                <button
+                  type="button"
+                  className="duel-avatar-button"
+                  aria-label="Edit player two's bot"
+                  aria-expanded={editGuest}
+                  onClick={() => setEditGuest((v) => !v)}
+                >
+                  <PlayerAvatar id={guestAvatar} size={44} live />
+                </button>
+                <Input
+                  value={guestName}
+                  maxLength={24}
+                  aria-label="Player two name"
+                  onChange={(e) => setGuestName(e.target.value)}
+                />
+                <button
+                  type="button"
+                  className={cn("duel-edit", editGuest && "is-on")}
+                  aria-expanded={editGuest}
+                  onClick={() => setEditGuest((v) => !v)}
+                >
+                  {editGuest ? <Check className="size-4" /> : <Pencil className="size-4" />}
+                  <span>{editGuest ? "Done" : "Edit"}</span>
+                </button>
+              </div>
+              <Collapse open={editGuest}>
+                <AvatarBuilder className="pt-4" value={guestAvatar} onChange={setGuestAvatar} />
+              </Collapse>
+              <Button
+                className="mt-3 w-full"
+                onClick={() => {
+                  persistMe();
+                  try {
+                    sessionStorage.setItem(
+                      HOTSEAT_KEY,
+                      JSON.stringify({
+                        name: sanitizeName(guestName),
+                        avatarId: guestAvatar || DEFAULT_AVATAR,
+                      }),
+                    );
+                  } catch {
+                    /* Guest defaults remain available. */
+                  }
+                  void navigate({ to: "/duel/hotseat" });
+                }}
+              >
+                Start pass and play
+              </Button>
             </div>
+          </Collapse>
+        </section>
+
+        <section className="duel-mode atlas-rise atlas-rise-4 mt-2" aria-label="Play online">
+          <div className="duel-mode-head is-static">
+            <span className="duel-mode-art">
+              <Link2 className="size-5 text-accent" aria-hidden />
+            </span>
+            <span className="min-w-0 flex-1">
+              <span className="block font-medium">Play online</span>
+              <span className="block text-xs text-muted">Invite a friend with a room code</span>
+            </span>
+          </div>
+          <div className="mt-3 flex gap-2">
             <Button
-              className="mt-4 w-full"
-              onClick={() => {
-                persistMe();
-                try { sessionStorage.setItem(
-                  HOTSEAT_KEY,
-                  JSON.stringify({
-                    name: sanitizeName(guestName),
-                    avatarId: guestAvatar || DEFAULT_AVATAR,
-                  }),
-                ); } catch { /* Guest defaults remain available. */ }
-                void navigate({ to: "/duel/hotseat" });
-              }}
+              variant="secondary"
+              size="sm"
+              className="shrink-0"
+              onClick={() => goOnline(makeRoomCode(), true)}
             >
-              Start pass and play
+              Create room
+            </Button>
+            <Input
+              className="h-10 min-w-0 flex-1 text-center font-mono tracking-[0.3em] uppercase"
+              value={code}
+              onChange={(e) => setCode(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, ""))}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && code.trim().length === 6)
+                  goOnline(code.trim().toUpperCase());
+              }}
+              maxLength={6}
+              placeholder="CODE"
+              aria-label="Room code"
+              autoCapitalize="characters"
+              autoCorrect="off"
+              spellCheck={false}
+            />
+            <Button
+              size="sm"
+              className="shrink-0"
+              variant={code.trim().length === 6 ? "primary" : "secondary"}
+              disabled={code.trim().length !== 6}
+              onClick={() => goOnline(code.trim().toUpperCase())}
+            >
+              Join
             </Button>
           </div>
-        )}
+        </section>
 
-        <div className="mt-8 flex gap-2">
-          <Button variant="secondary" className="flex-1" onClick={() => goOnline(makeRoomCode(), true)}>
-            Create room
-          </Button>
-        </div>
-        <div className="mt-3 flex gap-2">
-          <Input
-            value={code}
-            onChange={(e) => setCode(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, ""))}
-            onKeyDown={(e) => {
-              if (e.key === "Enter" && code.trim().length === 6) goOnline(code.trim().toUpperCase());
-            }}
-            maxLength={6}
-            placeholder="Enter code"
-            aria-label="Room code"
-            autoCapitalize="characters"
-            autoCorrect="off"
-            spellCheck={false}
-          />
-          <Button
-            variant="secondary"
-            disabled={code.trim().length !== 6}
-            onClick={() => goOnline(code.trim().toUpperCase())}
-          >
-            Join
-          </Button>
-        </div>
-        <Button variant="ghost" className="mt-6 w-full" onClick={() => void navigate({ to: "/" })}>
+        <p className="atlas-rise atlas-rise-4 mt-5 text-center text-[11px] uppercase tracking-wider text-subtle">
+          {atlasLabel(initial.atlas)} · {DIFFICULTY_SECONDS[initial.difficulty]}s ·{" "}
+          {MATCH_LENGTH[initial.matchLength].totalRounds === 1
+            ? "quick · 10 places"
+            : `${MATCH_LENGTH[initial.matchLength].totalRounds} rounds`}
+        </p>
+        <Button variant="ghost" className="mt-2 w-full" onClick={() => void navigate({ to: "/" })}>
           Home
         </Button>
       </div>
     </main>
+  );
+}
+
+/** Height-animated disclosure: grid rows 0fr → 1fr, content stays mounted. */
+function Collapse({ open, children }: { open: boolean; children: React.ReactNode }) {
+  return (
+    <div className={cn("duel-collapse", open && "is-open")} inert={!open}>
+      <div className="min-h-0 overflow-hidden">{children}</div>
+    </div>
   );
 }

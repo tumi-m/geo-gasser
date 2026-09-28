@@ -1002,6 +1002,33 @@ html.reduce-motion::view-transition-old(root),html.reduce-motion::view-transitio
 @keyframes av-pop {0%{transform:scale(.5) rotate(-16deg)}55%{transform:scale(1.12) rotate(5deg)}80%{transform:scale(.96) rotate(-2deg)}100%{transform:none}}
 
 /* Builder: bodies in the current colour, then colours, then shuffle. */
+/* Duel setup: you, then three rivals as cards. Two slow orbits (a lime and
+   an orange traveller) circle behind it. */
+.duel-orbit {position:absolute;top:-190px;right:-230px;width:560px;height:560px;border-radius:50%;border:1px dashed #d8f36a2e;pointer-events:none;animation:duel-orbit 70s linear infinite}
+.duel-orbit::before {content:"";position:absolute;inset:92px;border-radius:50%;border:1px solid #ffffff0f}
+.duel-orbit::after {content:"";position:absolute;top:50%;left:-5px;width:10px;height:10px;border-radius:50%;background:var(--color-accent);box-shadow:0 0 18px 2px #d8f36a88}
+.duel-orbit.is-b {top:auto;right:auto;bottom:-260px;left:-260px;width:520px;height:520px;border-color:#c45c2a33;animation-duration:95s;animation-direction:reverse}
+.duel-orbit.is-b::after {background:var(--color-nl);box-shadow:0 0 16px 2px #c45c2a88;left:auto;right:-5px}
+@keyframes duel-orbit {to{transform:rotate(1turn)}}
+.duel-card,.duel-mode {border:1px solid var(--color-border);background:color-mix(in oklab,var(--color-bg-elevated) 86%,transparent);border-radius:18px;padding:12px;backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px)}
+.duel-avatar-button {flex-shrink:0;border-radius:999px;transition:transform .25s var(--ease-out)}
+.duel-avatar-button:hover {transform:rotate(-6deg) scale(1.05)}
+.duel-edit {display:inline-flex;align-items:center;gap:6px;height:44px;flex-shrink:0;padding:0 12px;border-radius:12px;border:1px solid var(--color-border);font-size:13px;color:var(--color-muted);transition:background .2s,color .2s,border-color .2s}
+.duel-edit:hover {color:var(--color-fg)}
+.duel-edit.is-on {background:var(--color-accent);border-color:transparent;color:var(--color-accent-fg)}
+.duel-mode {display:block;width:100%;text-align:left;transition:border-color .2s,background .2s,transform .2s}
+button.duel-mode,.duel-mode-head {display:flex;align-items:center;gap:12px;width:100%}
+button.duel-mode:hover,.duel-mode:has(.duel-mode-head:hover) {border-color:#5d716d}
+button.duel-mode:active {transform:scale(.985)}
+.duel-mode.is-primary {border-color:color-mix(in oklab,var(--color-accent) 50%,transparent);background:linear-gradient(115deg,#d8f36a24,color-mix(in oklab,var(--color-bg-elevated) 86%,transparent) 62%)}
+.duel-mode-art {display:grid;place-items:center;width:48px;height:48px;flex-shrink:0;border-radius:14px;background:#ffffff0b}
+.duel-mode-art.is-pair {display:flex;align-items:center;justify-content:center}
+.duel-mode-art.is-pair > :last-child {margin-left:-10px}
+.duel-mode-go {flex-shrink:0;color:var(--color-muted);transition:transform .3s var(--ease-out),color .2s}
+button.duel-mode:hover .duel-mode-go {transform:translateX(4px);color:var(--color-accent)}
+.duel-mode.is-open .duel-mode-go {transform:rotate(180deg)}
+.duel-collapse {display:grid;grid-template-rows:0fr;transition:grid-template-rows .34s var(--ease-out)}
+.duel-collapse.is-open {grid-template-rows:1fr}
 .avatar-builder {display:flex;flex-direction:column;align-items:center;gap:12px}
 .avatar-builder-row {display:grid;justify-content:center;gap:8px}
 .avatar-builder-row:has(.avatar-shape) {grid-template-columns:repeat(4,44px)}
