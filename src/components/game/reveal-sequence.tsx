@@ -1,4 +1,11 @@
-import { BADGE_COPY, FEEDBACK_COPY, formatDistance, type PlayerState, type RoundScore } from "@/lib/game";
+import {
+  ACCURACY_MAX,
+  BADGE_COPY,
+  FEEDBACK_COPY,
+  formatDistance,
+  type PlayerState,
+  type RoundScore,
+} from "@/lib/game";
 import { Button } from "@/components/ui/button";
 import { RoundVerdictCard } from "./round-verdict";
 import { useCountUp } from "./use-count-up";
@@ -70,16 +77,20 @@ export function RevealOverlay({
             {hasPin ? formatDistance(shownKm) : "No pin"}
           </p>
           <div className="flex gap-4 text-right text-[11px] uppercase tracking-wider text-muted">
-            <Stat label="Acc" value={score.accuracyPoints.toLocaleString()} />
-            <Stat label="Time" value={score.timePoints.toLocaleString()} />
+            <Stat label="Accuracy" value={score.accuracyPoints.toLocaleString()} />
+            <Stat label="Speed" value={score.timePoints.toLocaleString()} />
             <Stat label="Round" value={Math.round(shownRound).toLocaleString()} highlight />
           </div>
         </div>
-        {timedOut && hasPin && (
+        {timedOut && hasPin ? (
           <p className="mt-2 text-left text-xs text-muted">
-            {formatDistance(score.distanceKm)} off · the clock hit zero, so the time bonus is 0.
+            {formatDistance(score.distanceKm)} off · the clock hit zero, so the speed bonus is 0.
           </p>
-        )}
+        ) : hasPin && score.accuracyPoints < ACCURACY_MAX / 2 ? (
+          <p className="mt-2 text-left text-xs text-muted">
+            The speed bonus grows with accuracy. Land closer to earn all of it.
+          </p>
+        ) : null}
         {score.multiplier > 1 && (
           <p className="mt-2 text-left text-xs text-muted">Includes {score.multiplier}× reconstruction multiplier</p>
         )}

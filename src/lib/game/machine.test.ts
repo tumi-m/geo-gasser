@@ -22,10 +22,11 @@ describe("match state machine", () => {
     assert.equal(pub.truth, undefined);
     assert.equal(pub.players[0].guess, undefined);
 
+    const truth = s.truth!;
     s = reduce(s, {
       type: "PLACE_PIN",
       playerId: "p1",
-      guess: { latitude: -33.96, longitude: 18.41 },
+      guess: { latitude: truth.latitude + 0.05, longitude: truth.longitude },
       now: now + 5_000,
     });
     s = reduce(s, { type: "LOCK", playerId: "p1", now: now + 5_000 });
@@ -243,7 +244,10 @@ describe("two-player lock and local duels", () => {
     s = reduce(s, { type: "PLAYER_LEAVE", playerId: "g", now: now + 4 });
     assert.equal(s.phase, "match_complete");
     s = reduce(s, { type: "REMATCH", seed: 77, now: now + 5 });
-    assert.deepEqual(s.players.map((p) => p.id), ["h"]);
+    assert.deepEqual(
+      s.players.map((p) => p.id),
+      ["h"],
+    );
     const before = s;
     assert.equal(reduce(s, { type: "START_MATCH", now: now + 6 }), before);
   });

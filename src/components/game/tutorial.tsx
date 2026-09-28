@@ -20,7 +20,7 @@ const STEPS = [
   {
     n: "04",
     title: "Accuracy plus speed",
-    body: "South Africa uses a wider distance scale than the Netherlands. World sites use a wider scale still, so a miss in Patagonia is not treated like a miss in Utrecht.",
+    body: "Up to 10,000 for accuracy and 10,000 for speed, but speed only pays when you are close: the bonus shrinks with your accuracy. South Africa uses a wider distance scale than the Netherlands, and world sites a wider one still.",
   },
   {
     n: "05",

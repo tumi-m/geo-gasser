@@ -1,6 +1,13 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { accuracyPoints, COUNTRY_SCALE_KM, NO_GUESS_KM, rankPlayers, scoreGuess } from "./scoring.ts";
+import {
+  accuracyPoints,
+  COUNTRY_SCALE_KM,
+  NO_GUESS_KM,
+  rankPlayers,
+  scoreGuess,
+  speedBonus,
+} from "./scoring.ts";
 
 describe("accuracyPoints", () => {
   it("is 10000 on a perfect pin", () => {
@@ -42,6 +49,23 @@ describe("scoreGuess", () => {
     });
     assert.equal(r4.roundScore, 25_000);
     assert.equal(r4.multiplier, 1.25);
+  });
+  it("pays the speed bonus only in proportion to accuracy", () => {
+    // Amsterdam truth, an instant pin in Cape Town: fast, but nowhere near.
+    const wild = scoreGuess({
+      truth,
+      guess: { latitude: -33.92, longitude: 18.42 },
+      country: "NL",
+      remainingSec: 45,
+      responseMs: 400,
+    });
+    assert.equal(wild.accuracyPoints, 0);
+    assert.equal(wild.timePoints, 0);
+    assert.equal(wild.roundScore, 0);
+    // One country scale away keeps ~37% of the clock.
+    assert.equal(speedBonus(3679, 10_000), 3679);
+    assert.equal(speedBonus(10_000, 4_000), 4_000);
+    assert.equal(speedBonus(-5, 4_000), 0);
   });
   it("scores an unsubmitted guess as zero", () => {
     const s = scoreGuess({

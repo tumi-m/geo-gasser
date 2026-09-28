@@ -26,6 +26,15 @@ export function accuracyPoints(distanceKm: number, country: CountryCode): number
   return Math.round(ACCURACY_MAX * Math.exp(-distanceKm / scale));
 }
 
+/**
+ * Speed only pays in proportion to accuracy. Without this a pin dropped
+ * anywhere in the first second earned ~10,000 of 20,000 points, so racing a
+ * wild guess scored like a careful, close one.
+ */
+export function speedBonus(accuracy: number, clock: number): number {
+  return Math.round((clock * Math.max(0, Math.min(ACCURACY_MAX, accuracy))) / ACCURACY_MAX);
+}
+
 export function badgesFor(distanceKm: number, country: CountryCode, countryCorrect: boolean): BadgeId[] {
   const badges: BadgeId[] = [];
   if (distanceKm <= 0.1) badges.push("bullseye");
@@ -97,7 +106,7 @@ export function scoreGuess(opts: {
       ? isInsideNation(opts.guess, opts.nation)
       : detectCountry(opts.guess) === opts.country;
   const acc = accuracyPoints(distanceKm, opts.country);
-  const time = timePoints(opts.remainingSec, opts.durationSec);
+  const time = speedBonus(acc, timePoints(opts.remainingSec, opts.durationSec));
   const roundScore = Math.round((acc + time) * multiplier);
   return {
     distanceKm,
