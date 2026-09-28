@@ -136,6 +136,7 @@ export function MatchApp({
     }
   };
   const [copied, setCopied] = useState(false);
+  const [shutter, setShutter] = useState(0);
   // The native share sheet exists only on some browsers; learn that after mount
   // so the server and first client render agree.
   const [canShare, setCanShare] = useState(false);
@@ -855,6 +856,7 @@ export function MatchApp({
       return;
     if (duelKind === "hotseat" && current.phase === "waiting_for_opponent") return;
     audio.play("lock");
+    setShutter((n) => n + 1);
     const pending = {
       roundStartedAtMs: current.roundStartedAtMs,
       questionIndex: current.questionIndex,
@@ -1150,6 +1152,9 @@ export function MatchApp({
         shake && "atlas-shake",
       )}
     >
+      {/* Locking in: a camera shutter over everything, even the splash. */}
+      {shutter > 0 && <i key={shutter} className="scene-flash" aria-hidden />}
+
       {state.phase === "round_intro" && (
         <RoundIntro
           key={`${state.questionIndex}:${state.roundIndex}`}
@@ -1228,6 +1233,20 @@ export function MatchApp({
           )}
         </Suspense>
         <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(180deg,rgba(9,9,11,0.22)_0%,transparent_18%,transparent_78%,rgba(9,9,11,0.28)_100%)]" />
+        {/* A lens over the photo: vignette and grain, and in the last ten
+            seconds a red edge that closes in on every heartbeat. */}
+        <div
+          className={cn("scene-atmos", urgent && "is-urgent", showingReveal && "is-calm")}
+          style={
+            {
+              "--tension": urgent ? Math.min(1, Math.max(0, (10 - remaining) / 10)) : 0,
+            } as React.CSSProperties
+          }
+          aria-hidden
+        >
+          <i className="scene-grain" />
+          <i className="scene-tension" />
+        </div>
       </div>
 
       <header

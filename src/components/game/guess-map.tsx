@@ -487,6 +487,7 @@ export function GuessMap({
       opts: import("leaflet").PolylineOptions,
       durationMs: number,
       onDone?: () => void,
+      comet?: "you" | "opp",
     ) => {
       const line = L.polyline(reduced ? pts : [], { ...opts, interactive: false }).addTo(map);
       revealLayers.current.push(line);
@@ -494,14 +495,37 @@ export function GuessMap({
         onDone?.();
         return;
       }
+      // A glowing head leads the line from the pin to the answer, and lands
+      // with a burst.
+      const head = comet
+        ? L.marker(pts[0], {
+            icon: L.divIcon({ className: `atlas-comet is-${comet}`, html: "<i></i>", iconSize: [0, 0] }),
+            interactive: false,
+            keyboard: false,
+            zIndexOffset: 900,
+          }).addTo(map)
+        : null;
+      if (head) revealLayers.current.push(head);
       const start = performance.now();
       const step = (now: number) => {
         const t = Math.min(1, (now - start) / durationMs);
         const eased = 1 - Math.pow(1 - t, 3);
         const n = Math.max(2, Math.round(eased * pts.length));
         line.setLatLngs(pts.slice(0, n));
+        head?.setLatLng(pts[n - 1]);
         if (t < 1) revealRafs.current.push(requestAnimationFrame(step));
-        else onDone?.();
+        else {
+          head?.remove();
+          if (comet === "you" && mapRef.current) {
+            const burst = L.marker(pts[pts.length - 1], {
+              icon: L.divIcon({ className: "atlas-impact", html: "<i></i><i></i>", iconSize: [0, 0] }),
+              interactive: false,
+              keyboard: false,
+            }).addTo(map);
+            revealLayers.current.push(burst);
+          }
+          onDone?.();
+        }
       };
       revealRafs.current.push(requestAnimationFrame(step));
     };
@@ -509,16 +533,22 @@ export function GuessMap({
     if (guessKey && currentGuess) {
       const pts = toLatLngs(geodesicPoints(currentGuess, currentTruth, 64));
       const mid = pts[Math.floor(pts.length / 2)];
-      animateArc(pts, { color: MAP_COLORS.arc, weight: 2.25, opacity: 0.9 }, 900, () => {
+      animateArc(pts, { color: MAP_COLORS.arc, weight: 2.25, opacity: 0.9 }, 1100, () => {
         if (!mapRef.current) return;
         const label = textMarker(L, mid, formatDistance(haversineKm(currentGuess, currentTruth)), "atlas-distance-label");
         label.addTo(map);
         revealLayers.current.push(label);
-      });
+      }, "you");
     }
     if (opponentKey && currentOpponent) {
       const pts = toLatLngs(geodesicPoints(currentOpponent.guess, currentTruth, 64));
-      animateArc(pts, { color: MAP_COLORS.arcOpp, weight: 1.75, opacity: 0.8, dashArray: "6 6" }, 900);
+      animateArc(
+        pts,
+        { color: MAP_COLORS.arcOpp, weight: 1.75, opacity: 0.8, dashArray: "6 6" },
+        1100,
+        undefined,
+        "opp",
+      );
     }
 
     // Frame the arcs too, not just the endpoints: a ZA↔NL geodesic bows

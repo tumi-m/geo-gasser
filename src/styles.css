@@ -945,6 +945,28 @@ html.reduce-motion::view-transition-old(root),html.reduce-motion::view-transitio
 
 /* ───────────────────────── In-round motion ───────────────────────── */
 /* One sweep of light across a plate as it develops in. */
+/* Reveal: a comet leads each arc to the answer; yours lands with a burst. */
+.atlas-comet {pointer-events:none}
+.atlas-comet i {position:absolute;left:-7px;top:-7px;width:14px;height:14px;border-radius:50%;background:radial-gradient(circle,#fff 0 30%,var(--color-accent) 55%,transparent 72%);box-shadow:0 0 14px 4px #d8f36a99}
+.atlas-comet.is-opp i {background:radial-gradient(circle,#fff 0 30%,#d96a32 55%,transparent 72%);box-shadow:0 0 12px 3px #d96a3288}
+.atlas-impact {pointer-events:none}
+.atlas-impact i {position:absolute;left:-10px;top:-10px;width:20px;height:20px;border-radius:50%;border:2px solid var(--color-accent);opacity:0;animation:impact-ring .9s var(--ease-out) forwards}
+.atlas-impact i + i {border-color:#fff;animation-delay:.12s}
+@keyframes impact-ring {0%{opacity:1;transform:scale(.4)}100%{opacity:0;transform:scale(3.6)}}
+/* The lens over the photo. Opacity and transform only. */
+.scene-atmos {position:absolute;inset:0;z-index:2;pointer-events:none;overflow:hidden}
+.scene-atmos::before {content:"";position:absolute;inset:0;background:radial-gradient(ellipse 78% 72% at 50% 46%,transparent 58%,#04080cb3 100%);transition:opacity .8s var(--ease-out)}
+.scene-atmos.is-calm::before {opacity:.4}
+.scene-grain {position:absolute;inset:-60px;opacity:.06;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 .9 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");animation:grain-shift .9s steps(5) infinite}
+@keyframes grain-shift {0%{transform:translate(0,0)}20%{transform:translate(-22px,14px)}40%{transform:translate(18px,-26px)}60%{transform:translate(-12px,-8px)}80%{transform:translate(26px,20px)}100%{transform:translate(0,0)}}
+.scene-tension {position:absolute;inset:0;opacity:0;background:radial-gradient(ellipse 72% 66% at 50% 46%,transparent 50%,#d0402ecc 100%);transform:scale(1.12);transition:opacity .5s var(--ease-out)}
+.scene-atmos.is-urgent .scene-tension {opacity:calc(.3 + var(--tension) * .6);animation:tension-beat 1s cubic-bezier(.3,0,.2,1) infinite}
+@keyframes tension-beat {0%{transform:scale(1.12)}14%{transform:scale(1.0)}30%{transform:scale(1.06)}42%{transform:scale(1.01)}100%{transform:scale(1.12)}}
+/* Locking in: a camera shutter blinks over the photo. */
+.scene-flash {position:absolute;inset:0;z-index:46;pointer-events:none;background:radial-gradient(ellipse at 50% 50%,#fffef2 0%,#fffef2aa 45%,transparent 80%);opacity:0;animation:scene-flash .5s var(--ease-out)}
+@keyframes scene-flash {0%{opacity:0}12%{opacity:.5}100%{opacity:0}}
+.reduce-motion .scene-grain,.reduce-motion .scene-flash {display:none}
+@media (prefers-reduced-motion: reduce) {.scene-grain,.scene-flash {display:none}}
 .scene-sheen {position:absolute;inset:0;z-index:1;pointer-events:none;background:linear-gradient(105deg,transparent 35%,#ffffff1f 50%,transparent 65%);transform:translateX(-100%);animation:scene-sheen 1.2s cubic-bezier(.3,0,.2,1) .15s forwards}
 @keyframes scene-sheen {to{transform:translateX(100%)}}
 /* Your pin: a ring spreads each time it lands. */
