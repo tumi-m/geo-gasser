@@ -348,6 +348,11 @@ div.leaflet-container {
 .map-tool {display:inline-flex;align-items:center;justify-content:center;width:40px;height:40px;flex-shrink:0;border-radius:12px;color:var(--color-fg);transition:background .18s,transform .18s}
 .map-tool:hover {background:#ffffff12}
 .map-tool:active {transform:scale(.94)}
+@media (max-width: 400px) {
+  .map-regions button {padding:0 8px;gap:5px}
+  .map-tool {width:36px}
+}
+@media (max-width: 349px) {.map-regions .map-region-label {display:none}}
 .map-search-list {animation:chip-in .18s var(--ease-out)}
 .map-dock input[type=search]::-webkit-search-cancel-button {display:none}
 /* A new pin: its place name slides in and the country dot pops. */

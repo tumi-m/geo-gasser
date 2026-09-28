@@ -735,7 +735,7 @@ export function GuessMap({
                     ) : (
                       <i className={r.id === "ZA" ? "bg-za" : "bg-nl"} aria-hidden />
                     )}
-                    {r.label}
+                    <span className={r.id === "world" ? "map-region-label" : undefined}>{r.label}</span>
                   </button>
                 ))}
               </div>
