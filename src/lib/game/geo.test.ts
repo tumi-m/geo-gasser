@@ -63,6 +63,8 @@ describe("geodesicPoints", () => {
 describe("formatDistance", () => {
   it("renders a dash for missing pins", () => {
     assert.equal(formatDistance(Number.POSITIVE_INFINITY), "—");
+    assert.equal(formatDistance(31625.4), "31,625 km");
+    assert.equal(formatDistance(412), "412 km");
     assert.equal(formatDistance(Number.NaN), "—");
   });
 });

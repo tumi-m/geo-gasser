@@ -39,6 +39,7 @@ import { sanitizeName } from "@/lib/multiplayer";
 import { cn } from "@/lib/utils";
 import { BrushUnderline, FlightPath, WordRise } from "@/components/motion/motion";
 import { useRevealOnScroll } from "@/components/motion/use-reveal";
+import { usePointerTilt } from "@/components/motion/use-pointer-tilt";
 
 /** How long each featured destination holds before the hero moves on. */
 const DESTINATION_MS = 7000;
@@ -98,6 +99,8 @@ export function HomeScreen() {
   }, [autoplay, destination, destinations.length]);
   const homeRef = useRef<HTMLElement>(null);
   useRevealOnScroll(homeRef);
+  // Depth under the mouse: the hero photo and the map cards shift against it.
+  usePointerTilt(homeRef, ".journey-hero, .pack-card");
   const plan = planMatch(1, settings.matchLength, settings.atlas);
   useEffect(() => {
     if (!loaded) return; // never write the defaults over what is stored

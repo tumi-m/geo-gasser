@@ -866,6 +866,29 @@ button:focus-visible,a:focus-visible {outline:2px solid var(--color-accent)!impo
 .serif-word {position:relative;display:inline-block}
 
 /* Scroll reveals: armed by JS, so the server HTML is never hidden. */
+/* Results: the expedition map. The route draws hop by hop once the card is
+   in view; without the observer (no JS) everything is simply drawn. */
+.route-card {overflow:hidden;border:1px solid var(--color-border);border-radius:var(--radius-lg);background:radial-gradient(ellipse at 50% 40%,#16303a,#0c161d 75%)}
+.route-card svg {display:block;width:100%;height:auto}
+.route-grid {fill:none;stroke:#ffffff0c;stroke-width:1}
+.route-land {fill:#294049;stroke:#3d5663;stroke-width:.7;stroke-linejoin:round}
+.route-hop {fill:none;stroke:var(--color-accent);stroke-width:2.2;stroke-linecap:round;stroke-dasharray:1;stroke-dashoffset:0;opacity:.9}
+.route-stop {--tier:var(--color-accent);transform-box:fill-box;transform-origin:center}
+.route-stop.is-great {--tier:#5fd394}
+.route-stop.is-good {--tier:var(--color-accent)}
+.route-stop.is-fair {--tier:#f08a4b}
+.route-stop.is-miss {--tier:#6b7a82}
+.route-stop-dot {fill:var(--tier);stroke:#0c161d;stroke-width:1.5}
+.route-stop-ring {fill:none;stroke:var(--tier);stroke-width:1.5;opacity:0;transform-box:fill-box;transform-origin:center}
+.route-stop-n {font-size:10.5px;font-weight:700;fill:#0c161d;font-family:var(--font-sans,inherit)}
+.reveal-armed .route-card .route-hop {stroke-dashoffset:1}
+.reveal-armed .route-card .route-stop {opacity:0}
+.reveal-armed .route-card.is-in .route-hop {animation:route-hop var(--hop) cubic-bezier(.45,0,.25,1) forwards;animation-delay:calc(var(--i) * var(--hop) + var(--hop) + 350ms)}
+.reveal-armed .route-card.is-in .route-stop {animation:route-stop .45s cubic-bezier(.34,1.56,.64,1) forwards;animation-delay:calc(var(--i) * var(--hop) + 350ms)}
+.reveal-armed .route-card.is-in .route-stop-ring {animation:route-ring .9s var(--ease-out) forwards;animation-delay:calc(var(--i) * var(--hop) + 400ms)}
+@keyframes route-hop {to{stroke-dashoffset:0}}
+@keyframes route-stop {from{opacity:0;transform:scale(.2)}to{opacity:1;transform:none}}
+@keyframes route-ring {0%{opacity:.9;transform:scale(1)}100%{opacity:0;transform:scale(2.8)}}
 .reveal-armed [data-reveal] {opacity:0;transform:translateY(18px);transition:opacity .6s var(--ease-smooth-out),transform .7s var(--ease-smooth-out);transition-delay:calc(var(--i,0) * 90ms)}
 .reveal-armed [data-reveal].is-in {opacity:1;transform:none}
 
@@ -878,6 +901,29 @@ button:focus-visible,a:focus-visible {outline:2px solid var(--color-accent)!impo
 @keyframes hero-swap {from{opacity:0;transform:translateY(10px)}}
 .destination-progress {position:absolute;left:4px;right:4px;bottom:3px;height:2px;border-radius:2px;background:var(--color-accent);transform-origin:left;animation:dest-progress linear forwards}
 .journey-hero:not(.is-touring) .destination-progress {animation-play-state:paused}
+/* Depth under the mouse (use-pointer-tilt feeds --mx/--my, -1…1). The photo
+   drifts against the pointer, the words with it, so the hero reads as layers;
+   map cards do the same inside their frames and catch a moving highlight. */
+@media (hover: hover) and (pointer: fine) {
+  .journey-image.is-active {translate:calc(var(--mx,0) * -16px) calc(var(--my,0) * -10px);transition:opacity .9s var(--ease-out),translate 1s var(--ease-out)}
+  .journey-copy {translate:calc(var(--mx,0) * 6px) calc(var(--my,0) * 4px);transition:translate 1s var(--ease-out)}
+  .journey-destination {translate:calc(var(--mx,0) * 10px) calc(var(--my,0) * 7px);transition:translate 1s var(--ease-out)}
+  .pack-card > img {scale:1.07;translate:calc(var(--mx,0) * -10px) calc(var(--my,0) * -8px);transition:transform .5s,translate .7s var(--ease-out)}
+  .pack-card .pack-copy,.pack-card .pack-top {translate:calc(var(--mx,0) * 5px) calc(var(--my,0) * 4px);transition:translate .7s var(--ease-out)}
+  .pack-card::after {content:"";position:absolute;inset:0;z-index:3;pointer-events:none;background:radial-gradient(circle at calc(50% + var(--mx,0) * 50%) calc(50% + var(--my,0) * 50%),#ffffff22,transparent 58%);opacity:0;transition:opacity .35s}
+  .pack-card:hover::after {opacity:1}
+  /* The scroll-in rule's transform outranked the hover lift. */
+  .reveal-armed .pack-card[data-reveal].is-in:hover {transform:translateY(-4px);transition-delay:0s}
+}
+/* Phones: map card photos drift as they scroll past (where supported). */
+@supports (animation-timeline: view()) {
+  @media (hover: none) {
+    .pack-card > img {scale:1.14;animation:pack-drift linear both;animation-timeline:view()}
+  }
+}
+@keyframes pack-drift {from{translate:0 -6%}to{translate:0 6%}}
+.reduce-motion .journey-image.is-active,.reduce-motion .journey-copy,.reduce-motion .journey-destination,.reduce-motion .pack-card > img,.reduce-motion .pack-card .pack-copy,.reduce-motion .pack-card .pack-top {translate:none;animation:none}
+@media (prefers-reduced-motion: reduce) {.journey-image.is-active,.journey-copy,.journey-destination,.pack-card > img,.pack-card .pack-copy,.pack-card .pack-top {translate:none}.pack-card > img {animation:none}}
 @keyframes dest-progress {from{transform:scaleX(0)}to{transform:scaleX(1)}}
 .journey-copy .status-dot {position:relative}
 .journey-copy .status-dot::after {content:"";position:absolute;inset:-4px;border-radius:50%;border:1px solid var(--color-accent);animation:dot-ping 2.4s var(--ease-out) infinite}

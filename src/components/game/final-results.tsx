@@ -14,6 +14,7 @@ import { Sparks } from "./round-splash";
 import { useCountUp } from "./use-count-up";
 import { WordRise } from "@/components/motion/motion";
 import { useRevealOnScroll } from "@/components/motion/use-reveal";
+import { ExpeditionRoute } from "./expedition-route";
 import { PlayerAvatar } from "./player-avatar";
 import { ScoreTally } from "./score-tally";
 import { cn, copyText } from "@/lib/utils";
@@ -98,6 +99,14 @@ export function FinalResults({
             <FinalScore value={you?.totalScore ?? 0} reduced={Boolean(reducedMotion)} />
           </p>
         )}
+        <ExpeditionRoute
+          className="mt-7"
+          stops={state.roundHistory.map((r) => ({
+            latitude: r.truth.latitude,
+            longitude: r.truth.longitude,
+            score: r.guesses[selfId]?.score.roundScore,
+          }))}
+        />
         <ol className="mt-8 space-y-5">
           {duel && other ? (
             <p className="text-xs text-subtle">Per question · you then {other.name}</p>

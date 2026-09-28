@@ -10,12 +10,21 @@ import type { MatchState } from "./types.ts";
 
 const PER_LINE = 10;
 
-export function scoreMark(score: number | undefined): string {
-  if (!score || score <= 0) return "⬛";
+export type ScoreTier = "great" | "good" | "fair" | "miss";
+
+/** How a question went, by its share of the maximum; the share card and the results map agree. */
+export function scoreTier(score: number | undefined): ScoreTier {
+  if (!score || score <= 0) return "miss";
   const share = score / ROUND_MAX;
-  if (share >= 0.75) return "🟩";
-  if (share >= 0.4) return "🟨";
-  return "🟧";
+  if (share >= 0.75) return "great";
+  if (share >= 0.4) return "good";
+  return "fair";
+}
+
+const MARK: Record<ScoreTier, string> = { great: "🟩", good: "🟨", fair: "🟧", miss: "⬛" };
+
+export function scoreMark(score: number | undefined): string {
+  return MARK[scoreTier(score)];
 }
 
 export function shareCard(
