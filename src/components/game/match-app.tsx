@@ -1349,16 +1349,6 @@ export function MatchApp({
         </div>
       )}
 
-      {settings.showHints &&
-        !exploring &&
-        state.phase === "round_active" &&
-        !you?.guess &&
-        !you?.locked && (
-          <p className="relative z-20 mx-4 mt-2 w-fit rounded-full border border-border bg-bg/75 px-3 py-1.5 text-xs text-muted">
-            Tap the map to drop a pin
-          </p>
-        )}
-
       {(loc || scene) && (
         <div hidden={exploring && !showingReveal}>
           <GuessMap

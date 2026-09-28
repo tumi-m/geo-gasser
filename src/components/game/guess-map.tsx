@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Globe, LocateFixed, Lock, Maximize2, Minimize2, Search } from "lucide-react";
+import { Globe, LocateFixed, Lock, MapPin, Maximize2, Minimize2, Search, X } from "lucide-react";
 import type { LatLng } from "@/lib/game";
 import { atlasFocus, atlasIncludes, formatDistance, geodesicPoints, haversineKm, searchPlaces, type AtlasSpec, type Place } from "@/lib/game";
 import { cn } from "@/lib/utils";
@@ -119,6 +119,8 @@ export function GuessMap({
   const revealLayers = useRef<import("leaflet").Layer[]>([]);
   const revealRafs = useRef<number[]>([]);
   const viewportKickRef = useRef<(() => void) | null>(null);
+  /** Re-fits the reveal (answer, pins, arcs) after the map changes size. */
+  const revealFrameRef = useRef<(() => void) | null>(null);
   const guessRef = useRef(guess);
   guessRef.current = guess;
   const onGuessRef = useRef(onGuess);
@@ -142,6 +144,9 @@ export function GuessMap({
   const [status, setStatus] = useState<MapStatus>("loading");
   const [epoch, setEpoch] = useState(0);
   const [query, setQuery] = useState("");
+  const [searching, setSearching] = useState(false);
+  const searchRef = useRef<HTMLInputElement>(null);
+  const [region, setRegion] = useState<"ZA" | "NL" | "world" | null>(atlas ? atlasFocus(atlas) : "world");
   const [activeHit, setActiveHit] = useState(0);
   const hits = useMemo(() => searchPlaces(query, expanded ? 8 : 6), [query, expanded]);
   const readout = useMemo(
@@ -157,9 +162,10 @@ export function GuessMap({
 
   /** Padding that keeps framed content clear of the toolbar / bottom bar. */
   function framePad(): { paddingTopLeft: [number, number]; paddingBottomRight: [number, number] } {
-    // Reveal only shows the expand button; guessing adds chips + bottom bar.
-    const top = revealRef.current ? 64 : 108;
-    const bottom = revealRef.current ? 36 : 60;
+    // The tool strip and lock bar sit outside the map; the reveal overlays
+    // only its expand button.
+    const top = revealRef.current ? 64 : 16;
+    const bottom = revealRef.current ? 36 : 16;
     // At the reveal pin labels ("Answer", names) sit to the right of their
     // pins; leave room so a pin in the corner keeps its label on screen.
     const right = revealRef.current ? 72 : 20;
@@ -231,7 +237,6 @@ export function GuessMap({
         gate.update();
         map.on("zoomend", () => gate.update());
 
-        L.control.scale({ imperial: false, maxWidth: 120, position: "bottomright" }).addTo(map);
         L.control.zoom({ position: "bottomright" }).addTo(map);
 
         map.on("click", (e: import("leaflet").LeafletMouseEvent) => {
@@ -276,6 +281,7 @@ export function GuessMap({
         if (wrap) {
           ro = new ResizeObserver(kickSize);
           ro.observe(wrap);
+          ro.observe(host);
         }
         const onViewport = () => kickSize();
         window.visualViewport?.addEventListener("resize", onViewport);
@@ -355,6 +361,7 @@ export function GuessMap({
   }
 
   function focusCountry(which: "ZA" | "NL" | "world") {
+    setRegion(which);
     const map = mapRef.current;
     if (!map) {
       pendingFocus.current = which;
@@ -380,6 +387,8 @@ export function GuessMap({
     const map = mapRef.current;
     setQuery("");
     setActiveHit(0);
+    setSearching(false);
+    setRegion(null);
     ignoreMapClickUntil.current = performance.now() + 500;
     if (!disabledRef.current && !revealRef.current) {
       buzz(12);
@@ -390,6 +399,14 @@ export function GuessMap({
     if (reducedRef.current) map.setView([place.latitude, place.longitude], zoom, { animate: false });
     else map.flyTo([place.latitude, place.longitude], zoom, { duration: 0.8 });
   }
+
+  // The search field opens focused, and closes for the reveal.
+  useEffect(() => {
+    if (searching) searchRef.current?.focus();
+  }, [searching]);
+  useEffect(() => {
+    if (reveal) setSearching(false);
+  }, [reveal]);
 
   // Your pin follows the guess; its label explains its state.
   useEffect(() => {
@@ -418,6 +435,7 @@ export function GuessMap({
       const bounds = which === "ZA" ? ZA_BOUNDS : which === "NL" ? NL_BOUNDS : WORLD_BOUNDS;
       const maxZoom = which === "ZA" ? 5.5 : which === "NL" ? 7.5 : 2.2;
       pendingFocus.current = which;
+      setRegion(which);
       if (map) {
         map.fitBounds(bounds, { ...framePad(), animate: false, maxZoom });
         pendingFocus.current = null;
@@ -435,7 +453,10 @@ export function GuessMap({
   useEffect(() => {
     const map = mapRef.current;
     if (!map) return;
-    const id = window.setTimeout(() => map.invalidateSize({ animate: false, pan: false }), 320);
+    const id = window.setTimeout(() => {
+      map.invalidateSize({ animate: false, pan: false });
+      if (reveal) revealFrameRef.current?.();
+    }, 320);
     return () => window.clearTimeout(id);
   }, [expanded, reveal]);
 
@@ -511,89 +532,95 @@ export function GuessMap({
       // Sample the apex every 8 points; cheap and keeps the frame tight.
       for (let i = 4; i < arc.length - 4; i += 8) b.extend(arc[i]);
     }
+    const frame = (animate: boolean) => {
+      const m = mapRef.current;
+      if (!m) return;
+      m.invalidateSize({ animate: false, pan: false });
+      const pad = framePad();
+      if (framePts.length === 1) {
+        m.setView([currentTruth.latitude, currentTruth.longitude], 4.5, { animate });
+      } else if (!animate) {
+        m.fitBounds(b, { ...pad, maxZoom: 6, animate: false });
+      } else {
+        m.flyToBounds(b, { ...pad, maxZoom: 6, duration: 1.1 });
+      }
+    };
+    revealFrameRef.current = () => frame(false);
     revealRafs.current.push(
       requestAnimationFrame(() => {
-        revealRafs.current.push(
-          requestAnimationFrame(() => {
-            const m = mapRef.current;
-            if (!m) return;
-            m.invalidateSize({ animate: false, pan: false });
-            const pad = framePad();
-            if (framePts.length === 1) {
-              m.setView([currentTruth.latitude, currentTruth.longitude], 4.5, { animate: !reduced });
-            } else if (reduced) {
-              m.fitBounds(b, { ...pad, maxZoom: 6, animate: false });
-            } else {
-              m.flyToBounds(b, { ...pad, maxZoom: 6, duration: 1.1 });
-            }
-          }),
-        );
+        revealRafs.current.push(requestAnimationFrame(() => frame(!reduced)));
       }),
     );
+    // On desktop the dock widens from the corner into the reveal strip over
+    // 300ms; framing only at the start fitted the small corner map and left
+    // the reveal at world zoom. Frame again once the size has settled.
+    const settle = window.setTimeout(() => {
+      const m = mapRef.current;
+      if (!m) return;
+      const size = m.getSize();
+      m.invalidateSize({ animate: false, pan: false });
+      const now = m.getSize();
+      if (now.x !== size.x || now.y !== size.y || !m.getBounds().contains(b)) frame(!reduced);
+    }, 360);
+    return () => {
+      window.clearTimeout(settle);
+      revealFrameRef.current = null;
+    };
   }, [reveal, truthKey, guessKey, opponentKey, reducedMotion]);
 
-  const chip =
-    "hit-44 inline-flex h-10 items-center gap-1.5 rounded-full border border-border bg-bg/85 px-3 text-[11px] font-medium uppercase tracking-wider text-fg backdrop-blur-sm active:scale-95 transition-transform";
+  const regionButtons: { id: "ZA" | "NL" | "world"; label: string; name: string }[] = [
+    ...((!atlas || atlasIncludes(atlas, "ZA"))
+      ? [{ id: "ZA" as const, label: "SA", name: "South Africa" }]
+      : []),
+    ...((!atlas || atlasIncludes(atlas, "NL"))
+      ? [{ id: "NL" as const, label: "NL", name: "the Netherlands" }]
+      : []),
+    { id: "world", label: "World", name: "the whole world" },
+  ];
+  const closeSearch = () => {
+    setSearching(false);
+    setQuery("");
+    setActiveHit(0);
+  };
 
   return (
     <div
       ref={wrapRef}
       className={cn(
-        "relative overflow-hidden border border-border bg-[#243044] shadow-[var(--shadow-panel)] transition-[width,height,inset,border-radius,box-shadow] duration-300",
+        "map-dock overflow-hidden border border-border bg-[#243044] shadow-[var(--shadow-panel)] transition-[width,height,inset,border-radius,box-shadow,opacity] duration-300",
         urgent && !reveal && "atlas-map-urgent",
         reveal && "is-reveal",
         expanded
-          ? "fixed inset-3 z-30 rounded-[var(--radius-xl)]"
+          ? "is-expanded fixed inset-3 z-30 rounded-[var(--radius-xl)]"
           : reveal
             ? "absolute inset-x-3 bottom-3 z-30 h-[var(--atlas-map-reveal-h)] rounded-[var(--radius-xl)] max-sm:bottom-[max(0.75rem,env(safe-area-inset-bottom))]"
-            : "absolute right-3 bottom-3 z-20 h-[var(--atlas-map-h)] w-[min(100%-1.5rem,400px)] rounded-[var(--radius-lg)] max-sm:inset-x-3 max-sm:w-auto max-sm:bottom-[max(0.75rem,env(safe-area-inset-bottom))]",
+            : "is-docked absolute right-3 bottom-3 z-20 h-[var(--atlas-map-h)] w-[var(--atlas-map-w)] rounded-[var(--radius-lg)] max-sm:inset-x-3 max-sm:w-auto max-sm:bottom-[max(0.75rem,env(safe-area-inset-bottom))]",
       )}
     >
-      <div ref={hostRef} className="absolute inset-0 z-0" role="application" aria-label="Guessing map" />
-
-      {status !== "ready" && (
-        <div className="pointer-events-none absolute inset-0 z-[701] flex items-center justify-center bg-bg-elevated/80">
-          {status === "loading" ? (
-            <p className="text-xs uppercase tracking-wider text-muted">Loading map</p>
-          ) : (
-            <button
-              type="button"
-              className="pointer-events-auto h-11 rounded-[var(--radius-sm)] border border-border bg-bg px-4 text-xs font-medium uppercase tracking-wider"
-              onClick={() => {
-                setStatus("loading");
-                pendingFocus.current = "world";
-                setEpoch((n) => n + 1);
-              }}
-            >
-              Retry map
-            </button>
-          )}
-        </div>
-      )}
-
-      {/* Toolbar */}
-      <div className="pointer-events-none absolute inset-x-3 top-3 z-[800] flex flex-col gap-2">
-        <div className="flex items-start gap-2">
-          {!reveal ? (
-            <div className="pointer-events-auto relative min-w-0 flex-1">
+      {/* Tools live in a strip above the map, never on top of it. */}
+      {!reveal && (
+        <div className="map-dock-bar is-top">
+          {searching ? (
+            <div className="relative min-w-0 flex-1">
               <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted" />
               <input
+                ref={searchRef}
                 type="search"
                 value={query}
-                placeholder="Search a city to drop a pin"
+                placeholder="Search a city or town"
                 autoComplete="off"
                 autoCorrect="off"
                 spellCheck={false}
                 enterKeyHint="go"
                 aria-label="Search a city to drop a pin"
                 aria-autocomplete="list"
-                className="h-11 w-full rounded-[var(--radius-sm)] border border-border bg-bg/90 pl-9 pr-3 text-sm text-fg outline-none backdrop-blur-sm placeholder:text-subtle"
-                onFocus={() => {
-                  if (!expanded && window.matchMedia("(min-width: 641px)").matches) onToggleExpand();
-                }}
+                className="h-10 w-full rounded-full border border-border bg-bg pl-9 pr-3 text-sm text-fg outline-none placeholder:text-subtle focus:border-accent/60"
                 onChange={(e) => {
                   setQuery(e.target.value);
                   setActiveHit(0);
+                }}
+                onBlur={() => {
+                  if (!query.trim()) setSearching(false);
                 }}
                 onKeyDown={(e) => {
                   if (e.key === "ArrowDown") {
@@ -605,17 +632,16 @@ export function GuessMap({
                   } else if (e.key === "Enter" && hits[activeHit]) {
                     e.preventDefault();
                     goToPlace(hits[activeHit]);
-                    (e.target as HTMLInputElement).blur();
                   } else if (e.key === "Escape") {
-                    setQuery("");
-                    (e.target as HTMLInputElement).blur();
+                    e.stopPropagation();
+                    closeSearch();
                   }
                 }}
               />
               {query && hits.length > 0 && (
                 <ul
                   role="listbox"
-                  className="absolute top-[calc(100%+4px)] z-20 max-h-64 w-full overflow-auto rounded-[var(--radius-sm)] border border-border bg-bg py-1 shadow-[var(--shadow-panel)]"
+                  className="map-search-list absolute top-[calc(100%+6px)] z-20 max-h-64 w-full overflow-auto rounded-[var(--radius-md)] border border-border bg-bg py-1 shadow-[var(--shadow-panel)]"
                 >
                   {hits.map((place, i) => (
                     <li key={`${place.country}-${place.name}`}>
@@ -657,51 +683,135 @@ export function GuessMap({
                 </ul>
               )}
               {query.trim() && hits.length === 0 && (
-                <p className="absolute top-[calc(100%+4px)] z-20 w-full rounded-[var(--radius-sm)] border border-border bg-bg px-3 py-2 text-xs text-muted">
+                <p className="absolute top-[calc(100%+6px)] z-20 w-full rounded-[var(--radius-md)] border border-border bg-bg px-3 py-2 text-xs text-muted">
                   No matching city
                 </p>
               )}
             </div>
           ) : (
-            <div className="flex-1" />
+            <>
+              <div className="map-regions" role="group" aria-label="Jump the map to">
+                {regionButtons.map((r) => (
+                  <button
+                    key={r.id}
+                    type="button"
+                    className={cn("hit-44", region === r.id && "is-on")}
+                    aria-pressed={region === r.id}
+                    aria-label={`Show ${r.name}`}
+                    onClick={() => focusCountry(r.id)}
+                  >
+                    {r.id === "world" ? (
+                      <Globe className="size-3.5" />
+                    ) : (
+                      <i className={r.id === "ZA" ? "bg-za" : "bg-nl"} aria-hidden />
+                    )}
+                    {r.label}
+                  </button>
+                ))}
+              </div>
+              <div className="flex-1" />
+              {guess && (
+                <button type="button" className="map-tool hit-44" onClick={focusPin} aria-label="Zoom to my pin" title="Zoom to my pin">
+                  <LocateFixed className="size-4" />
+                </button>
+              )}
+              <button
+                type="button"
+                className="map-tool hit-44"
+                aria-label="Search a city"
+                title="Search a city"
+                onClick={() => {
+                  setSearching(true);
+                  if (!expanded && window.matchMedia("(min-width: 641px)").matches) onToggleExpand();
+                }}
+              >
+                <Search className="size-4" />
+              </button>
+            </>
           )}
-          <button
-            type="button"
-            className="pointer-events-auto inline-flex size-11 shrink-0 items-center justify-center rounded-[var(--radius-sm)] border border-border bg-bg/85 text-fg backdrop-blur-sm"
-            onClick={onToggleExpand}
-            aria-label={expanded ? "Shrink map" : "Expand map"}
-            title={expanded ? "Shrink map" : "Expand map"}
-          >
-            {expanded ? <Minimize2 className="size-4" /> : <Maximize2 className="size-4" />}
-          </button>
-        </div>
-        {!reveal && (
-          <div className="pointer-events-auto flex flex-wrap items-center gap-1.5">
-            {(!atlas || atlasIncludes(atlas, "ZA")) && (
-              <button type="button" className={cn(chip, "border-transparent bg-za/90")} onClick={() => focusCountry("ZA")} aria-label="Focus map on South Africa">
-                SA
-              </button>
-            )}
-            {(!atlas || atlasIncludes(atlas, "NL")) && (
-              <button type="button" className={cn(chip, "border-transparent bg-nl/90")} onClick={() => focusCountry("NL")} aria-label="Focus map on the Netherlands">
-                NL
-              </button>
-            )}
-            <button type="button" className={chip} onClick={() => focusCountry("world")} aria-label="Show the whole world">
-              <Globe className="size-3.5" /> World
+          {searching ? (
+            <button type="button" className="map-tool hit-44" onClick={closeSearch} aria-label="Close search" title="Close search">
+              <X className="size-4" />
             </button>
-            {guess && (
-              <button type="button" className={chip} onClick={focusPin} aria-label="Zoom to my pin">
-                <LocateFixed className="size-3.5" /> My pin
+          ) : (
+            <button
+              type="button"
+              className="map-tool hit-44"
+              onClick={onToggleExpand}
+              aria-label={expanded ? "Shrink map" : "Expand map"}
+              title={expanded ? "Shrink map" : "Expand map"}
+            >
+              {expanded ? <Minimize2 className="size-4" /> : <Maximize2 className="size-4" />}
+            </button>
+          )}
+        </div>
+      )}
+
+      <div className="relative z-0 min-h-0 flex-1">
+        <div ref={hostRef} className="absolute inset-0" role="application" aria-label="Guessing map" />
+
+        {status !== "ready" && (
+          <div className="pointer-events-none absolute inset-0 z-[701] flex items-center justify-center bg-bg-elevated/80">
+            {status === "loading" ? (
+              <p className="text-xs uppercase tracking-wider text-muted">Loading map</p>
+            ) : (
+              <button
+                type="button"
+                className="pointer-events-auto h-11 rounded-[var(--radius-sm)] border border-border bg-bg px-4 text-xs font-medium uppercase tracking-wider"
+                onClick={() => {
+                  setStatus("loading");
+                  pendingFocus.current = "world";
+                  setEpoch((n) => n + 1);
+                }}
+              >
+                Retry map
               </button>
             )}
           </div>
         )}
+
+        {reveal && (
+          <div className="absolute right-3 top-3 z-[800]">
+            <button
+              type="button"
+              className="map-tool hit-44 border border-border bg-bg/85 backdrop-blur-sm"
+              onClick={onToggleExpand}
+              aria-label={expanded ? "Shrink map" : "Expand map"}
+              title={expanded ? "Shrink map" : "Expand map"}
+            >
+              {expanded ? <Minimize2 className="size-4" /> : <Maximize2 className="size-4" />}
+            </button>
+          </div>
+        )}
       </div>
 
-      {/* Bottom bar: lock + readout, clear of the zoom control on the right. */}
+      {/* One action bar: where your pin is, and the button that commits it. */}
       {!reveal && (onLock || readout) && (
-        <div className="pointer-events-none absolute bottom-3 left-3 right-[3.5rem] z-[800] flex items-center gap-2">
+        <div className={cn("map-dock-bar is-bottom", canLock && onLock && "is-armed")}>
+          <div className="flex min-w-0 flex-1 items-center gap-2" aria-live="polite">
+            {readout ? (
+              <>
+                <span
+                  className={cn(
+                    "map-readout-dot size-2 shrink-0 rounded-full",
+                    readout.country === "ZA" ? "bg-za" : readout.country === "NL" ? "bg-nl" : "bg-subtle",
+                  )}
+                  key={guessKey}
+                />
+                <span className="min-w-0 text-xs leading-tight" key={`t-${guessKey}`}>
+                  <span className="map-readout block truncate font-medium text-fg">{readout.primary}</span>
+                  {readout.secondary && (
+                    <span className="block truncate text-[10px] uppercase tracking-wider text-muted">{readout.secondary}</span>
+                  )}
+                </span>
+              </>
+            ) : (
+              <>
+                <MapPin className="size-4 shrink-0 text-accent" aria-hidden />
+                <span className="truncate text-xs text-muted">Tap the map to drop a pin</span>
+              </>
+            )}
+          </div>
           {onLock && (
             <button
               type="button"
@@ -711,32 +821,13 @@ export function GuessMap({
                 onLock();
               }}
               className={cn(
-                "pointer-events-auto inline-flex h-11 shrink-0 items-center gap-2 rounded-[var(--radius-md)] bg-accent px-4 text-sm font-medium text-accent-fg disabled:opacity-40",
+                "inline-flex h-11 shrink-0 items-center gap-2 rounded-[var(--radius-md)] bg-accent px-4 text-sm font-semibold text-accent-fg transition-[opacity,transform] active:scale-[.97] disabled:opacity-35",
                 canLock && "atlas-lock-ready",
               )}
             >
               <Lock className="size-4" />
               Lock guess
             </button>
-          )}
-          {readout && (
-            <div
-              className="pointer-events-auto flex h-11 min-w-0 items-center gap-2 rounded-[var(--radius-md)] border border-border bg-bg/85 px-3 backdrop-blur-sm"
-              aria-live="polite"
-            >
-              <span
-                className={cn(
-                  "size-2 shrink-0 rounded-full",
-                  readout.country === "ZA" ? "bg-za" : readout.country === "NL" ? "bg-nl" : "bg-subtle",
-                )}
-              />
-              <span className="min-w-0 truncate text-xs leading-tight">
-                <span className="block truncate font-medium">{readout.primary}</span>
-                {readout.secondary && (
-                  <span className="block truncate text-[10px] uppercase tracking-wider text-muted">{readout.secondary}</span>
-                )}
-              </span>
-            </div>
           )}
         </div>
       )}

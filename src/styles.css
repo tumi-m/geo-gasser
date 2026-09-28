@@ -165,7 +165,8 @@ html.hc {
    (and never under 360px) so the map is the primary guessing surface.
    dvh tracks the collapsing URL bar; vh does not. */
 :root {
-  --atlas-map-h: 32vh;
+  --atlas-map-h: clamp(300px, 42vh, 460px);
+  --atlas-map-w: min(100% - 1.5rem, 420px);
   --atlas-map-reveal-h: min(46vh, 440px);
 }
 
@@ -332,15 +333,32 @@ div.leaflet-container {
   }
 }
 
-/* Scale bar in app chrome. */
-.leaflet-control-scale-line {
-  background: color-mix(in oklab, var(--color-bg) 75%, transparent);
-  border: 1px solid var(--color-border);
-  border-top: none;
-  color: var(--color-muted);
-  font-size: 10px;
-  letter-spacing: 0.06em;
-  text-shadow: none;
+/* The guessing dock: a tool strip, the map, and one action bar. Nothing but
+   the zoom buttons sits on the map itself. */
+.map-dock {display:flex;flex-direction:column}
+.map-dock-bar {position:relative;z-index:800;display:flex;align-items:center;gap:6px;flex-shrink:0;padding:6px;background:color-mix(in oklab,var(--color-bg) 94%,transparent)}
+.map-dock-bar.is-top {border-bottom:1px solid var(--color-border)}
+.map-dock-bar.is-bottom {border-top:1px solid var(--color-border);padding-left:12px;transition:background .25s}
+.map-dock-bar.is-bottom.is-armed {background:color-mix(in oklab,var(--color-accent) 7%,var(--color-bg))}
+.map-regions {display:flex;gap:2px;padding:3px;border-radius:999px;border:1px solid var(--color-border);background:#ffffff08}
+.map-regions button {display:inline-flex;align-items:center;gap:6px;height:32px;padding:0 11px;border-radius:999px;font-size:11px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--color-muted);transition:background .18s,color .18s}
+.map-regions button:hover {color:var(--color-fg);background:#ffffff10}
+.map-regions button.is-on {color:var(--color-fg);background:var(--color-bg-subtle)}
+.map-regions button i {width:7px;height:7px;border-radius:999px}
+.map-tool {display:inline-flex;align-items:center;justify-content:center;width:40px;height:40px;flex-shrink:0;border-radius:12px;color:var(--color-fg);transition:background .18s,transform .18s}
+.map-tool:hover {background:#ffffff12}
+.map-tool:active {transform:scale(.94)}
+.map-search-list {animation:chip-in .18s var(--ease-out)}
+.map-dock input[type=search]::-webkit-search-cancel-button {display:none}
+/* A new pin: its place name slides in and the country dot pops. */
+.map-readout {animation:readout-in .32s var(--ease-out)}
+.map-readout-dot {animation:number-pop .38s cubic-bezier(.34,1.56,.64,1)}
+@keyframes readout-in {from{opacity:0;transform:translateY(6px)}}
+/* Desktop: the docked map stays small over the photo and opens up when you
+   reach for it. */
+@media (hover: hover) and (min-width: 641px) {
+  .map-dock.is-docked {opacity:.94}
+  .map-dock.is-docked:hover,.map-dock.is-docked:focus-within {--atlas-map-h:clamp(380px,62vh,640px);--atlas-map-w:min(100% - 1.5rem,600px);opacity:1}
 }
 
 .leaflet-tooltip {
