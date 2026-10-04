@@ -720,7 +720,10 @@ export function MatchApp({
     const fire = () => {
       const now = clock();
       const rem = remainingSeconds(state.roundStartedAtMs!, now, duration);
-      setRemaining(rem);
+      // Whole seconds, not every frame: the whole match screen re-rendered 60
+      // times a second for a clock that shows whole seconds. Equal values skip
+      // the render; the ring glides on to the next second in CSS.
+      setRemaining(Math.ceil(rem));
       if (rem > 0) return false;
       if (serverMode || (mode === "duel" && duelKind === "online" && !hostRef.current)) return true;
       dispatch({ type: "TIMEOUT", now });
@@ -1290,6 +1293,7 @@ export function MatchApp({
           {!showingReveal && (
             <TimerRing
               remaining={remaining}
+              running={clockRunning && state.phase !== "round_intro"}
               duration={state.durationSec || 45}
               urgent={urgent}
               locked={Boolean(you?.locked && !showingReveal)}

@@ -6,13 +6,19 @@ export function TimerRing({
   duration = 45,
   urgent = false,
   locked = false,
+  running = false,
 }: {
   remaining: number;
   duration?: number;
   urgent?: boolean;
   locked?: boolean;
+  /** The clock is ticking: the ring leads toward the next second. */
+  running?: boolean;
 }) {
-  const t = Math.max(0, Math.min(1, remaining / duration));
+  // `remaining` steps once a second; aim the ring at where it will be at the
+  // next step and let a 1s linear transition carry it there, so it sweeps
+  // smoothly without re-rendering every frame.
+  const t = Math.max(0, Math.min(1, (running && !locked ? remaining - 1 : remaining) / duration));
   const r = 18;
   const c = 2 * Math.PI * r;
   const label = locked ? "Guess locked" : `${Math.ceil(remaining)} seconds remaining`;
@@ -38,7 +44,7 @@ export function TimerRing({
           r={r}
           fill="none"
           stroke="currentColor"
-          className={urgent && !locked ? "text-danger" : "text-accent"}
+          className={cn("timer-progress", urgent && !locked ? "text-danger" : "text-accent")}
           strokeWidth="3"
           strokeDasharray={c}
           strokeDashoffset={c * (1 - t)}

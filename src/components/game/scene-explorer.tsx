@@ -347,7 +347,10 @@ export function SceneExplorer({
         img.style.left = `${(box.clientWidth - w) / 2}px`;
         img.style.top = `${(box.clientHeight - h) / 2}px`;
       }
-      img.style.transform = `translate(${next.x}px, ${next.y}px) scale(${zoom})`;
+      // Only touch the DOM when the view actually moved: an idle photo used
+      // to restyle itself every frame.
+      const transform = `translate(${next.x.toFixed(2)}px, ${next.y.toFixed(2)}px) scale(${zoom.toFixed(4)})`;
+      if (img.style.transform !== transform) img.style.transform = transform;
     };
 
     const loop = (now: number) => {
