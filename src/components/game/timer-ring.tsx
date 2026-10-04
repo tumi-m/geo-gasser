@@ -62,7 +62,7 @@ export function TimerRing({
 
 export function RoundPips({ index, total = 4 }: { index: number; total?: number }) {
   return (
-    <div className="flex gap-1" aria-label={`Round ${index + 1} of ${total}`}>
+    <div className="flex gap-1" role="img" aria-label={`Round ${index + 1} of ${total}`}>
       {Array.from({ length: total }, (_, i) => (
         <span
           key={i}

@@ -2,7 +2,7 @@ import { useMemo } from "react";
 import worldJson from "@/data/world.json";
 import { formatDistance, haversineKm, scoreTier } from "@/lib/game";
 import { hopPath, landPath, routeAspect, routeFrame } from "@/lib/map/route";
-import { cn } from "@/lib/utils";
+import { cn, plural } from "@/lib/utils";
 
 /**
  * The match as a trip: the places it visited on a small map, joined in order
@@ -58,7 +58,7 @@ export function ExpeditionRoute({ stops, className }: { stops: RouteStop[]; clas
       <svg
         viewBox={`0 0 ${W} ${geo.height}`}
         role="img"
-        aria-label={`Map of the ${stops.length} places this match visited`}
+        aria-label={`Map of the ${plural(stops.length, "place")} this match visited`}
       >
         <path d={geo.grid} className="route-grid" />
         <path d={geo.land} className="route-land" />

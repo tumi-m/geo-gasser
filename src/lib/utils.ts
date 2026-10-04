@@ -5,6 +5,11 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
+/** "1 place", "5 places". */
+export function plural(n: number, one: string, many = `${one}s`): string {
+  return `${n.toLocaleString()} ${n === 1 ? one : many}`;
+}
+
 /**
  * Copy text, falling back to a hidden textarea where the async clipboard is
  * missing or refused (plain-http LAN hosts, older WebViews). True on success.

@@ -109,10 +109,10 @@ export function FinalResults({
           }))}
         />
         <PassportStamps history={state.roundHistory} />
-        <ol className="mt-8 space-y-5">
-          {duel && other ? (
-            <p className="text-xs text-subtle">Per question · you then {other.name}</p>
-          ) : null}
+        {duel && other ? (
+          <p className="mt-8 text-xs text-subtle">Per question · you then {other.name}</p>
+        ) : null}
+        <ol className={cn("space-y-5", duel && other ? "mt-5" : "mt-8")}>
           {Array.from({ length: state.totalRounds || 4 }, (_, round) => {
             const rows = state.roundHistory.filter(
               (r) =>

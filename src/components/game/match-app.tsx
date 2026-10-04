@@ -1182,6 +1182,7 @@ export function MatchApp({
         shake && "atlas-shake",
       )}
     >
+      <h1 className="sr-only">Atlas Duel · {roundLabel}</h1>
       {/* Locking in: a camera shutter over everything, even the splash. */}
       {shutter > 0 && <i key={shutter} className="scene-flash" aria-hidden />}
 

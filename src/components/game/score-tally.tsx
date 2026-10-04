@@ -36,13 +36,17 @@ export function ScoreTally({
   return (
     <div
       className="score-tally min-w-[10.5rem] rounded-[var(--radius-md)] border border-border bg-bg/75 px-2.5 py-2"
-      role="table"
+      role="list"
       aria-label="Score tally"
     >
       {ordered.map((p) => {
         const leading = !tied && p.totalScore === lead;
         return (
-          <div key={p.id} role="row" className="flex items-center gap-2 py-1 first:pt-0 last:pb-0">
+          <div
+            key={p.id}
+            role="listitem"
+            className="flex items-center gap-2 py-1 first:pt-0 last:pb-0"
+          >
             <PlayerAvatar id={p.avatarId} size={28} title={p.name} mood={moodFor(p)} />
             <div className="min-w-0 flex-1">
               {/* Names drop out of the phone HUD (styles.css); bots tell players apart. */}

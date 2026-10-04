@@ -16,7 +16,7 @@ import { useMusic } from "@/lib/music/use-music";
 import { AtlasPicker } from "./atlas-picker";
 import { MusicSettingsSection } from "./music-player";
 import { AvatarBuilder, PlayerAvatar } from "./player-avatar";
-import { cn } from "@/lib/utils";
+import { cn, plural } from "@/lib/utils";
 import { ModalShell } from "./modal-shell";
 
 const tabs = [
@@ -144,7 +144,7 @@ export function SettingsPanel({
             </Section>
             <Section
               title="How far will you go?"
-              hint={`${plan.totalQuestions} unique places in your selected map.`}
+              hint={`${plural(plan.totalQuestions, "unique place")} in your selected map.`}
             >
               <div className="settings-choices lengths">
                 {(

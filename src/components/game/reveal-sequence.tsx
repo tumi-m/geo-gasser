@@ -47,11 +47,11 @@ export function RevealOverlay({
   return (
     <div
       className={cn(
-        "pointer-events-none absolute inset-x-0 z-40 flex flex-col items-center px-3",
+        "reveal-dock pointer-events-none absolute inset-x-0 z-40 flex flex-col items-center px-3",
         expanded ? "top-[max(4.75rem,env(safe-area-inset-top))]" : "bottom-[calc(var(--atlas-map-reveal-h)+1.5rem)]",
       )}
     >
-      <div className="atlas-rise pointer-events-auto max-h-[calc(100dvh-var(--atlas-map-reveal-h)-2rem)] w-full max-w-lg overflow-y-auto overscroll-contain rounded-[var(--radius-lg)] border border-border bg-bg/92 p-3 shadow-[var(--shadow-panel)] sm:p-4">
+      <div className="reveal-card atlas-rise pointer-events-auto max-h-[calc(100dvh-var(--atlas-map-reveal-h)-2rem)] w-full max-w-lg overflow-y-auto overscroll-contain rounded-[var(--radius-lg)] border border-border bg-bg/92 p-3 shadow-[var(--shadow-panel)] sm:p-4">
         {/* Very short screens (iPhone SE): Continue sits beside the title, not under it. */}
         <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between [@media(max-height:700px)]:flex-row [@media(max-height:700px)]:items-start [@media(max-height:700px)]:justify-between">
           <div className="min-w-0 text-left">

@@ -407,6 +407,20 @@ export function GuessMap({
     else map.flyTo([place.latitude, place.longitude], zoom, { duration: 0.8 });
   }
 
+  // "/" opens the city search from anywhere in a round (not while typing).
+  useEffect(() => {
+    if (reveal || disabled) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== "/" || e.metaKey || e.ctrlKey || e.altKey) return;
+      const t = e.target as HTMLElement | null;
+      if (t && (t.tagName === "INPUT" || t.tagName === "TEXTAREA" || t.isContentEditable)) return;
+      e.preventDefault();
+      setSearching(true);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [reveal, disabled]);
+
   // The search field opens focused, and closes for the reveal.
   useEffect(() => {
     if (searching) searchRef.current?.focus();
@@ -756,7 +770,7 @@ export function GuessMap({
                 type="button"
                 className="map-tool hit-44"
                 aria-label="Search a city"
-                title="Search a city"
+                title="Search a city ( / )"
                 onClick={() => {
                   setSearching(true);
                   if (!expanded && window.matchMedia("(min-width: 641px)").matches) onToggleExpand();
@@ -785,7 +799,33 @@ export function GuessMap({
       )}
 
       <div className="relative z-0 min-h-0 flex-1">
-        <div ref={hostRef} className="absolute inset-0" role="application" aria-label="Guessing map" />
+        <div
+          ref={hostRef}
+          className="absolute inset-0"
+          role="application"
+          aria-label="Guessing map"
+          aria-describedby="map-keys-help"
+          onKeyDown={(e) => {
+            // Keyboard play: arrows pan and +/- zoom (Leaflet); Enter or Space
+            // drops the pin under the crosshair at the centre.
+            if ((e.key === "Enter" || e.key === " ") && !disabled && !reveal && mapRef.current) {
+              const c = mapRef.current.getCenter();
+              const g = guessRef.current;
+              // Enter on a pin already at the crosshair falls through and locks.
+              const placed = g && Math.abs(g.latitude - c.lat) < 1e-6 && Math.abs(g.longitude - c.lng) < 1e-6;
+              if (placed && e.key === "Enter") return;
+              e.preventDefault();
+              e.stopPropagation();
+              buzz(12);
+              onGuess({ latitude: c.lat, longitude: c.lng });
+            }
+          }}
+        />
+        <p id="map-keys-help" className="sr-only">
+          Arrow keys move the map, plus and minus zoom, Enter drops your pin at the centre and Enter again locks
+          it. Press slash to search a city.
+        </p>
+        {!reveal && <span className="map-crosshair" aria-hidden />}
 
         {status !== "ready" && (
           <div className="pointer-events-none absolute inset-0 z-[701] flex items-center justify-center bg-bg-elevated/80">

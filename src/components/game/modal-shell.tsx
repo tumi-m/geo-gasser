@@ -32,7 +32,13 @@ export function ModalShell({
           'button:not([disabled]), input:not([disabled]), textarea, select, [href], [tabindex]:not([tabindex="-1"])',
         ),
       ).filter((node) => node.tabIndex >= 0 && node.getClientRects().length > 0);
-    focusable()[0]?.focus();
+    // A dialog can name its first stop ([data-autofocus], e.g. a name field).
+    // With a mouse and keyboard that is where typing should go; on touch it
+    // would throw the on-screen keyboard over the dialog, so start at the top.
+    const preferred = window.matchMedia("(pointer: fine)").matches
+      ? root.querySelector<HTMLElement>("[data-autofocus]")
+      : null;
+    (preferred ?? focusable()[0])?.focus();
     // Everything outside the dialog goes inert while it is open: out of the
     // tab order, unclickable, and hidden from screen readers and swipe
     // navigation — not just skipped by the Tab trap below.

@@ -36,7 +36,7 @@ import {
 } from "@/lib/game";
 import { Input } from "@/components/ui/input";
 import { sanitizeName } from "@/lib/multiplayer";
-import { cn } from "@/lib/utils";
+import { cn, plural } from "@/lib/utils";
 import { BrushUnderline, FlightPath, WordRise } from "@/components/motion/motion";
 import { useRevealOnScroll } from "@/components/motion/use-reveal";
 import { usePointerTilt } from "@/components/motion/use-pointer-tilt";
@@ -244,7 +244,7 @@ export function HomeScreen() {
             aria-label="Change game setup"
           >
             <SlidersHorizontal size={14} />
-            <span>{plan.totalQuestions} places</span>
+            <span>{plural(plan.totalQuestions, "place")}</span>
             <i />
             <span>{DIFFICULTY_SECONDS[settings.difficulty]}s per guess</span>
             <ChevronDown size={13} />
@@ -399,20 +399,22 @@ export function HomeScreen() {
             <p className="mt-2 text-sm text-muted">
               Build your bot and name it. It goes on your pin, every round and the scoreboard.
             </p>
-            <div className="mt-5 flex flex-col items-center gap-4">
-              <PlayerAvatar id={settings.avatarId} size={96} live track />
-              <AvatarBuilder
-                value={sanitizeAvatar(settings.avatarId)}
-                onChange={(avatarId) => setSettings((s) => ({ ...s, avatarId }))}
+            {/* Name first (it is the one thing asked); the bot builder is optional. */}
+            <div className="mt-5 flex items-center gap-3">
+              <PlayerAvatar id={settings.avatarId} size={56} track />
+              <Input
+                name="name"
+                aria-label="Your name"
+                placeholder="Name your bot"
+                maxLength={24}
+                autoComplete="nickname"
+                data-autofocus
               />
             </div>
-            <Input
-              name="name"
-              aria-label="Your name"
-              placeholder="Name your bot"
-              maxLength={24}
-              autoComplete="nickname"
+            <AvatarBuilder
               className="mt-5"
+              value={sanitizeAvatar(settings.avatarId)}
+              onChange={(avatarId) => setSettings((s) => ({ ...s, avatarId }))}
             />
             <div className="mt-5 flex gap-3">
               <Button type="submit" className="flex-1">

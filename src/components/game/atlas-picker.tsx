@@ -15,7 +15,7 @@ import {
   toggleNation,
   type AtlasSpec,
 } from "@/lib/game";
-import { cn } from "@/lib/utils";
+import { cn, plural } from "@/lib/utils";
 
 export function AtlasPicker({
   value,
@@ -115,7 +115,12 @@ export function AtlasPicker({
       </details>
       {!compact ? (
         <p className="text-xs text-subtle">
-          {atlasLabel(spec)} · {pool} unique places
+          {atlasLabel(spec)} · {plural(pool, "unique place")}
+        </p>
+      ) : null}
+      {pool > 0 && pool < 5 ? (
+        <p className="text-xs text-muted">
+          A small map: a match here is only {plural(pool, "place")} long. Add countries or cities for more.
         </p>
       ) : null}
     </div>
