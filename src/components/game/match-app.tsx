@@ -1,5 +1,5 @@
 import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useNavigate } from "@tanstack/react-router";
+import { useNavigate } from "@/lib/navigation";
 import {
   Check,
   Copy,
@@ -959,7 +959,7 @@ export function MatchApp({
 
   const quit = () => {
     audio.stopAmbience();
-    void navigate({ to: "/" });
+    navigate("/");
   };
 
   useEffect(() => {
@@ -1135,7 +1135,7 @@ export function MatchApp({
           <Button
             variant="secondary"
             className="mt-3 w-full"
-            onClick={() => void navigate({ to: "/duel/bot" })}
+            onClick={() => navigate("/duel/bot")}
           >
             <PlayerAvatar id="grok" size={24} />
             Play vs Grok instead

@@ -10,7 +10,7 @@
 | Generated plates | Imagine cinematic reconstructions | Used only where a live Commons file was unavailable. Labelled as reconstructions. |
 | Earth globe | NASA Blue Marble (`land_shallow_topo_2048`) | Public domain. |
 | Round 4 scene | Procedural Three.js + generated plates | Not a photograph. Higgsfield MCP adapter exists but is unused. |
-| Signaling | App database (PGLite preview / Neon deploy) | Roster + SDP/ICE only (P2P fallback). |
+| Signaling | Postgres when `DATABASE_URL` / `POSTGRES_URL` is set, else server memory (local only) | Roster + SDP/ICE only (P2P fallback). |
 | Match server | Cloudflare Durable Objects (`workers/match`) | Server-authoritative rooms over WebSockets. |
 | Multiplayer data (fallback) | WebRTC data channels | Browser to browser. |
 | Player's music (links) | Spotify and Apple Music official embeds | `open.spotify.com/embed/…`, `embed.music.apple.com/…`. URLs are rebuilt from validated ids on those two hosts only (`src/lib/music/links.ts`). No keys. |

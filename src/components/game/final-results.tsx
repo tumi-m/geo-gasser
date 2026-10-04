@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { useNavigate } from "@tanstack/react-router";
+import { useNavigate } from "@/lib/navigation";
 import { Button } from "@/components/ui/button";
 import { Check, Share2 } from "lucide-react";
 import {
@@ -240,7 +240,7 @@ export function FinalResults({
             <Button
               variant="secondary"
               className="sm:flex-1"
-              onClick={() => void navigate({ to: "/duel" })}
+              onClick={() => navigate("/duel")}
             >
               New opponent
             </Button>

@@ -67,7 +67,7 @@ If the phone is on a stale Vercel deploy, hard-refresh / unregister SW. **Do not
 | `src/data/world.json` | Inlined Natural Earth 110m countries (~172KB). Keep this. |
 | `src/lib/game/gazetteer.ts` | Offline city search (`joburg`, `den haag`, `port elizabeth`). Works. Keep it. |
 | `src/lib/game/machine.ts` | Scoring / timeout. Re-test after map work. |
-| `src/routes/api/tiles.$kind.$z.$y.$x.ts` | Esri proxy. Optional to delete. Do not depend on it for first paint. |
+| (removed) | The Esri tile proxy route is gone; the map draws from bundled GeoJSON. |
 
 Current map init (simplified):
 

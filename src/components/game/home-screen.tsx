@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { useNavigate } from "@tanstack/react-router";
+import { useNavigate } from "@/lib/navigation";
 import { MusicHudButton } from "./music-player";
 import { AvatarBuilder, PlayerAvatar } from "./player-avatar";
 import {
@@ -120,7 +120,7 @@ export function HomeScreen() {
       setPanel("name");
       return;
     }
-    void navigate({ to });
+    navigate(to);
   };
   const startWithName = (name: string | null) => {
     const next = {
@@ -132,7 +132,7 @@ export function HomeScreen() {
     saveSettings(next);
     setSettings(next);
     setPanel(null);
-    void navigate({ to: "/play" });
+    navigate("/play");
   };
   const choose = (preset: "sa-nl" | "world" | "custom") => {
     if (preset === "custom") {

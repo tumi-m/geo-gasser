@@ -1,6 +1,18 @@
 # Architecture
 
-ATLAS DUEL is a TanStack Start + React client with a framework-free game engine in `src/lib/game`.
+ATLAS DUEL is a plain Vite + React single-page app with a framework-free game engine in `src/lib/game`.
+
+## Shell
+
+- `index.html` → `src/main.tsx` → `src/app.tsx`, which lists the seven screens.
+- `src/lib/router.tsx` and `src/lib/navigation.ts` are the whole router: the
+  History API, path params (`/duel/:code`), a view-transition cross-fade and an
+  error boundary. Unknown paths go home.
+- `src/server/api.ts` is the only server code: one web-standard handler for
+  `/api/rtc` (duel signaling) and `/api/apple-music-token`. The dev server
+  mounts it (vite.config.ts); `npm run build` bundles it into a single Vercel
+  function and writes `.vercel/output` (scripts/vercel-output.mjs), with every
+  other path served as a file or `index.html`.
 
 ## Engine
 
@@ -26,6 +38,7 @@ Matches deal from a chosen atlas: SA × NL (default), South Africa, the Netherla
 
 ## Scenes
 
+- **Street View** — `StreetViewScene` walks the nearest Google panorama when `VITE_GOOGLE_MAPS_KEY` is set (docs/env.template.md); no coverage or no key falls back to the stills.
 - **Stills** — `SceneExplorer` (drag / WASD / zoom on the plate) with a local plate → stored URL → Wikipedia pageimage fallback chain.
 - **360 panoramas** — `PanoViewer` (Three.js equirectangular sphere) with drag-look, wheel/pinch zoom and per-site heading/pitch. Any failure falls back to the flat still.
 - **Mapillary** — `src/lib/game/mapillary.ts` resolves street-level and 360 image ids through API v4 (`VITE_MAPILLARY_TOKEN`, a public client token). Packs built by `scripts/build-locations.mjs` can mix Commons and Mapillary plates with per-photo credit.

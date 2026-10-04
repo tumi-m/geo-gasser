@@ -181,7 +181,7 @@ async function handlePost(request: Request): Promise<Response> {
 }
 
 let tableSetup: Promise<void> | undefined;
-function ensureTables(sql: import("../db").Sql): Promise<void> {
+function ensureTables(sql: import("../../server/room-sql.ts").Sql): Promise<void> {
   tableSetup ??= (async () => {
     await sql.query(
       `CREATE TABLE IF NOT EXISTS webrtc_peers (
@@ -206,7 +206,7 @@ function ensureTables(sql: import("../db").Sql): Promise<void> {
 }
 
 async function sqlGet(room: string, peer: string, name: string, since: number): Promise<Response> {
-  const { getSql } = await import("@/lib/db");
+  const { getSql } = await import("../../server/room-sql.ts");
   const sql = await getSql();
   await ensureTables(sql);
   await sql.query(
@@ -249,7 +249,7 @@ async function sqlGet(room: string, peer: string, name: string, since: number): 
 async function sqlPost(
   msg: z.infer<typeof signalSchema> | z.infer<typeof leaveSchema> | z.infer<typeof mailSchema>,
 ): Promise<Response> {
-  const { getSql } = await import("@/lib/db");
+  const { getSql } = await import("../../server/room-sql.ts");
   const sql = await getSql();
   await ensureTables(sql);
   await sql.query(`DELETE FROM webrtc_room_hosts WHERE last_seen < now() - interval '2 hours'`);

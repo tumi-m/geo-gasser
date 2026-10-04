@@ -5,17 +5,14 @@ import reactRefresh from "eslint-plugin-react-refresh";
 import globals from "globals";
 import tseslint from "typescript-eslint";
 
-/** Flat ESLint config for the TanStack Start app-builder template. */
+/** Flat ESLint config for Atlas Duel. */
 export default tseslint.config(
   {
     ignores: [
       "dist/**",
-      ".output/**",
       ".vercel/**",
-      ".nitro/**",
       "**/.wrangler/**",
       "node_modules/**",
-      "src/routeTree.gen.ts",
     ],
   },
   js.configs.recommended,

@@ -1,0 +1,11 @@
+{
+  "name": "ATLAS DUEL",
+  "short_name": "ATLAS DUEL",
+  "id": "/",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#101b24",
+  "theme_color": "#101b24",
+  "icons": [{ "src": "/icon-180.png", "sizes": "180x180", "type": "image/png" }]
+}
