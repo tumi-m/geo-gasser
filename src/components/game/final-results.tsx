@@ -90,7 +90,7 @@ export function FinalResults({
         </div>
         {duel ? (
           <div className="atlas-rise atlas-rise-2 mt-6">
-            <ScoreTally players={state.players} selfId={selfId} />
+            <ScoreTally players={state.players} selfId={selfId} winnerIds={state.winnerIds} />
             {delta > 0 && !shared ? (
               <p className="mt-2 text-sm text-muted">{delta.toLocaleString()} point margin</p>
             ) : null}

@@ -178,14 +178,19 @@ export function HomeScreen() {
             How to play
           </button>
           <MusicHudButton />
-          <Button
-            variant="ghost"
-            size="icon"
+          {/* Your bot is your settings: it watches you, and dozes if you wander off. */}
+          <button
+            type="button"
+            className="nav-bot"
             aria-label="Settings"
+            title="Settings and your bot"
             onClick={() => setPanel("settings")}
           >
-            <SettingsIcon size={20} />
-          </Button>
+            <PlayerAvatar id={settings.avatarId} size={36} sleepy track />
+            <span className="nav-bot-gear" aria-hidden>
+              <SettingsIcon size={11} />
+            </span>
+          </button>
         </nav>
       </header>
       <section

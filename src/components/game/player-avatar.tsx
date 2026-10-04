@@ -13,19 +13,24 @@ import {
   type AvatarShape,
 } from "@/lib/game";
 import { cn } from "@/lib/utils";
+import { watchGaze } from "./avatar-gaze";
 
 /**
  * Player bots: a soft body, a colour and a face of two rounded strokes.
  *
- * Static by default (score rows, the HUD). `live` bots breathe, blink on their
- * own rhythm, glance around now and then, and pop into a new body with a happy
- * face when their look changes; `track` bots also watch the pointer; `mood`
- * sets the face (a winner is happy, a loser glum). All movement is CSS on SVG
+ * Every bot is alive wherever it appears: it breathes, blinks on its own
+ * rhythm, glances about, watches your pointer while you move (all bots on
+ * screen share one listener, avatar-gaze.ts), hops when its mood changes, and
+ * pops into a new body with a smile when its look changes. `mood` sets the
+ * face: happy, sad, surprised, focus, thinking (eyes up, darting), waiting
+ * (the eyes become three typing dots), wink. Bots marked `sleepy` doze off
+ * after a long quiet spell and wake when you move. All movement is CSS on SVG
  * groups, so reduced motion stills it, and every rhythm comes from a hash of
  * the id, so the server and the first client render agree.
  */
 
-export type AvatarMood = "neutral" | "happy" | "sad" | "surprised" | "focus";
+export type AvatarMood =
+  "neutral" | "happy" | "sad" | "surprised" | "focus" | "thinking" | "waiting" | "wink";
 
 const C = 32;
 
@@ -86,18 +91,24 @@ export function PlayerAvatar({
   size = 44,
   className,
   title,
-  live = false,
+  live = true,
   track = false,
+  gaze = true,
+  sleepy = false,
   mood = "neutral",
 }: {
   id?: string;
   size?: number;
   className?: string;
   title?: string;
-  /** Breathes, blinks, glances, and pops with joy when its look changes. */
+  /** Breathes, blinks, glances, hops and pops. On by default; off for still art. */
   live?: boolean;
-  /** Eyes follow the pointer (the builder's preview). */
+  /** Eyes reach further toward the pointer (the builder's preview). */
   track?: boolean;
+  /** Eyes follow the pointer while you are active. */
+  gaze?: boolean;
+  /** Dozes off after a long quiet spell (home, lobby). */
+  sleepy?: boolean;
   mood?: AvatarMood;
 }) {
   const parts = avatarParts(id);
@@ -121,24 +132,23 @@ export function PlayerAvatar({
     return () => window.clearTimeout(t);
   }, [shownId, live]);
 
-  // Eyes follow the pointer, a few units at most.
+  // Eyes on the pointer while you are active (one shared listener).
   useEffect(() => {
     const svg = rootRef.current;
-    if (!track || !svg) return;
-    const onMove = (e: PointerEvent) => {
-      const r = svg.getBoundingClientRect();
-      const dx = e.clientX - (r.left + r.width / 2);
-      const dy = e.clientY - (r.top + r.height / 2);
-      const d = Math.hypot(dx, dy) || 1;
-      const reach = Math.min(1, d / 220);
-      svg.style.setProperty("--lx", `${((dx / d) * 3.6 * reach).toFixed(2)}px`);
-      svg.style.setProperty("--ly", `${((dy / d) * 2.6 * reach).toFixed(2)}px`);
-    };
-    window.addEventListener("pointermove", onMove);
-    return () => window.removeEventListener("pointermove", onMove);
-  }, [track]);
+    if (!live || !gaze || !svg) return;
+    return watchGaze(svg, { reach: track ? 1.15 : 0.85, sleepy });
+  }, [live, gaze, track, sleepy]);
 
   const shownMood: AvatarMood = cheer ? "happy" : mood;
+
+  // A change of heart shows: the bot hops when its mood changes.
+  const lastMood = useRef(shownMood);
+  const [hops, setHops] = useState(0);
+  useEffect(() => {
+    if (lastMood.current === shownMood) return;
+    lastMood.current = shownMood;
+    if (live && shownMood !== "neutral") setHops((n) => n + 1);
+  }, [shownMood, live]);
   const eyeW = 5.2;
   return (
     <svg
@@ -174,32 +184,61 @@ export function PlayerAvatar({
         </radialGradient>
       </defs>
       <g key={pops} className={cn("av-pop", pops > 0 && "is-popping")}>
-        <g className="av-body">
-          <path d={BODY[parts.shape]} fill={parts.body} />
-          <path d={BODY[parts.shape]} fill="url(#av-shine)" />
-          {parts.grok && (
-            <path d={STAR} transform={`translate(${C} ${face.y - 14})`} fill="#e0672b" />
-          )}
-          <g className="av-look">
-            <g className="av-glance">
-              <g className="av-blink">
-                {[-1, 1].map((side) => (
-                  <rect
-                    key={side}
-                    className={cn("av-eye", side < 0 ? "av-eye-l" : "av-eye-r")}
-                    x={C + side * face.gap - eyeW / 2}
-                    y={face.y - face.h / 2}
-                    width={eyeW}
-                    height={face.h}
-                    rx={eyeW / 2}
-                    fill={eyes}
-                  />
-                ))}
+        <g key={`hop-${hops}`} className={cn("av-hop", hops > 0 && "is-hopping")}>
+          <g className="av-body">
+            <path
+              d={BODY[parts.shape]}
+              fill={parts.body}
+              // Grok's ink body gets a faint rim so it reads on dark chips.
+              stroke={parts.grok ? "rgba(244,241,231,0.22)" : undefined}
+              strokeWidth={parts.grok ? 1.6 : undefined}
+            />
+            <path d={BODY[parts.shape]} fill="url(#av-shine)" />
+            {parts.grok && (
+              <path d={STAR} transform={`translate(${C} ${face.y - 14})`} fill="#e0672b" />
+            )}
+            <g className="av-look">
+              <g className="av-glance">
+                <g className="av-blink">
+                  {[-1, 1].map((side) => (
+                    <rect
+                      key={side}
+                      className={cn("av-eye", side < 0 ? "av-eye-l" : "av-eye-r")}
+                      x={C + side * face.gap - eyeW / 2}
+                      y={face.y - face.h / 2}
+                      width={eyeW}
+                      height={face.h}
+                      rx={eyeW / 2}
+                      fill={eyes}
+                    />
+                  ))}
+                  {/* Waiting: the eyes become three round dots that type. */}
+                  {[-1, 0, 1].map((k) => (
+                    <circle
+                      key={k}
+                      className={cn("av-dot", k < 0 ? "is-l" : k > 0 ? "is-r" : "is-m")}
+                      cx={C + k * (face.gap + 1.4)}
+                      cy={face.y}
+                      r={eyeW / 2}
+                      fill={eyes}
+                    />
+                  ))}
+                </g>
               </g>
             </g>
           </g>
         </g>
       </g>
+      {live && (
+        <g className="av-zz" aria-hidden>
+          <text x="46" y="16">
+            z
+          </text>
+          <text x="53" y="7">
+            z
+          </text>
+        </g>
+      )}
     </svg>
   );
 }

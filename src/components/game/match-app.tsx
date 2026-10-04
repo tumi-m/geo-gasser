@@ -1042,7 +1042,7 @@ export function MatchApp({
                 key={p.id}
                 className="flex items-center gap-3 rounded-[var(--radius-md)] border border-border px-3 py-3"
               >
-                <PlayerAvatar id={p.avatarId} size={40} live />
+                <PlayerAvatar id={p.avatarId} size={40} sleepy />
                 <span className="min-w-0 truncate">
                   {p.name} {p.id === state.hostId ? "· host" : ""}
                 </span>
@@ -1050,7 +1050,16 @@ export function MatchApp({
             ))}
             {state.players.length < 2 && (
               <li className="lobby-empty flex items-center gap-3 rounded-[var(--radius-md)] border border-dashed border-border px-3 py-3 text-muted">
-                <span className="lobby-seat" aria-hidden />
+                <span className="lobby-seat" aria-hidden>
+                  {/* A ghost bot keeps the seat, typing dots until someone sits. */}
+                  <PlayerAvatar
+                    id="circle-grey"
+                    size={30}
+                    mood="waiting"
+                    gaze={false}
+                    className="lobby-ghost"
+                  />
+                </span>
                 <span className="min-w-0 flex-1">
                   {(serverMode ? null : p2pError) ??
                     (failed
@@ -1060,11 +1069,6 @@ export function MatchApp({
                           ? "Joining room…"
                           : "Waiting for opponent"
                         : "Connecting…")}
-                </span>
-                <span className="waiting-dots" aria-hidden>
-                  <i />
-                  <i />
-                  <i />
                 </span>
               </li>
             )}
@@ -1305,14 +1309,21 @@ export function MatchApp({
             </Button>
           )}
           {mode === "duel" && state.players.length > 1 && !showingReveal ? (
-            <ScoreTally players={state.players} selfId={you?.id} />
+            <ScoreTally
+              players={state.players}
+              selfId={you?.id}
+              roundLive={clockRunning || state.phase === "player_locked"}
+              urgent={urgent}
+            />
           ) : mode === "duel" && showingReveal ? null : (
             <div className="hud-score flex items-center gap-2 rounded-[var(--radius-md)] border border-border bg-bg/70 py-1.5 pl-1.5 pr-3">
               <PlayerAvatar
                 id={you?.avatarId}
                 size={32}
                 live
-                mood={urgent ? "surprised" : you?.locked ? "happy" : "neutral"}
+                mood={
+                  you?.locked ? "happy" : urgent ? "surprised" : you?.guess ? "focus" : "neutral"
+                }
               />
               <div className="text-right">
                 <div className="hud-score-label text-[10px] uppercase tracking-wider text-subtle">
@@ -1345,12 +1356,14 @@ export function MatchApp({
       )}
 
       {(you?.locked || (pendingLock && matchesQuestion(state, pendingLock))) && !showingReveal && (
-        <p className="waiting-chip relative z-20 mx-4 mt-1 flex w-fit items-center gap-2 rounded-full border border-border bg-bg/80 px-3 py-1 text-xs uppercase tracking-wider">
-          <span className="waiting-dots" aria-hidden>
-            <i />
-            <i />
-            <i />
-          </span>
+        <p className="waiting-chip relative z-20 mx-4 mt-1 flex w-fit items-center gap-2 rounded-full border border-border bg-bg/80 py-1 pl-1 pr-3 text-xs uppercase tracking-wider">
+          {/* Whoever we wait on types three dots with their eyes. */}
+          <PlayerAvatar
+            id={(you?.locked ? opponent : you)?.avatarId}
+            size={24}
+            mood="waiting"
+            gaze={false}
+          />
           {!you?.locked
             ? "Sending your guess…"
             : opponent?.kind === "bot"

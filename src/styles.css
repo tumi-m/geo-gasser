@@ -985,6 +985,11 @@ html.reduce-motion::view-transition-old(root),html.reduce-motion::view-transitio
 .scene-plate.is-loading {filter:blur(18px) saturate(.6) brightness(1.15)}
 .reduce-motion .scene-plate.is-loading {filter:none}
 @keyframes fade-in {from{opacity:0}}
+.nav-bot {position:relative;display:grid;place-items:center;width:44px;height:44px;border-radius:999px;transition:transform .25s cubic-bezier(.34,1.56,.64,1)}
+.nav-bot:hover {transform:translateY(-2px) rotate(-4deg)}
+.nav-bot:active {transform:scale(.92)}
+.nav-bot-gear {position:absolute;right:1px;bottom:2px;display:grid;place-items:center;width:17px;height:17px;border-radius:999px;background:var(--color-bg-elevated);border:1px solid var(--color-border);color:var(--color-fg);transition:transform .5s var(--ease-out)}
+.nav-bot:hover .nav-bot-gear {transform:rotate(90deg)}
 .packs-title {display:flex;align-items:center;gap:12px}
 .packs-globe {width:64px;height:64px;flex-shrink:0;margin:-12px 0 -12px -8px}
 @media (min-width: 700px) {.packs-globe {width:84px;height:84px;margin:-18px 0 -18px -12px}}
@@ -1082,7 +1087,8 @@ html.reduce-motion::view-transition-old(root),html.reduce-motion::view-transitio
 .waiting-dots i:nth-child(3) {animation-delay:.3s}
 @keyframes dot-breathe {0%,100%{opacity:.25;transform:translateY(0)}40%{opacity:1;transform:translateY(-3px)}}
 /* The lobby's empty seat: a dashed ring that keeps pinging until someone sits. */
-.lobby-seat {position:relative;width:40px;height:40px;flex-shrink:0;border-radius:999px;border:1.5px dashed var(--color-border)}
+.lobby-seat {position:relative;display:grid;place-items:center;width:40px;height:40px;flex-shrink:0;border-radius:999px;border:1.5px dashed var(--color-border)}
+.lobby-ghost {opacity:.5}
 .lobby-seat::after {content:"";position:absolute;inset:-1px;border-radius:inherit;border:1.5px solid var(--color-accent);opacity:0;animation:dot-ping 2.4s var(--ease-out) infinite}
 
 /* ───────────────────────── Final results ───────────────────────── */
@@ -1111,6 +1117,45 @@ html.reduce-motion::view-transition-old(root),html.reduce-motion::view-transitio
 @keyframes av-blink {0%,91%,100%{transform:scaleY(1)}94%{transform:scaleY(.08)}97%{transform:scaleY(1)}}
 @keyframes av-glance {0%,18%,100%{transform:translate(0,0)}24%,38%{transform:translate(2.6px,-.6px)}44%,58%{transform:translate(0,0)}64%,76%{transform:translate(-2.6px,.4px)}82%{transform:translate(0,0)}}
 @keyframes av-pop {0%{transform:scale(.5) rotate(-16deg)}55%{transform:scale(1.12) rotate(5deg)}80%{transform:scale(.96) rotate(-2deg)}100%{transform:none}}
+/* Watching you: while you move, the eyes lock on and the idle glance rests. */
+.avatar.is-watching .av-glance {animation:none}
+.avatar .av-hop {transform-box:fill-box;transform-origin:50% 100%}
+.avatar-live .av-hop.is-hopping {animation:av-hop .55s cubic-bezier(.34,1.56,.64,1)}
+@keyframes av-hop {30%{transform:translateY(-14%) scale(1.05,.95)}62%{transform:translateY(0) scale(.95,1.06)}82%{transform:scale(1.02,.98)}}
+/* Thinking: eyes narrow to dots, look up and dart side to side. */
+.avatar.mood-thinking .av-eye {transform:rotate(0) scale(1,.48)}
+.avatar.mood-thinking .av-look {transform:translate(-1.6px,-2.6px)}
+.avatar-live.mood-thinking .av-glance {animation:av-think 2.6s ease-in-out infinite}
+@keyframes av-think {0%,100%{transform:translate(0,0)}30%,45%{transform:translate(3.2px,0)}70%,85%{transform:translate(-.6px,.4px)}}
+/* Waiting: the eyes give way to three round dots that type, like a message
+   on its way. */
+.avatar .av-dot {transform-box:fill-box;transform-origin:center;transform:scale(0);opacity:0;transition:transform .3s cubic-bezier(.34,1.56,.64,1),opacity .2s}
+.avatar.mood-waiting .av-eye {transform:rotate(0) scale(.2);opacity:0;transition:transform .2s,opacity .15s}
+.avatar.mood-waiting .av-dot {transform:scale(1);opacity:1}
+.avatar.mood-waiting .av-look {transform:none}
+.avatar-live.mood-waiting .av-glance,.avatar-live.mood-waiting .av-blink {animation:none}
+.avatar-live.mood-waiting .av-dot {animation:av-type 1.05s ease-in-out infinite}
+.avatar-live.mood-waiting .av-dot.is-m {animation-delay:.15s}
+.avatar-live.mood-waiting .av-dot.is-r {animation-delay:.3s}
+@keyframes av-type {0%,60%,100%{translate:0 0;opacity:.5}30%{translate:0 -3.4px;opacity:1}}
+/* A wink: one eye closes, the other smiles. */
+.avatar.mood-wink .av-eye-l {transform:rotate(30deg) scaleY(.82) translateY(-4%)}
+.avatar.mood-wink .av-eye-r {transform:rotate(-8deg) scale(1.1,.14) translateY(30%)}
+/* Dozing: lids drop, breathing slows, a couple of z's float up. */
+.avatar .av-zz {opacity:0;pointer-events:none}
+.avatar .av-zz text {font:700 9px/1 var(--font-sans,system-ui);fill:var(--color-muted)}
+.avatar.is-sleepy .av-eye {transform:rotate(0) scale(1.1,.16) translateY(85%)}
+.avatar.is-sleepy .av-glance,.avatar.is-sleepy .av-blink {animation:none}
+.avatar-live.is-sleepy .av-body {animation-duration:6.5s}
+.avatar-live.is-sleepy .av-zz {opacity:1}
+.avatar-live.is-sleepy .av-zz text {animation:av-zz 3.2s ease-in-out infinite}
+.avatar-live.is-sleepy .av-zz text + text {animation-delay:1.6s}
+@keyframes av-zz {0%{opacity:0;transform:translate(0,4px)}25%{opacity:1}100%{opacity:0;transform:translate(5px,-8px)}}
+/* Surprised bots jolt; happy ones bounce their eyes. */
+.avatar-live.mood-surprised .av-look {animation:av-jolt .5s cubic-bezier(.34,1.56,.64,1)}
+@keyframes av-jolt {30%{transform:translate(var(--lx,0),calc(var(--ly,0px) - 2px)) scale(1.08)}}
+.avatar-live.mood-happy .av-glance {animation:av-cheer 1.8s ease-in-out infinite}
+@keyframes av-cheer {0%,100%{transform:translateY(0)}20%{transform:translateY(-1.4px)}40%{transform:translateY(0)}55%{transform:translateY(-.8px)}70%{transform:translateY(0)}}
 
 /* Builder: bodies in the current colour, then colours, then shuffle. */
 /* Duel setup: you, then three rivals as cards. Two slow orbits (a lime and

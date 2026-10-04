@@ -1,14 +1,29 @@
 import type { PlayerState } from "@/lib/game";
-import { PlayerAvatar } from "./player-avatar";
+import { PlayerAvatar, type AvatarMood } from "./player-avatar";
 import { cn } from "@/lib/utils";
 
 export function ScoreTally({
   players,
   selfId,
+  roundLive,
+  urgent,
+  winnerIds,
 }: {
   players: PlayerState[];
   selfId?: string;
+  /** A question is being played: rivals think, locked players smile. */
+  roundLive?: boolean;
+  urgent?: boolean;
+  /** Match over: winners beam, the rest sulk. */
+  winnerIds?: string[];
 }) {
+  const moodFor = (p: PlayerState): AvatarMood => {
+    if (winnerIds?.length) return winnerIds.includes(p.id) ? "happy" : "sad";
+    if (!roundLive) return "neutral";
+    if (p.locked) return "happy";
+    if (urgent) return "surprised";
+    return p.id === selfId ? "focus" : "thinking";
+  };
   if (players.length < 2) return null;
   const ordered = [...players].sort((a, b) => {
     if (a.id === selfId) return -1;
@@ -27,12 +42,8 @@ export function ScoreTally({
       {ordered.map((p) => {
         const leading = !tied && p.totalScore === lead;
         return (
-          <div
-            key={p.id}
-            role="row"
-            className="flex items-center gap-2 py-1 first:pt-0 last:pb-0"
-          >
-            <PlayerAvatar id={p.avatarId} size={28} title={p.name} />
+          <div key={p.id} role="row" className="flex items-center gap-2 py-1 first:pt-0 last:pb-0">
+            <PlayerAvatar id={p.avatarId} size={28} title={p.name} mood={moodFor(p)} />
             <div className="min-w-0 flex-1">
               {/* Names drop out of the phone HUD (styles.css); bots tell players apart. */}
               <div className="tally-name-line flex items-center gap-1.5">

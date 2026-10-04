@@ -86,7 +86,7 @@ function DuelLobby() {
               aria-expanded={editMe}
               onClick={() => setEditMe((v) => !v)}
             >
-              <PlayerAvatar id={avatarId} size={52} title={sanitizeName(name)} live track />
+              <PlayerAvatar id={avatarId} size={52} title={sanitizeName(name)} track sleepy />
             </button>
             <Input
               value={name}

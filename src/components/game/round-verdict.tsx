@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Trophy } from "lucide-react";
 import { roundVerdict, type PlayerState, type VerdictRow } from "@/lib/game";
-import { PlayerAvatar } from "./player-avatar";
+import { PlayerAvatar, type AvatarMood } from "./player-avatar";
 import { useCountUp } from "./use-count-up";
 import { cn } from "@/lib/utils";
 
@@ -75,6 +75,23 @@ export function RoundVerdictCard({
             row={row}
             index={i}
             winner={duel && settled && row.id === verdict.winnerId}
+            mood={
+              !settled
+                ? "focus"
+                : duel
+                  ? verdict.winnerId
+                    ? row.id === verdict.winnerId
+                      ? "happy"
+                      : "sad"
+                    : "neutral"
+                  : row.round >= 12000
+                    ? "happy"
+                    : row.round === 0
+                      ? "sad"
+                      : row.round < 4000
+                        ? "surprised"
+                        : "wink"
+            }
             you={duel && markSelf && row.id === selfId}
             reduced={reduced}
             // Solo has no winner to wait for: the total rolls with the round.
@@ -93,7 +110,9 @@ function Row({
   you,
   reduced,
   totalDelay,
+  mood,
 }: {
+  mood: AvatarMood;
   row: VerdictRow;
   index: number;
   winner: boolean;
@@ -111,7 +130,7 @@ function Row({
         winner && "is-winner",
       )}
     >
-      <PlayerAvatar id={row.avatarId} size={34} mood={winner ? "happy" : "neutral"} />
+      <PlayerAvatar id={row.avatarId} size={34} mood={mood} />
       <div className="min-w-0">
         <p className="flex items-center gap-1.5 text-sm">
           <span className="truncate font-medium text-fg">{row.name}</span>
