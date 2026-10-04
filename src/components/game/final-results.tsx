@@ -15,6 +15,7 @@ import { useCountUp } from "./use-count-up";
 import { WordRise } from "@/components/motion/motion";
 import { useRevealOnScroll } from "@/components/motion/use-reveal";
 import { ExpeditionRoute } from "./expedition-route";
+import { PassportStamps } from "./passport-stamps";
 import { PlayerAvatar } from "./player-avatar";
 import { ScoreTally } from "./score-tally";
 import { cn, copyText } from "@/lib/utils";
@@ -107,6 +108,7 @@ export function FinalResults({
             score: r.guesses[selfId]?.score.roundScore,
           }))}
         />
+        <PassportStamps history={state.roundHistory} />
         <ol className="mt-8 space-y-5">
           {duel && other ? (
             <p className="text-xs text-subtle">Per question · you then {other.name}</p>
