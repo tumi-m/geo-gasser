@@ -504,6 +504,7 @@ export function sceneInfoFor(state: MatchState): SceneInfo | undefined {
     pitch: loc.pitch,
     isPano: loc.isPano ?? Boolean(loc.panoUrl),
     imageId: loc.panoramaId,
+    views: loc.views?.length ? loc.views : undefined,
   };
 }
 

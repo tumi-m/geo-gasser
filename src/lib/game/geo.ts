@@ -84,6 +84,12 @@ type BBox = { south: number; north: number; west: number; east: number };
 
 /** Loose nation boxes for WORLD country-correct scoring. */
 export const NATION_BOUNDS: Record<string, BBox> = {
+  AE: { south: 22.6, north: 26.1, west: 51.5, east: 56.4 },
+  BE: { south: 49.5, north: 51.5, west: 2.5, east: 6.4 },
+  DK: { south: 54.5, north: 57.8, west: 8.0, east: 15.2 },
+  MY: { south: 0.8, north: 7.4, west: 99.6, east: 119.3 },
+  NA: { south: -29.0, north: -16.9, west: 11.7, east: 25.3 },
+  PL: { south: 49.0, north: 54.9, west: 14.1, east: 24.2 },
   AR: { south: -55.1, north: -21.8, west: -73.6, east: -53.6 },
   AT: { south: 46.4, north: 49.0, west: 9.5, east: 17.2 },
   AU: { south: -43.7, north: -10.6, west: 113.0, east: 153.7 },

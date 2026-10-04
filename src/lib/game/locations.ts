@@ -1,4 +1,5 @@
 import { EXTRA_LOCATIONS } from "./extra-locations.ts";
+import { NEW_LOCATIONS } from "./new-locations.ts";
 import { PACK_LOCATIONS } from "./pack-locations.ts";
 import type { GeoLocation } from "./types.ts";
 
@@ -641,14 +642,18 @@ export const ROUND4_LOCATIONS: GeoLocation[] = [
   }),
 ];
 
-const byId = new Map([...LAUNCH_LOCATIONS, ...ROUND4_LOCATIONS, ...PACK_LOCATIONS].map((l) => [l.id, l]));
+const byId = new Map(
+  [...LAUNCH_LOCATIONS, ...ROUND4_LOCATIONS, ...PACK_LOCATIONS, ...NEW_LOCATIONS].map((l) => [l.id, l]),
+);
 
 export function getLocation(id: string): GeoLocation | undefined {
   return byId.get(id);
 }
 
 export function enabledLocations(): GeoLocation[] {
-  return [...LAUNCH_LOCATIONS, ...ROUND4_LOCATIONS, ...PACK_LOCATIONS].filter((l) => l.enabled);
+  return [...LAUNCH_LOCATIONS, ...ROUND4_LOCATIONS, ...PACK_LOCATIONS, ...NEW_LOCATIONS].filter(
+    (l) => l.enabled,
+  );
 }
 
 export function locationCountryLabel(loc: Pick<GeoLocation, "country" | "region" | "nation">): string {

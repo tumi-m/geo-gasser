@@ -60,6 +60,8 @@ export interface GeoLocation {
   panoUrl?: string;
   /** Explicit 360 flag for provider-backed panos resolved at runtime. */
   isPano?: boolean;
+  /** More viewpoints of the same place, to step between during a round. */
+  views?: string[];
   attribution: string;
   sourceUrl?: string;
   verifiedAt: string;
@@ -140,6 +142,8 @@ export interface SceneInfo {
   isPano?: boolean;
   /** Mapillary image id when the plate is resolved through the Mapillary API. */
   imageId?: string;
+  /** Extra viewpoints (neutral /locations/views/… paths). */
+  views?: string[];
 }
 
 export interface MatchState {

@@ -18,6 +18,13 @@ const PRESETS: AtlasPreset[] = ["sa-nl", "za", "nl", "world", "mix", "custom"];
 export const NATION_LABEL: Record<string, string> = {
   ZA: "South Africa",
   NL: "Netherlands",
+  AE: "United Arab Emirates",
+  AT: "Austria",
+  BE: "Belgium",
+  DK: "Denmark",
+  MY: "Malaysia",
+  NA: "Namibia",
+  PL: "Poland",
   AR: "Argentina",
   AU: "Australia",
   BR: "Brazil",
@@ -65,11 +72,11 @@ export const REGION_NATIONS: Record<string, { label: string; nations: string[] }
   southern: { label: "Home turf", nations: ["ZA", "NL"] },
   europe: {
     label: "Europe",
-    nations: ["CH", "CZ", "DE", "ES", "FI", "FR", "GB", "GR", "HR", "HU", "IE", "IS", "IT", "NL", "NO", "PT", "SE", "TR"],
+    nations: ["AT", "BE", "CH", "CZ", "DE", "DK", "ES", "FI", "FR", "GB", "GR", "HR", "HU", "IE", "IS", "IT", "NL", "NO", "PL", "PT", "SE", "TR"],
   },
   americas: { label: "Americas", nations: ["AR", "BR", "CA", "CL", "MX", "PE", "US"] },
-  asia: { label: "Asia", nations: ["CN", "HK", "ID", "IN", "JO", "JP", "KH", "KR", "SG", "TH", "VN"] },
-  africa: { label: "Africa", nations: ["EG", "MA", "TZ", "ZA", "ZM"] },
+  asia: { label: "Asia", nations: ["AE", "CN", "HK", "ID", "IN", "JO", "JP", "KH", "KR", "MY", "SG", "TH", "VN"] },
+  africa: { label: "Africa", nations: ["EG", "MA", "NA", "TZ", "ZA", "ZM"] },
   oceania: { label: "Oceania", nations: ["AU", "NZ"] },
 };
 
