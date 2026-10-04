@@ -1337,3 +1337,9 @@ button.duel-mode:hover .duel-mode-go {transform:translateX(4px);color:var(--colo
 @keyframes orrery-in {from{opacity:0;transform:scale(1.25)}to{opacity:.85;transform:none}}
 @keyframes orrery-twinkle {from{opacity:.15}to{opacity:.7}}
 .round-intro.is-reduced .round-intro-orrery,.round-intro.is-reduced .orrery-star {animation:none}
+
+/* Guessing map: no towns. A country with one or two dots made the dot the
+   obvious pin; outlines and names still show where you are. The reveal
+   brings the towns back for context. */
+.map-dock:not(.is-reveal) .leaflet-atlas-dots-pane,
+.map-dock:not(.is-reveal) .leaflet-atlas-towns-pane {display:none}

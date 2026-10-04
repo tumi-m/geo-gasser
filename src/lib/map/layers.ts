@@ -77,7 +77,13 @@ export class ZoomGate {
   }
 }
 
-export function textMarker(L: Leaflet, at: [number, number], text: string, className: string) {
+export function textMarker(
+  L: Leaflet,
+  at: [number, number],
+  text: string,
+  className: string,
+  pane = "markerPane",
+) {
   const el = document.createElement("span");
   el.className = className;
   el.textContent = text;
@@ -85,7 +91,7 @@ export function textMarker(L: Leaflet, at: [number, number], text: string, class
     icon: L.divIcon({ className: "atlas-label-icon", html: el, iconSize: [0, 0] }),
     interactive: false,
     keyboard: false,
-    pane: "markerPane",
+    pane,
   });
 }
 
@@ -159,9 +165,17 @@ const LABEL_ZOOM = [3.75, 5, 6, 7.75, 8.75, 9.75];
 export function cityLayers(L: Leaflet, map: LMap, gate: ZoomGate, places: readonly Place[]) {
   // Dots get their own pane above the land (the canvas would otherwise sit
   // under the SVG countries and only show at sea) and below the pins.
+  // Towns are for context at the reveal only: while you guess, a country with
+  // one or two dots would invite you to pin the dot (styles.css hides both
+  // panes until the map is revealing).
   if (!map.getPane("atlas-dots")) {
     const pane = map.createPane("atlas-dots");
     pane.style.zIndex = "450";
+    pane.style.pointerEvents = "none";
+  }
+  if (!map.getPane("atlas-towns")) {
+    const pane = map.createPane("atlas-towns");
+    pane.style.zIndex = "550";
     pane.style.pointerEvents = "none";
   }
   const renderer = L.canvas({ pane: "atlas-dots", padding: 0.35 });
@@ -186,7 +200,7 @@ export function cityLayers(L: Leaflet, map: LMap, gate: ZoomGate, places: readon
     });
     const major = t <= 1;
     labels.push({
-      marker: textMarker(L, at, place.name, `atlas-city-label ${major ? "atlas-city-major" : ""}`),
+      marker: textMarker(L, at, place.name, `atlas-city-label ${major ? "atlas-city-major" : ""}`, "atlas-towns"),
       at,
       tier: t,
       minZoom: LABEL_ZOOM[t],

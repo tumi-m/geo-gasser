@@ -99,3 +99,16 @@ describe("planMatch", () => {
     }
   });
 });
+
+describe("short matches", () => {
+  it("Escape is dealt real photographs, never reconstruction plates", () => {
+    const reserved = new Set(ROUND4_LOCATIONS.map((l) => l.id));
+    for (let seed = 1; seed <= 300; seed++) {
+      for (const atlas of [undefined, { preset: "mix" as const, nations: [] }, { preset: "nl" as const, nations: [] }]) {
+        const plan = planMatch(seed, "escape", atlas);
+        assert.ok(plan.locationIds.every((id) => !reserved.has(id)), `seed ${seed}`);
+        assert.equal(plan.locationIds.length, 5);
+      }
+    }
+  });
+});

@@ -226,12 +226,18 @@ export function planMatch(
   // Most recent first → rank 0. Every dealing path below orders by this.
   const recency: Recency = new Map(avoidLocationIds.map((id, i) => [id, i] as const));
   const fresh = (l: GeoLocation) => !recency.has(l.id);
+  // Reconstruction plates belong to the final round of the long matches; a
+  // short match is dealt real photographs only.
+  const reserved = new Set(ROUND4_LOCATIONS.map((l) => l.id));
   if (matchLength === "escape") {
-    const pool = pickPool(enabledLocations(), spec);
+    const pool = pickPool(
+      enabledLocations().filter((l) => !reserved.has(l.id)),
+      spec,
+    );
     let picked: GeoLocation[];
     if (spec.preset === "sa-nl" && !spec.cities?.length) {
       picked = dealQuota(pool, { ZA: 2, NL: 2, WORLD: 0 }, rand, 4, recency);
-      const world = enabledLocations().filter((l) => l.country === "WORLD");
+      const world = enabledLocations().filter((l) => l.country === "WORLD" && !reserved.has(l.id));
       const finale = byFreshness(world, rand, recency)[0];
       if (finale) picked.push(finale);
     } else {
@@ -262,7 +268,6 @@ export function planMatch(
       totalRounds: picked.length,
     };
   }
-  const reserved = new Set(ROUND4_LOCATIONS.map((l) => l.id));
   const photoPoolAll = enabledLocations().filter((l) => !reserved.has(l.id));
   let photoPool = filterByAtlas(photoPoolAll, spec);
   let r4Pool = filterByAtlas(ROUND4_LOCATIONS, spec);

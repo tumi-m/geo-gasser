@@ -84,6 +84,8 @@ export function CosmicRuler({
   const g = guess?.latitude;
   const gRef = useRef(g);
   gRef.current = g;
+  const revealRef = useRef(reveal);
+  revealRef.current = reveal;
 
   const setClamped = useCallback((lo: number, hi: number) => {
     let span = Math.max(MIN_SPAN, Math.min(FULL.hi - FULL.lo, hi - lo));
@@ -221,8 +223,9 @@ export function CosmicRuler({
       dots(scenery.milky, "#e8dcff", 0.55);
 
       // Orbits: gentle arcs (as if centred on the Sun far to the left), each
-      // with its planet sliding along it.
-      PLANETS.forEach((v, i) => {
+      // with its planet sliding along it. Only at the reveal: while you guess
+      // an orbit line would mark exactly where a planet (and its moons) is.
+      if (revealRef.current) PLANETS.forEach((v, i) => {
         const x = X(v);
         if (x < -4 || x > w + 4) return;
         const R = 900;
@@ -309,7 +312,7 @@ export function CosmicRuler({
 
   useEffect(() => {
     if (reducedMotion) trackRef.current?.dispatchEvent(new Event("ruler-redraw"));
-  }, [view, reducedMotion]);
+  }, [view, reducedMotion, reveal]);
 
   // Pointer: tap places, dragging the pin moves it, dragging elsewhere pans.
   const drag = useRef<{ id: number; x: number; lo: number; hi: number; mode: "pin" | "pan" | "tap" } | null>(null);
