@@ -52,7 +52,8 @@ export function RevealOverlay({
       )}
     >
       <div className="atlas-rise pointer-events-auto max-h-[calc(100dvh-var(--atlas-map-reveal-h)-2rem)] w-full max-w-lg overflow-y-auto overscroll-contain rounded-[var(--radius-lg)] border border-border bg-bg/92 p-3 shadow-[var(--shadow-panel)] sm:p-4">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        {/* Very short screens (iPhone SE): Continue sits beside the title, not under it. */}
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between [@media(max-height:700px)]:flex-row [@media(max-height:700px)]:items-start [@media(max-height:700px)]:justify-between">
           <div className="min-w-0 text-left">
             <p className="text-[10px] uppercase tracking-[0.2em] text-muted">{roundLabel}</p>
             <p className="reveal-pop font-display mt-0.5 text-xl tracking-tight sm:text-2xl">{headline}</p>
@@ -68,12 +69,15 @@ export function RevealOverlay({
               <span className="shrink-0 font-medium text-fg">{country}</span>
             </p>
           </div>
-          <Button className="w-full sm:w-auto sm:shrink-0" onClick={onContinue}>
+          <Button
+            className="w-full sm:w-auto sm:shrink-0 [@media(max-height:700px)]:w-auto [@media(max-height:700px)]:shrink-0"
+            onClick={onContinue}
+          >
             {lastRound ? "See results" : "Continue"}
           </Button>
         </div>
         <div className="mt-3 flex items-end justify-between gap-3">
-          <p className="font-display text-3xl tabular tracking-tight sm:text-4xl">
+          <p className="font-display whitespace-nowrap text-3xl tabular tracking-tight max-[380px]:text-[26px] sm:text-4xl">
             {hasPin ? formatDistance(shownKm) : "No pin"}
           </p>
           <div className="flex gap-4 text-right text-[11px] uppercase tracking-wider text-muted">
@@ -87,7 +91,8 @@ export function RevealOverlay({
             {formatDistance(score.distanceKm)} off · the clock hit zero, so the speed bonus is 0.
           </p>
         ) : hasPin && score.accuracyPoints < ACCURACY_MAX / 2 ? (
-          <p className="mt-2 text-left text-xs text-muted">
+          // In a duel on a phone the rows below say enough; room goes to them.
+          <p className={cn("mt-2 text-left text-xs text-muted", opponent && "max-sm:hidden")}>
             The speed bonus grows with accuracy. Land closer to earn all of it.
           </p>
         ) : null}

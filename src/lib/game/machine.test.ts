@@ -35,6 +35,35 @@ describe("match state machine", () => {
     assert.ok((s.players[0].roundScore?.roundScore ?? 0) > 0);
   });
 
+  it("scores a hurried bot on the time it planned, never sooner than real time", () => {
+    let s = reduce(createLobbyState(), {
+      type: "CREATE_SOLO",
+      playerId: "p1",
+      name: "Ada",
+      seed: 7,
+      now,
+    });
+    s = reduce(s, { type: "INTRO_DONE", now: now + 10 });
+    const t0 = s.roundStartedAtMs!;
+    const truth = s.truth!;
+    s = reduce(s, { type: "PLACE_PIN", playerId: "p1", guess: truth, now: t0 + 2_000 });
+    const planned = reduce(s, {
+      type: "LOCK",
+      playerId: "p1",
+      now: t0 + 2_000,
+      responseMs: 14_000,
+    });
+    assert.equal(planned.players[0].responseMs, 14_000);
+    // A plan shorter than the real wait cannot buy speed it did not have.
+    const late = reduce(s, { type: "LOCK", playerId: "p1", now: t0 + 9_000, responseMs: 1_000 });
+    assert.equal(late.players[0].responseMs, 9_000);
+    assert.ok(
+      (planned.players[0].roundScore?.timePoints ?? 0) <
+        (reduce(s, { type: "LOCK", playerId: "p1", now: t0 + 2_000 }).players[0].roundScore
+          ?.timePoints ?? 0),
+    );
+  });
+
   it("scores an unsubmitted pin as zero on timeout", () => {
     let s = reduce(createLobbyState(), {
       type: "CREATE_SOLO",

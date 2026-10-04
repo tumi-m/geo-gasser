@@ -49,13 +49,11 @@ export function FinalResults({
   const avgResponse =
     you && state.roundHistory.length ? you.totalResponseMs / state.roundHistory.length / 1000 : 0;
   const headline = shared ? "Draw" : state.mode === "solo" || youWin ? you?.name : other?.name;
-  const kicker = shared
-    ? "Shared victory"
-    : state.mode === "solo"
-      ? "Match complete"
-      : youWin
-        ? "Champion"
-        : "Runner up";
+  // The kicker names what the headline is: the headline shows the winner, so
+  // it reads "Champion" either way (it used to say "Runner up" above the
+  // winner's name when you lost, as if they had come second).
+  const kicker = shared ? "Shared victory" : state.mode === "solo" ? "Match complete" : "Champion";
+  const winnerName = youWin ? you?.name : other?.name;
 
   // Cards and stat tiles come in as they scroll into view (styles.css).
   const shellRef = useRef<HTMLElement>(null);
@@ -92,7 +90,9 @@ export function FinalResults({
           <div className="atlas-rise atlas-rise-2 mt-6">
             <ScoreTally players={state.players} selfId={selfId} winnerIds={state.winnerIds} />
             {delta > 0 && !shared ? (
-              <p className="mt-2 text-sm text-muted">{delta.toLocaleString()} point margin</p>
+              <p className="mt-2 text-sm text-muted">
+                {winnerName} won by {delta.toLocaleString()} {delta === 1 ? "point" : "points"}
+              </p>
             ) : null}
           </div>
         ) : (

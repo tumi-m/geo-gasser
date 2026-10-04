@@ -29,7 +29,17 @@ export type MatchEvent =
   | { type: "START_MATCH"; now: number }
   | { type: "INTRO_DONE"; now: number }
   | { type: "PLACE_PIN"; playerId: string; guess: LatLng; now: number }
-  | { type: "LOCK"; playerId: string; now: number }
+  | {
+      type: "LOCK";
+      playerId: string;
+      now: number;
+      /**
+       * Local bot only: the response time to score, when it answers sooner
+       * than it planned (it hurries once you have locked, but is scored on
+       * the time it meant to take). Network locks never carry this.
+       */
+      responseMs?: number;
+    }
   | { type: "HANDOFF_DONE"; now: number }
   | { type: "TIMEOUT"; now: number }
   | { type: "REVEAL_DONE"; now: number }
@@ -386,7 +396,20 @@ export function reduce(state: MatchState, event: MatchEvent): MatchState {
         return state;
       }
       const players = state.players.map((p) =>
-        p.id === event.playerId ? { ...p, locked: true, lockedAtMs: event.now, responseMs: Math.max(0,event.now-state.roundStartedAtMs!) } : p,
+        p.id === event.playerId
+          ? {
+              ...p,
+              locked: true,
+              lockedAtMs: event.now,
+              responseMs:
+                event.responseMs != null
+                  ? Math.min(
+                      Math.max(event.responseMs, event.now - state.roundStartedAtMs!, 0),
+                      (state.durationSec || ROUND_DURATION_SEC) * 1000 - 1,
+                    )
+                  : Math.max(0, event.now - state.roundStartedAtMs!),
+            }
+          : p,
       );
       const allLocked = players.filter((p) => p.connected).every((p) => p.locked);
       if (allLocked) {

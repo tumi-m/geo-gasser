@@ -522,6 +522,23 @@ export function MatchApp({
   }, [ghostKey, dispatch]);
 
   const grokTimer = useRef(0);
+  /** How long Grok meant to think this question (it is scored on this). */
+  const grokPlan = useRef(0);
+  const grokAnswer = useCallback(() => {
+    const s = stateRef.current;
+    const b = s.players.find((p) => p.kind === "bot");
+    if (!b || b.locked) return;
+    const loc = activeLocation(s);
+    if (!loc) return;
+    const now = Date.now();
+    dispatch({
+      type: "PLACE_PIN",
+      playerId: b.id,
+      guess: grokGuess(loc, s.seed, s.questionIndex),
+      now,
+    });
+    dispatch({ type: "LOCK", playerId: b.id, now: now + 1, responseMs: grokPlan.current });
+  }, [dispatch]);
   const grokQ = useRef(-1);
   const grokSeed = useRef(-1);
 
@@ -536,26 +553,27 @@ export function MatchApp({
     if (!place || !bot || bot.locked) return;
     const cap = Math.max(1400, (state.durationSec || ROUND_DURATION_SEC) * 1000 - 2000);
     const wait = Math.min(grokThinkMs(place.difficulty, state.seed, state.questionIndex), cap);
+    grokPlan.current = wait;
     window.clearTimeout(grokTimer.current);
-    grokTimer.current = window.setTimeout(() => {
-      const s = stateRef.current;
-      const b = s.players.find((p) => p.kind === "bot");
-      if (!b || b.locked) return;
-      const loc = activeLocation(s);
-      if (!loc) return;
-      const now = Date.now();
-      dispatch({
-        type: "PLACE_PIN",
-        playerId: b.id,
-        guess: grokGuess(loc, s.seed, s.questionIndex),
-        now,
-      });
-      dispatch({ type: "LOCK", playerId: b.id, now: now + 1 });
-    }, wait);
+    grokTimer.current = window.setTimeout(grokAnswer, wait);
     // The bot reads the live state through stateRef; re-running on every pin
     // would keep resetting its think timer.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mode, duelKind, state.phase, state.questionIndex, state.seed, state.durationSec, dispatch]);
+
+  // Once you lock, Grok stops dawdling: it answers within a beat (scored on
+  // the time it planned, so a fast player does not make it stronger). It used
+  // to leave you watching "Grok is guessing…" for up to twenty seconds.
+  const youLockedNow = Boolean(
+    state.players.find((p) => p.kind !== "bot" && p.id === selfId)?.locked,
+  );
+  useEffect(() => {
+    if (mode !== "duel" || duelKind !== "bot" || !youLockedNow) return;
+    const bot = stateRef.current.players.find((p) => p.kind === "bot");
+    if (!bot || bot.locked) return;
+    window.clearTimeout(grokTimer.current);
+    grokTimer.current = window.setTimeout(grokAnswer, 900 + Math.random() * 900);
+  }, [mode, duelKind, youLockedNow, grokAnswer]);
 
   useEffect(() => () => window.clearTimeout(grokTimer.current), []);
 

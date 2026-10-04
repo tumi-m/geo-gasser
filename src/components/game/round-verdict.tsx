@@ -55,11 +55,14 @@ export function RoundVerdictCard({
       aria-label={duel ? "Round result" : "Your score"}
     >
       {duel && (
-        <div className="verdict-headline" aria-live="polite">
-          <p className="font-display text-lg leading-tight tracking-tight">
+        <div
+          className="verdict-headline flex flex-col max-sm:flex-row max-sm:items-baseline max-sm:gap-2"
+          aria-live="polite"
+        >
+          <p className="font-display shrink-0 text-lg leading-tight tracking-tight">
             {settled ? (winner ? `${winner.name} takes the round` : "Dead heat") : " "}
           </p>
-          <p className="text-xs text-muted">
+          <p className="min-w-0 truncate text-xs text-muted">
             {settled
               ? leader
                 ? `${leader.name} leads by ${verdict.lead.toLocaleString()}`

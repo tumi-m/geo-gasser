@@ -48,7 +48,7 @@ export function ScoreTally({
               {/* Names drop out of the phone HUD (styles.css); bots tell players apart. */}
               <div className="tally-name-line flex items-center gap-1.5">
                 <span className="truncate text-xs text-fg">{p.name}</span>
-                {p.locked ? (
+                {p.locked && !winnerIds?.length ? (
                   <span className="text-[10px] uppercase tracking-wider text-subtle">in</span>
                 ) : null}
               </div>
@@ -61,7 +61,9 @@ export function ScoreTally({
                 >
                   {p.totalScore.toLocaleString()}
                 </span>
-                {p.locked ? <span className="tally-in-dot" aria-label="locked in" /> : null}
+                {p.locked && !winnerIds?.length ? (
+                  <span className="tally-in-dot" aria-label="locked in" />
+                ) : null}
               </div>
             </div>
           </div>

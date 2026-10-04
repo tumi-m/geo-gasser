@@ -173,7 +173,8 @@ html.hc {
 @media (max-width: 640px) {
   :root {
     --atlas-map-h: max(330px, 49dvh);
-    --atlas-map-reveal-h: max(360px, 52dvh);
+    /* Leaves the reveal card room for both duel rows without scrolling. */
+    --atlas-map-reveal-h: max(330px, 47dvh);
   }
 }
 
@@ -757,6 +758,13 @@ button:focus-visible,a:focus-visible {outline:2px solid var(--color-accent)!impo
    no filters (see .atlas-rise). */
 .verdict-headline {min-height:2.6rem;margin-bottom:8px;opacity:0;transform:translateY(4px);transition:opacity .3s var(--ease-smooth-out),transform .3s var(--ease-smooth-out)}
 .verdict.is-settled .verdict-headline {opacity:1;transform:none}
+@media (max-width: 640px) {.verdict-headline {min-height:1.6rem;margin-bottom:6px}}
+/* Short phones: the splash just named the winner and the winning row wears
+   the trophy, so the headline gives its line to the rows. */
+@media (max-width: 640px) and (max-height: 780px) {
+  :root {--atlas-map-reveal-h: max(290px, 43dvh)}
+  .verdict-headline {display:none}
+}
 .verdict-rows {display:flex;flex-direction:column;gap:6px}
 .verdict-row {display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:10px;padding:8px 10px;border:1px solid var(--color-border);border-radius:var(--radius-md);background:#ffffff05;transition:border-color .35s var(--ease-out),background-color .35s var(--ease-out)}
 .verdict-row.is-winner {border-color:var(--color-accent);background:color-mix(in oklab,var(--color-accent) 9%,transparent)}
