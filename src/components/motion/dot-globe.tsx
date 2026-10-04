@@ -1,5 +1,6 @@
 import { useEffect, useRef } from "react";
 import { cn } from "@/lib/utils";
+import { loadGlobeDots } from "./globe-dots-data";
 
 /**
  * A dotted Earth on a 2D canvas: ~2,400 land dots in orthographic projection,
@@ -20,20 +21,6 @@ export interface GlobePlace {
 }
 
 const DEG = Math.PI / 180;
-
-let dotsCache: Float32Array | null = null;
-async function loadDots(): Promise<Float32Array> {
-  if (dotsCache) return dotsCache;
-  const { GLOBE_DOTS } = await import("@/lib/map/globe-dots");
-  const bin = atob(GLOBE_DOTS);
-  const bytes = new Uint8Array(bin.length);
-  for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
-  const ints = new Int16Array(bytes.buffer);
-  const out = new Float32Array(ints.length);
-  for (let i = 0; i < ints.length; i++) out[i] = (ints[i] / 100) * DEG;
-  dotsCache = out;
-  return out;
-}
 
 function angleDiff(a: number, b: number) {
   let d = (b - a) % 360;
@@ -273,7 +260,7 @@ export function DotGlobe({
     document.addEventListener("visibilitychange", onVis);
     canvas.addEventListener("globe-redraw", kick);
     let alive = true;
-    void loadDots().then((d) => {
+    void loadGlobeDots().then((d) => {
       if (!alive) return;
       dots = d;
       kick();

@@ -73,7 +73,7 @@ export function geodesicPoints(a: LatLng, b: LatLng, n = 48): LatLng[] {
 
 /** Conservative continental bounding boxes used for launch validation. */
 export const COUNTRY_BOUNDS: Record<
-  Exclude<CountryCode, "WORLD">,
+  Exclude<CountryCode, "WORLD" | "SPACE">,
   { south: number; north: number; west: number; east: number }
 > = {
   ZA: { south: -34.84, north: -22.12, west: 16.45, east: 32.89 },
@@ -150,6 +150,7 @@ const ZA_EXCLAVES = [
 ] as const;
 
 export function isInsideCountry(p: LatLng, country: CountryCode): boolean {
+  if (country === "SPACE") return false;
   if (country === "WORLD") return !isInsideCountry(p, "ZA") && !isInsideCountry(p, "NL");
   const b = COUNTRY_BOUNDS[country];
   if (!inBox(p, b)) return false;

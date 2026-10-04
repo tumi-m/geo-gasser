@@ -1,4 +1,4 @@
-import { Clock, Globe2, Sparkles } from "lucide-react";
+import { Clock, Globe2, Sparkles, Telescope } from "lucide-react";
 import { WordRise } from "@/components/motion/motion";
 import { DotGlobe } from "@/components/motion/dot-globe";
 import { globeForAtlas } from "@/components/motion/globe-presets";
@@ -24,7 +24,10 @@ export function RoundIntro({
   reducedMotion,
   onStart,
   atlas,
+  cosmos,
 }: {
+  /** A cosmos-round question: the card opens onto the Solar System. */
+  cosmos?: boolean;
   /** Turns the globe behind the card toward the atlas being played. */
   atlas?: AtlasSpec;
   round: number;
@@ -47,7 +50,7 @@ export function RoundIntro({
     : `Round ${round} of ${totalRounds}`;
   return (
     <div
-      className={cn("round-intro", reducedMotion && "is-reduced")}
+      className={cn("round-intro", cosmos && "is-cosmos", reducedMotion && "is-reduced")}
       onClick={onStart}
       onKeyDown={(e) => {
         if (e.key === "Enter" || e.key === " ") onStart();
@@ -57,12 +60,18 @@ export function RoundIntro({
       aria-label={`${kicker}. Start round`}
       style={{ "--hold": `${holdMs}ms` } as React.CSSProperties}
     >
-      <GridBackdrop />
-      <DotGlobe
-        className="round-intro-globe"
-        reducedMotion={reducedMotion}
-        {...globeForAtlas(atlas)}
-      />
+      {cosmos ? (
+        <Orrery reducedMotion={reducedMotion} />
+      ) : (
+        <>
+          <GridBackdrop />
+          <DotGlobe
+            className="round-intro-globe"
+            reducedMotion={reducedMotion}
+            {...globeForAtlas(atlas)}
+          />
+        </>
+      )}
       <div className="round-intro-inner">
         <div className="round-intro-emblem" aria-hidden>
           <Compass />
@@ -72,14 +81,22 @@ export function RoundIntro({
         </div>
         <p className="round-intro-kicker">{kicker}</p>
         <h1 className="font-display round-intro-title">
-          <WordRise text="Locate this" delay={260} step={90} />
+          <WordRise text={cosmos ? "Find it in the universe" : "Locate this"} delay={260} step={90} />
         </h1>
         <ul className="round-intro-chips">
           <li style={{ "--i": 0 } as React.CSSProperties}>
             <Clock size={13} /> {note ?? `${seconds}s on the clock`}
           </li>
           <li style={{ "--i": 1 } as React.CSSProperties}>
-            <Globe2 size={13} /> {atlasLabel}
+            {cosmos ? (
+              <>
+                <Telescope size={13} /> Cosmos round · distance from the Sun
+              </>
+            ) : (
+              <>
+                <Globe2 size={13} /> {atlasLabel}
+              </>
+            )}
           </li>
           {wildcard && (
             <li className="is-accent" style={{ "--i": 2 } as React.CSSProperties}>
@@ -118,6 +135,63 @@ function Compass() {
         <path d="M0 30 L6 0 L0 -5 L-6 0 Z" className="is-south" />
       </g>
       <circle r="3" className="compass-hub" />
+    </svg>
+  );
+}
+
+/**
+ * The Solar System as an orrery behind the card: eight planets on tilted
+ * orbits, inner ones fast and outer ones slow, a ring around the sixth, and a
+ * field of stars beyond.
+ */
+function Orrery({ reducedMotion }: { reducedMotion?: boolean }) {
+  const planets = [
+    { r: 46, s: 2.2, c: "#b9b2aa", d: 4 },
+    { r: 66, s: 3.4, c: "#ecd6a0", d: 7 },
+    { r: 88, s: 3.6, c: "#5aa0e0", d: 10 },
+    { r: 108, s: 2.8, c: "#d77a48", d: 15 },
+    { r: 150, s: 8, c: "#d8b88e", d: 26 },
+    { r: 196, s: 6.8, c: "#e2cf9e", d: 38, ring: true },
+    { r: 238, s: 5, c: "#9fd0d6", d: 52 },
+    { r: 276, s: 5, c: "#4677e0", d: 66 },
+  ];
+  const stars = Array.from({ length: 70 }, (_, i) => ({
+    x: ((i * 7919) % 1000) / 1000,
+    y: ((i * 104729) % 1000) / 1000,
+    r: 0.6 + ((i * 31) % 10) / 10,
+  }));
+  return (
+    <svg className="round-intro-orrery" viewBox="-400 -300 800 600" preserveAspectRatio="xMidYMid slice" aria-hidden>
+      <defs>
+        <radialGradient id="orrery-sun">
+          <stop offset="0" stopColor="#fff6d8" />
+          <stop offset="0.35" stopColor="#ffc35a" />
+          <stop offset="1" stopColor="#ff8a2a" stopOpacity="0" />
+        </radialGradient>
+      </defs>
+      {stars.map((st, i) => (
+        <circle key={i} cx={st.x * 800 - 400} cy={st.y * 600 - 300} r={st.r} className="orrery-star" style={{ animationDelay: `${(i % 9) * 0.4}s` }} />
+      ))}
+      <g transform="rotate(-14)">
+        <circle r="34" fill="url(#orrery-sun)" />
+        <circle r="11" fill="#fff1c8" />
+        {planets.map((p, i) => (
+          <g key={i}>
+            <ellipse rx={p.r} ry={p.r * 0.36} className="orrery-orbit" />
+            <g transform={`scale(1 0.36)`}>
+              <g transform={`rotate(${i * 47})`}>
+                {!reducedMotion && (
+                  <animateTransform attributeName="transform" type="rotate" from={`${i * 47}`} to={`${i * 47 + 360}`} dur={`${p.d}s`} repeatCount="indefinite" />
+                )}
+                <g transform={`translate(${p.r} 0) scale(1 2.78)`}>
+                  <circle r={p.s} fill={p.c} />
+                  {p.ring && <ellipse rx={p.s * 2.1} ry={p.s * 0.55} className="orrery-ring" />}
+                </g>
+              </g>
+            </g>
+          </g>
+        ))}
+      </g>
     </svg>
   );
 }

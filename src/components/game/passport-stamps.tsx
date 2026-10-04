@@ -11,7 +11,7 @@ export function PassportStamps({ history }: { history: RoundRecord[] }) {
   const nations: string[] = [];
   for (const r of history) {
     const loc = getLocation(r.locationId);
-    if (!loc) continue;
+    if (!loc || loc.country === "SPACE") continue;
     const n = nationOf(loc);
     if (!nations.includes(n)) nations.push(n);
   }

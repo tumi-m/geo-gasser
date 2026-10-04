@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Check, Share2 } from "lucide-react";
 import {
   formatDistance,
+  formatMiss,
   getLocation,
   locationCountryLabel,
   shareCard,
@@ -41,6 +42,7 @@ export function FinalResults({
   const youWin = state.winnerIds.includes(selfId);
   const delta = you && other ? Math.abs(you.totalScore - other.totalScore) : 0;
   const closest = state.roundHistory
+    .filter((r) => !r.cosmos)
     .map((r) => r.guesses[selfId]?.score.distanceKm)
     .filter((d) => Number.isFinite(d)) as number[];
   const scores = state.roundHistory
@@ -102,7 +104,7 @@ export function FinalResults({
         )}
         <ExpeditionRoute
           className="mt-7"
-          stops={state.roundHistory.map((r) => ({
+          stops={state.roundHistory.filter((r) => !r.cosmos).map((r) => ({
             latitude: r.truth.latitude,
             longitude: r.truth.longitude,
             score: r.guesses[selfId]?.score.roundScore,
@@ -162,7 +164,9 @@ export function FinalResults({
                                   ? "bg-nl"
                                   : loc?.country === "WORLD"
                                     ? "bg-accent"
-                                    : "bg-za",
+                                    : loc?.country === "SPACE"
+                                      ? "bg-[#8fb4ff]"
+                                      : "bg-za",
                               )}
                             />
                             {loc?.city ?? (loc ? locationCountryLabel(loc) : "")}
@@ -180,7 +184,7 @@ export function FinalResults({
                         ) : (
                           <span className="shrink-0 tabular text-xs sm:text-sm">
                             {g
-                              ? `${g.score.roundScore.toLocaleString()} · ${formatDistance(g.score.distanceKm)}`
+                              ? `${g.score.roundScore.toLocaleString()} · ${formatMiss(g.score)}`
                               : "—"}
                           </span>
                         )}

@@ -19,6 +19,7 @@ export * from "./stats.ts";
 export * from "./audio.ts";
 export * from "./avatars.ts";
 export * from "./bot.ts";
+export * from "./cosmos.ts";
 export * from "./verdict.ts";
 export * from "./round-summary.ts";
 export * from "./share-card.ts";

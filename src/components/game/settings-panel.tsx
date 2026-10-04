@@ -170,6 +170,12 @@ export function SettingsPanel({
                 !settings.atlas.cities?.length && (
                   <p className="settings-footnote">Your fifth stop is a world wildcard.</p>
                 )}
+              {(settings.matchLength === "extended" || settings.matchLength === "full") && (
+                <p className="settings-footnote">
+                  Leaves Earth for {settings.matchLength === "full" ? "two cosmos rounds" : "a cosmos round"}:
+                  planets, moons, stars and galaxies to place by their distance from the Sun.
+                </p>
+              )}
             </Section>
             <Section title="Choose your map">
               <AtlasPicker value={settings.atlas} onChange={(atlas) => update({ atlas })} />

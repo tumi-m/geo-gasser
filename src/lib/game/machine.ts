@@ -1,4 +1,5 @@
 import { DEFAULT_ATLAS, type AtlasSpec } from "./atlas.ts";
+import { cosmosTarget } from "./cosmos.ts";
 import { environmentById } from "./environments.ts";
 import { getLocation } from "./locations.ts";
 import { sceneCandidates } from "./scene.ts";
@@ -107,7 +108,13 @@ function applyScores(state: MatchState, now: number): MatchState {
       isRound4: ROUND4_3D_LIVE && slotIsRound4,
       durationSec,
     });
-    const distance = Number.isFinite(roundScore.distanceKm) ? roundScore.distanceKm : NO_GUESS_KM;
+    // A cosmic miss is counted in decades for the tie-break: its real gap in
+    // km would swamp every map round.
+    const distance = !Number.isFinite(roundScore.distanceKm)
+      ? NO_GUESS_KM
+      : roundScore.decades != null
+        ? Math.min(NO_GUESS_KM, roundScore.decades * 2000)
+        : roundScore.distanceKm;
     return {
       ...p,
       roundScore,
@@ -120,6 +127,7 @@ function applyScores(state: MatchState, now: number): MatchState {
     index: state.questionIndex,
     locationId: loc.id,
     isRound4: slotIsRound4,
+    ...(loc.country === "SPACE" ? { cosmos: true } : {}),
     envId: slotIsRound4 ? state.envId : undefined,
     truth: state.truth,
     guesses: Object.fromEntries(
@@ -515,6 +523,11 @@ export function reduce(state: MatchState, event: MatchEvent): MatchState {
 export function sceneInfoFor(state: MatchState): SceneInfo | undefined {
   const loc = locationForQuestion(state, state.questionIndex);
   if (!loc) return undefined;
+  if (loc.country === "SPACE") {
+    const target = cosmosTarget(loc.id);
+    if (!target) return undefined;
+    return { kind: "cosmos", src: "", fallbacks: [], cosmos: target.look, clue: target.clue };
+  }
   const candidates = sceneCandidates(loc);
   const generated =
     loc.sceneKind === "generated-reconstruction" || loc.sceneUrl.startsWith("/generated/");

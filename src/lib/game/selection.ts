@@ -4,11 +4,12 @@ import {
   sanitizeAtlas,
   type AtlasSpec,
 } from "./atlas.ts";
+import { COSMOS_LOCATIONS, COSMOS_QUESTIONS } from "./cosmos.ts";
 import { environmentForLocation, ROUND4_ENVIRONMENTS } from "./environments.ts";
 import { enabledLocations, ROUND4_LOCATIONS } from "./locations.ts";
 import { mulberry32, shuffle } from "./rng.ts";
 import { MATCH_LENGTH, type MatchLengthId } from "./timer.ts";
-import type { CountryCode, GeoLocation } from "./types.ts";
+import type { EarthCountry, GeoLocation } from "./types.ts";
 
 export const QUESTIONS_PER_ROUND = 10;
 export const TOTAL_ROUNDS = 4;
@@ -28,20 +29,21 @@ export const REAL_ROUNDS = PHOTO_ROUNDS;
 export const ROUND4_3D_LIVE = false;
 
 /** Photo-round country mix for the SA × NL atlas. Round 4 appends reconstructions. */
-export const MATCH_QUOTA: Record<MatchLengthId, Record<CountryCode, number>> = {
+export const MATCH_QUOTA: Record<MatchLengthId, Record<EarthCountry, number>> = {
   escape: { ZA: 2, NL: 2, WORLD: 1 },
   quick: { ZA: 5, NL: 5, WORLD: 0 },
   standard: { ZA: 15, NL: 15, WORLD: 0 },
-  extended: { ZA: 25, NL: 25, WORLD: 10 },
-  full: { ZA: 35, NL: 35, WORLD: 20 },
+  // Voyage and Odyssey give one and two rounds to the cosmos.
+  extended: { ZA: 20, NL: 20, WORLD: 10 },
+  full: { ZA: 28, NL: 28, WORLD: 14 },
 };
 
-export const MIX_QUOTA: Record<MatchLengthId, Record<CountryCode, number>> = {
+export const MIX_QUOTA: Record<MatchLengthId, Record<EarthCountry, number>> = {
   escape: { ZA: 2, NL: 2, WORLD: 1 },
   quick: { ZA: 4, NL: 3, WORLD: 3 },
   standard: { ZA: 10, NL: 10, WORLD: 10 },
-  extended: { ZA: 20, NL: 20, WORLD: 20 },
-  full: { ZA: 30, NL: 30, WORLD: 30 },
+  extended: { ZA: 17, NL: 17, WORLD: 16 },
+  full: { ZA: 23, NL: 23, WORLD: 24 },
 };
 
 export interface MatchPlan {
@@ -121,13 +123,13 @@ function byFreshness(list: GeoLocation[], rand: () => number, recency: Recency):
  */
 function dealQuota(
   pool: GeoLocation[],
-  quota: Record<CountryCode, number>,
+  quota: Record<EarthCountry, number>,
   rand: () => number,
   want: number,
   recency: Recency,
 ): GeoLocation[] {
   const fresh = (l: GeoLocation) => !recency.has(l.id);
-  const countries: CountryCode[] = ["ZA", "NL", "WORLD"];
+  const countries: EarthCountry[] = ["ZA", "NL", "WORLD"];
   const lists = new Map(
     countries.map((c) => [
       c,
@@ -144,7 +146,7 @@ function dealQuota(
     picked.push(l);
     used.add(l.id);
   };
-  const count = (c: CountryCode) => picked.filter((l) => l.country === c).length;
+  const count = (c: EarthCountry) => picked.filter((l) => l.country === c).length;
   const fill = (ok: (l: GeoLocation) => boolean, byQuota: boolean) => {
     if (byQuota) {
       for (const c of countries)
@@ -168,6 +170,33 @@ function dealQuota(
   fill(() => true, true); // oldest repeats, back in the mix
   fill(() => true, false);
   return shuffle(picked, rand).slice(0, want);
+}
+
+/**
+ * Slot the cosmos questions into the photo run as whole rounds: one block
+ * goes after the photos (just before the reconstructions); with two, the first
+ * lands halfway through, on a round boundary.
+ */
+function withCosmos(photoIds: string[], cosmosIds: string[]): string[] {
+  if (!cosmosIds.length) return photoIds;
+  const blocks: string[][] = [];
+  for (let i = 0; i < cosmosIds.length; i += QUESTIONS_PER_ROUND)
+    blocks.push(cosmosIds.slice(i, i + QUESTIONS_PER_ROUND));
+  const out: string[] = [];
+  let from = 0;
+  blocks.forEach((block, k) => {
+    const last = k === blocks.length - 1;
+    const share = Math.floor((photoIds.length * (k + 1)) / blocks.length / QUESTIONS_PER_ROUND) * QUESTIONS_PER_ROUND;
+    const at = last ? photoIds.length : Math.max(from, share);
+    out.push(...photoIds.slice(from, at), ...block);
+    from = at;
+  });
+  return out;
+}
+
+/** True when this dealt id is a cosmos-round target. */
+export function isCosmosQuestion(plan: Pick<MatchPlan, "locationIds">, questionIndex: number): boolean {
+  return plan.locationIds[questionIndex]?.startsWith("cos_") ?? false;
 }
 
 /**
@@ -241,10 +270,11 @@ export function planMatch(
     photoPool = photoPoolAll;
     r4Pool = ROUND4_LOCATIONS;
   }
-  const available = photoPool.length + r4Pool.length;
-  const target = Math.max(1, Math.min(cfg.totalQuestions, available || 1));
+  // The cosmos ignores the atlas: it is the same universe from every map.
+  const cosmosWant = COSMOS_QUESTIONS[matchLength];
+  const photoCap = cfg.photoQuestions - cosmosWant;
 
-  const wantPhotos = Math.min(cfg.photoQuestions, photoPool.length);
+  const wantPhotos = Math.min(photoCap, photoPool.length);
   const photos =
     spec.preset === "sa-nl"
       ? dealQuota(photoPool, MATCH_QUOTA[matchLength], rand, wantPhotos, recency)
@@ -252,9 +282,24 @@ export function planMatch(
         ? dealQuota(photoPool, MIX_QUOTA[matchLength], rand, wantPhotos, recency)
         : byFreshness(photoPool, rand, recency).slice(0, wantPhotos);
 
-  const r4Take = Math.min(r4Pool.length, Math.max(0, target - Math.min(photos.length, cfg.photoQuestions)));
-  const photoTake = Math.min(photos.length, target - r4Take);
-  const photoIds = (photos.length === photoTake ? photos : photos.slice(0, photoTake)).map((l) => l.id);
+  // A small map never turns into a space match: the cosmos gets at most as
+  // many whole rounds as the map fills.
+  const cosmosTake = Math.min(
+    cosmosWant,
+    Math.floor(photos.length / QUESTIONS_PER_ROUND) * QUESTIONS_PER_ROUND,
+  );
+  const cosmos = cosmosTake ? byFreshness(COSMOS_LOCATIONS, rand, recency).slice(0, cosmosTake) : [];
+  const available = photoPool.length + r4Pool.length + cosmos.length;
+  const target = Math.max(1, Math.min(cfg.totalQuestions, available || 1));
+  const r4Take = Math.min(
+    r4Pool.length,
+    Math.max(0, target - Math.min(photos.length, photoCap) - cosmos.length),
+  );
+  const photoTake = Math.min(photos.length, target - r4Take - cosmos.length);
+  const photoIds = withCosmos(
+    (photos.length === photoTake ? photos : photos.slice(0, photoTake)).map((l) => l.id),
+    cosmos.map((l) => l.id),
+  );
   const reconstructions = byFreshness(r4Pool, rand, recency).slice(0, r4Take);
   const locationIds = [...photoIds, ...reconstructions.map((l) => l.id)];
   const envIds = reconstructions.map(

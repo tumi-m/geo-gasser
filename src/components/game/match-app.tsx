@@ -21,7 +21,7 @@ import {
   getLocation,
   grokGuess,
   endsRound,
-  FEEDBACK_COPY,
+  feedbackHeadline,
   grokThinkMs,
   GROK_BOT_ID,
   GROK_BOT_NAME,
@@ -81,6 +81,11 @@ import { globeForAtlas } from "@/components/motion/globe-presets";
 // flat-photo matches (most of them) never download the 3D code.
 const PanoViewer = lazy(() => import("./pano-viewer").then((m) => ({ default: m.PanoViewer })));
 const Round4Scene = lazy(() => import("./round4-scene").then((m) => ({ default: m.Round4Scene })));
+// The cosmos round (Voyage and Odyssey only) loads its painters on demand.
+const CosmosScene = lazy(() =>
+  import("@/components/motion/cosmos-scene").then((m) => ({ default: m.CosmosScene })),
+);
+const CosmicRuler = lazy(() => import("./cosmic-ruler").then((m) => ({ default: m.CosmicRuler })));
 
 function applyDocumentSettings(settings: GameSettings) {
   document.documentElement.classList.toggle("hc", settings.highContrast);
@@ -622,6 +627,7 @@ export function MatchApp({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [loc, state.questionIndex, state.totalQuestions]);
   const reconstructionRound = isRound4(state);
+  const cosmic = scene?.kind === "cosmos";
   const live3d = ROUND4_3D_LIVE && reconstructionRound && Boolean(env);
   const you =
     duelKind === "hotseat"
@@ -806,13 +812,15 @@ export function MatchApp({
     // Hotseat switches the active seat; record the seat that just finished so
     // its score, distances and win flag all describe the same player.
     const statsId = you?.id ?? selfId;
-    const distances = state.roundHistory
+    // Cosmos questions are measured in AU, not km: map stats skip them.
+    const earthRounds = state.roundHistory.filter((r) => !r.cosmos);
+    const distances = earthRounds
       .map((r) => r.guesses[statsId]?.score.distanceKm)
       .filter((d) => d != null) as number[];
     const za = { n: 0, hits: 0 };
     const nl = { n: 0, hits: 0 };
     const world = { n: 0, hits: 0 };
-    for (const r of state.roundHistory) {
+    for (const r of earthRounds) {
       const g = r.guesses[statsId];
       if (!g) continue;
       const country = getLocation(r.locationId)?.country;
@@ -820,7 +828,7 @@ export function MatchApp({
       bucket.n += 1;
       if (g.score.countryCorrect) bucket.hits += 1;
     }
-    const fastest = state.roundHistory
+    const fastest = earthRounds
       .map((r) => r.guesses[statsId]?.score)
       .filter((s) => s && s.distanceKm <= 5)
       .map((s) => s!.responseMs);
@@ -1181,6 +1189,7 @@ export function MatchApp({
       className={cn(
         "match-stage relative min-h-dvh overflow-hidden bg-bg",
         exploring && !showingReveal && "is-exploring",
+        cosmic && "is-cosmos",
         showingReveal && "is-revealing",
         shake && "atlas-shake",
       )}
@@ -1207,6 +1216,7 @@ export function MatchApp({
             state.atlas.preset === "sa-nl" &&
             !state.atlas.cities?.length
           }
+          cosmos={cosmic}
           note={
             reconstructionRound
               ? ROUND4_3D_LIVE
@@ -1223,7 +1233,15 @@ export function MatchApp({
 
       <div className="scene-viewport">
         <Suspense fallback={<div className="absolute inset-0 bg-bg-subtle" />}>
-          {live3d && env && !scene3dFailed ? (
+          {cosmic && scene?.cosmos ? (
+            <CosmosScene
+              key={`${state.questionIndex}:${scene.cosmos.seed}`}
+              look={scene.cosmos}
+              clue={showingReveal ? undefined : scene.clue}
+              reducedMotion={settings.reducedMotion}
+              interactive={!showSettings}
+            />
+          ) : live3d && env && !scene3dFailed ? (
             <Round4Scene
               key={env.id}
               env={env}
@@ -1304,6 +1322,10 @@ export function MatchApp({
           {reconstructionRound ? (
             <div className="w-fit rounded-full border border-border bg-bg/75 px-2.5 py-1 text-[10px] uppercase tracking-wider text-muted">
               {ROUND4_3D_LIVE ? "3D reconstruction" : "Reconstruction plates"}
+            </div>
+          ) : cosmic ? (
+            <div className="w-fit rounded-full border border-accent/40 bg-bg/75 px-2.5 py-1 text-[10px] uppercase tracking-wider text-accent">
+              Cosmos round
             </div>
           ) : null}
         </div>
@@ -1414,7 +1436,32 @@ export function MatchApp({
         </div>
       )}
 
-      {(loc || scene) && (
+      {cosmic && (
+        <div hidden={exploring && !showingReveal}>
+          <Suspense fallback={null}>
+            <CosmicRuler
+              guess={you?.guess}
+              onGuess={onGuess}
+              disabled={!canGuess}
+              truth={showingReveal ? state.truth : undefined}
+              truthLabel={showingReveal ? loc?.title : undefined}
+              opponent={
+                showingReveal && opponent?.guess
+                  ? { guess: opponent.guess, name: opponent.name }
+                  : null
+              }
+              reveal={showingReveal}
+              selfName={you?.name}
+              reducedMotion={settings.reducedMotion}
+              urgent={urgent}
+              onLock={canGuess ? lock : undefined}
+              canLock={Boolean(you?.guess)}
+            />
+          </Suspense>
+        </div>
+      )}
+
+      {(loc || scene) && !cosmic && (
         <div hidden={exploring && !showingReveal}>
           <GuessMap
             guess={you?.guess}
@@ -1468,7 +1515,7 @@ export function MatchApp({
           score={you.roundScore}
           headline={
             Number.isFinite(you.roundScore.distanceKm)
-              ? FEEDBACK_COPY[you.roundScore.feedback]
+              ? feedbackHeadline(you.roundScore)
               : "TIME’S UP"
           }
           roundLabel={roundLabel}

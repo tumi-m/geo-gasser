@@ -1,4 +1,5 @@
 import type { AtlasSpec } from "./atlas.ts";
+import type { CosmosLook } from "./cosmos.ts";
 import type { MatchLengthId, TimeDifficulty } from "./timer.ts";
 
 export type AtmosphereId =
@@ -14,7 +15,10 @@ export type AtmosphereId =
   | "island-light"
   | "fynbos-wind";
 
-export type CountryCode = "ZA" | "NL" | "WORLD";
+/** "SPACE" marks a cosmos-round target (see cosmos.ts), never a place on Earth. */
+export type CountryCode = "ZA" | "NL" | "WORLD" | "SPACE";
+/** The countries a map pin can land in. */
+export type EarthCountry = Exclude<CountryCode, "SPACE">;
 export type Difficulty = 1 | 2 | 3 | 4 | 5;
 export type GameMode = "solo" | "duel";
 
@@ -67,7 +71,7 @@ export interface GeoLocation {
   verifiedAt: string;
   enabled: boolean;
   sceneUrl: string;
-  sceneKind: "wikimedia" | "generated-reconstruction";
+  sceneKind: "wikimedia" | "generated-reconstruction" | "cosmos";
 }
 
 export interface RoundScore {
@@ -81,6 +85,11 @@ export interface RoundScore {
   badges: BadgeId[];
   feedback: FeedbackId;
   countryCorrect: boolean;
+  /**
+   * Cosmos rounds: the miss in decades of distance from the Sun. `distanceKm`
+   * then holds the real gap in km (can be astronomically large).
+   */
+  decades?: number;
 }
 
 export type BadgeId =
@@ -89,7 +98,8 @@ export type BadgeId =
   | "excellent"
   | "great_read"
   | "right_region"
-  | "country_locked";
+  | "country_locked"
+  | "right_zone";
 
 export type FeedbackId =
   | "perfect"
@@ -121,6 +131,8 @@ export interface RoundRecord {
   index: number;
   locationId: string;
   isRound4: boolean;
+  /** A cosmos-round question: truth and guesses are log10 AU, not lat/lon. */
+  cosmos?: boolean;
   envId?: string;
   truth: LatLng;
   guesses: Record<string, { guess: LatLng | null; score: RoundScore }>;
@@ -132,9 +144,12 @@ export interface RoundRecord {
  * source URL or coordinate that could decode the answer.
  */
 export interface SceneInfo {
-  kind: "photo" | "generated";
+  kind: "photo" | "generated" | "cosmos";
   src: string;
   fallbacks: string[];
+  /** Cosmos rounds: how to draw the target, and one observation. No name. */
+  cosmos?: CosmosLook;
+  clue?: string;
   provider?: string;
   heading?: number;
   pitch?: number;

@@ -46,7 +46,9 @@ export function shareCard(
     score = `${you?.name ?? "Me"} ${total} · ${other.name} ${them}`;
   } else {
     const closest = Math.min(
-      ...state.roundHistory.map((r) => r.guesses[selfId]?.score.distanceKm ?? Infinity),
+      ...state.roundHistory
+        .filter((r) => !r.cosmos)
+        .map((r) => r.guesses[selfId]?.score.distanceKm ?? Infinity),
     );
     score = Number.isFinite(closest)
       ? `${total} pts · closest ${formatDistance(closest)}`

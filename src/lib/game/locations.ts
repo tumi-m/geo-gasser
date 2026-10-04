@@ -1,3 +1,4 @@
+import { COSMOS_LOCATIONS } from "./cosmos.ts";
 import { EXTRA_LOCATIONS } from "./extra-locations.ts";
 import { NEW_LOCATIONS } from "./new-locations.ts";
 import { PHOTO_EXTRAS } from "./photo-manifest.ts";
@@ -657,6 +658,9 @@ const byId = new Map(
   [...LAUNCH_LOCATIONS, ...ROUND4_LOCATIONS, ...PACK_LOCATIONS, ...NEW_LOCATIONS].map((l) => [l.id, l]),
 );
 
+for (const loc of COSMOS_LOCATIONS) byId.set(loc.id, loc);
+
+/** Any dealt id: photo sites, reconstructions and cosmos targets. */
 export function getLocation(id: string): GeoLocation | undefined {
   return byId.get(id);
 }

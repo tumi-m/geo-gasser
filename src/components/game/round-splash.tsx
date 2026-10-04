@@ -1,6 +1,6 @@
 import { Fragment } from "react";
 import { Trophy } from "lucide-react";
-import { audio, formatDistance, roundVerdict, type PlayerState, type RoundScore } from "@/lib/game";
+import { audio, formatMiss, roundVerdict, type PlayerState, type RoundScore } from "@/lib/game";
 import { PlayerAvatar } from "./player-avatar";
 import { useCountUp } from "./use-count-up";
 import { useSplashTimeline } from "./use-splash-timeline";
@@ -68,7 +68,7 @@ export function RoundSplash({
       ? `${leader.name} leads by ${verdict.lead.toLocaleString()}`
       : "Level on points"
     : Number.isFinite(score.distanceKm)
-      ? `${formatDistance(score.distanceKm)} away`
+      ? `${formatMiss(score)} away`
       : "No pin this time";
 
   return (

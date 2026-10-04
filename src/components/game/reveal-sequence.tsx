@@ -1,8 +1,8 @@
 import {
   ACCURACY_MAX,
   BADGE_COPY,
-  FEEDBACK_COPY,
-  formatDistance,
+  feedbackHeadline,
+  formatMiss,
   type PlayerState,
   type RoundScore,
 } from "@/lib/game";
@@ -41,7 +41,7 @@ export function RevealOverlay({
   markSelf?: boolean;
 }) {
   const hasPin = Number.isFinite(score.distanceKm);
-  const headline = !hasPin ? "TIME’S UP" : timedOut ? `${FEEDBACK_COPY[score.feedback]} · TIMED OUT` : FEEDBACK_COPY[score.feedback];
+  const headline = !hasPin ? "TIME’S UP" : timedOut ? `${feedbackHeadline(score)} · TIMED OUT` : feedbackHeadline(score);
   const shownKm = useCountUp(hasPin ? score.distanceKm : 0, 900, Boolean(reducedMotion));
   const shownRound = useCountUp(score.roundScore, 900, Boolean(reducedMotion));
   return (
@@ -78,7 +78,7 @@ export function RevealOverlay({
         </div>
         <div className="mt-3 flex items-end justify-between gap-3">
           <p className="font-display whitespace-nowrap text-3xl tabular tracking-tight max-[380px]:text-[26px] sm:text-4xl">
-            {hasPin ? formatDistance(shownKm) : "No pin"}
+            {hasPin ? formatMiss(score, shownKm) : "No pin"}
           </p>
           <div className="flex gap-4 text-right text-[11px] uppercase tracking-wider text-muted">
             <Stat label="Accuracy" value={score.accuracyPoints.toLocaleString()} />
@@ -88,7 +88,7 @@ export function RevealOverlay({
         </div>
         {timedOut && hasPin ? (
           <p className="mt-2 text-left text-xs text-muted">
-            {formatDistance(score.distanceKm)} off · the clock hit zero, so the speed bonus is 0.
+            {formatMiss(score)} off · the clock hit zero, so the speed bonus is 0.
           </p>
         ) : hasPin && score.accuracyPoints < ACCURACY_MAX / 2 ? (
           // In a duel on a phone the rows below say enough; room goes to them.
