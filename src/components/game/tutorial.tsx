@@ -5,12 +5,12 @@ const STEPS = [
   {
     n: "01",
     title: "Study the scene",
-    body: "Choose an atlas before you play: South Africa, the Netherlands, both, the world, a mix, or a custom list of countries. Then drag to look around, WASD to inspect, scroll to zoom.",
+    body: "Choose an atlas before you play: South Africa, the Netherlands, both, the world, a mix, or a custom list of countries. Where Street View covers the place you can walk around it: drag to look, click the arrows or the road to move. Otherwise drag the photo, scroll to zoom, and step between viewpoints.",
   },
   {
     n: "02",
     title: "Drop a pin",
-    body: "Tap the map. Use SA, NL, or World to jump. Search any city. Drag the pin to fine-tune.",
+    body: "Tap the map. Use SA, NL, or World to jump, or search a city by name. The map shows countries and provinces but no towns until the reveal: read the scene, not the dots.",
   },
   {
     n: "03",
@@ -30,7 +30,7 @@ const STEPS = [
   {
     n: "06",
     title: "Match length",
-    body: "Quick Escape visits five places, with a world wildcard at the end of SA × NL games. Choose a longer expedition in settings. Smaller country or city maps never repeat places.",
+    body: "Quick Escape visits five places, with a world wildcard at the end of SA × NL games. Choose a longer expedition in settings. Voyage and Odyssey also leave Earth: a cosmos round where you place planets, stars and galaxies by their distance from the Sun. Smaller maps never repeat places.",
   },
   {
     n: "07",

@@ -1570,7 +1570,7 @@ export function MatchApp({
           you={you}
           opponent={opponent}
           locationTitle={loc.title}
-          city={loc.city}
+          city={loc.city && loc.city !== loc.title ? loc.city : undefined}
           country={loc ? locationCountryLabel(loc) : ""}
           roundLabel={roundLabel}
           lastRound={lastRound}

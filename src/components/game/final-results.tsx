@@ -112,7 +112,9 @@ export function FinalResults({
         />
         <PassportStamps history={state.roundHistory} />
         {duel && other ? (
-          <p className="mt-8 text-xs text-subtle">Per question · you then {other.name}</p>
+          <p className="mt-8 text-xs text-subtle">
+            Per question · {you?.name ?? "you"} then {other.name}
+          </p>
         ) : null}
         <ol className={cn("space-y-5", duel && other ? "mt-5" : "mt-8")}>
           {Array.from({ length: state.totalRounds || 4 }, (_, round) => {
@@ -169,7 +171,11 @@ export function FinalResults({
                                       : "bg-za",
                               )}
                             />
-                            {loc?.city ?? (loc ? locationCountryLabel(loc) : "")}
+                            {loc?.city && loc.city !== loc.title
+                              ? loc.city
+                              : loc
+                                ? locationCountryLabel(loc)
+                                : ""}
                           </span>
                         </span>
                         {duel ? (
@@ -215,14 +221,14 @@ export function FinalResults({
             i={2}
             label="Total distance"
             reduced={Boolean(reducedMotion)}
-            value={you?.totalDistanceKm ?? 0}
+            value={closest.reduce((sum, km) => sum + km, 0)}
             format={formatDistance}
           />
           <Stat
             i={3}
             label="Best question"
             reduced={Boolean(reducedMotion)}
-            value={scores.length ? Math.max(...scores) : null}
+            value={scores.length && Math.max(...scores) > 0 ? Math.max(...scores) : null}
             format={(v) => Math.round(v).toLocaleString()}
           />
         </dl>
