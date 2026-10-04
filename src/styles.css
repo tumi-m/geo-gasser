@@ -1366,3 +1366,11 @@ button.duel-mode:hover .duel-mode-go {transform:translateX(4px);color:var(--colo
 @media (orientation: landscape) and (max-height: 520px) {
   .scene-hint {position:absolute;left:12px;right:auto;max-width:calc(50% - 24px);margin:0}
 }
+/* Street View arrives softly instead of popping in tile by tile. */
+.street-view-pano {opacity:0;transition:opacity .6s var(--ease-out)}
+.street-view-pano.is-ready {opacity:1}
+.street-view-status {animation:sv-breathe 1.6s ease-in-out infinite}
+@keyframes sv-breathe {0%,100%{opacity:.55}50%{opacity:1}}
+@media (prefers-reduced-motion: reduce) {.street-view-pano{transition:none}.street-view-status{animation:none}}
+html.reduce-motion .street-view-pano {transition:none}
+html.reduce-motion .street-view-status {animation:none}

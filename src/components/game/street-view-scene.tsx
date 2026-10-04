@@ -118,7 +118,7 @@ export function StreetViewScene({
     <div className={cn("street-view absolute inset-0 bg-[#0a1117]", className)}>
       <div
         ref={hostRef}
-        className="absolute inset-0"
+        className={cn("street-view-pano absolute inset-0", status === "ready" && "is-ready")}
         role="application"
         aria-label="Street View. Drag to look around; click the arrows or the road to walk."
       />
