@@ -885,7 +885,7 @@ export function GuessMap({
             ) : (
               <>
                 <MapPin className="size-4 shrink-0 text-accent" aria-hidden />
-                <span className="truncate text-xs text-muted">Tap the map to drop a pin</span>
+                <span className="truncate text-xs text-muted">Tap the map to guess</span>
               </>
             )}
           </div>

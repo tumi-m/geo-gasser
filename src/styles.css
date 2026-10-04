@@ -1360,3 +1360,9 @@ button.duel-mode:hover .duel-mode-go {transform:translateX(4px);color:var(--colo
 /* The narrowest phones: music lives in Settings → Sound during a match, so
    the header keeps Settings itself on screen. */
 @media (max-width: 380px) {.match-hud .hud-actions .music-hud {display:none}}
+.nav-link {white-space:nowrap}
+/* Landscape phones: the map takes the right half, so the hint sits over the
+   left half where the photo is. */
+@media (orientation: landscape) and (max-height: 520px) {
+  .scene-hint {position:absolute;left:12px;right:auto;max-width:calc(50% - 24px);margin:0}
+}
