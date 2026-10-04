@@ -1,5 +1,6 @@
 import type { LatLng } from "@/lib/game";
-import { PLACES } from "@/lib/game";
+import type { Place } from "./places";
+import { splitAtDateLine } from "./dateline";
 import { COUNTRY_NAMES, labelPoint, type RegionCollection } from "./lookup";
 
 type Leaflet = typeof import("leaflet");
@@ -42,6 +43,8 @@ export interface GatedMarker {
   marker: import("leaflet").Layer;
   minZoom: number;
   maxZoom: number;
+  /** Where it sits; set it to keep it off the map while out of view. */
+  at?: [number, number];
 }
 
 export class ZoomGate {
@@ -52,8 +55,11 @@ export class ZoomGate {
     this.items.push(item);
   }
   update(zoom = this.map.getZoom()) {
+    // Thousands of towns: only those in (or near) view go on the map.
+    const view = this.map.getBounds().pad(0.35);
     for (const item of this.items) {
-      const wanted = zoom >= item.minZoom && zoom < item.maxZoom;
+      const wanted =
+        zoom >= item.minZoom && zoom < item.maxZoom && (!item.at || view.contains(item.at));
       const on = this.shown.has(item.marker);
       if (wanted && !on) {
         item.marker.addTo(this.map);
@@ -87,12 +93,21 @@ export function textMarker(L: Leaflet, at: [number, number], text: string, class
 export function worldLayer(L: Leaflet, world: RegionCollection, skip: Set<string>) {
   const trimmed: RegionCollection = {
     type: "FeatureCollection",
-    features: world.features.filter((f) => !skip.has(f.properties.c)),
+    features: world.features.filter((f) => !skip.has(f.properties.c)).map(unwrapFeature),
   };
   return L.geoJSON(trimmed, {
     interactive: false,
     style: () => ({ color: MAP_COLORS.border, weight: 0.6, fillColor: MAP_COLORS.land, fillOpacity: 1 }),
   });
+}
+
+function unwrapFeature<F extends RegionCollection["features"][number]>(f: F): F {
+  const g = f.geometry;
+  const polys = g.type === "Polygon" ? [g.coordinates] : g.coordinates;
+  if (!polys.some((p) => p.some((r) => r.some((pt, i) => i > 0 && Math.abs(pt[0] - r[i - 1][0]) > 180)))) return f;
+  // Each half becomes its own polygon (holes do not cross the line here).
+  const pieces = polys.flatMap((p) => splitAtDateLine(p[0]).map((outer) => [outer, ...p.slice(1)]));
+  return { ...f, geometry: { type: "MultiPolygon", coordinates: pieces } } as F;
 }
 
 /** ZA / NL and neighbours at 50m. */
@@ -133,31 +148,84 @@ export function graticuleLayer(L: Leaflet) {
 }
 
 /**
- * Cities: dots plus labels. Major cities show early; every gazetteer town
- * appears once you zoom in far enough that 110m coastlines stop mattering.
+ * Towns and cities, revealed by size as you zoom (tier 0 = megacities and
+ * capitals … 5 = small towns), so every country shows many dots at every
+ * zoom and none of them stands for an answer. Dots paint on one canvas;
+ * labels are culled to the view.
  */
-export function cityLayers(L: Leaflet, map: LMap, gate: ZoomGate) {
-  const dots = L.layerGroup();
-  for (const place of PLACES) {
+const DOT_ZOOM = [1.5, 3, 4.25, 5, 7.75, 8.75];
+const LABEL_ZOOM = [3.75, 5, 6, 7.75, 8.75, 9.75];
+
+export function cityLayers(L: Leaflet, map: LMap, gate: ZoomGate, places: readonly Place[]) {
+  // Dots get their own pane above the land (the canvas would otherwise sit
+  // under the SVG countries and only show at sea) and below the pins.
+  if (!map.getPane("atlas-dots")) {
+    const pane = map.createPane("atlas-dots");
+    pane.style.zIndex = "450";
+    pane.style.pointerEvents = "none";
+  }
+  const renderer = L.canvas({ pane: "atlas-dots", padding: 0.35 });
+  const labels: CityLabel[] = [];
+  for (const place of places) {
     const at: [number, number] = [place.latitude, place.longitude];
-    const dot = L.circleMarker(at, {
-      radius: place.major ? 3.4 : 2.6,
-      color: "#09090b",
-      weight: 1,
-      fillColor: MAP_COLORS.city,
-      fillOpacity: 1,
-      interactive: false,
-    });
-    if (place.major) dot.addTo(dots);
-    else gate.add({ marker: dot, minZoom: 6, maxZoom: 99 });
+    const t = Math.min(5, Math.max(0, place.tier));
     gate.add({
-      marker: textMarker(L, at, place.name, `atlas-city-label ${place.major ? "atlas-city-major" : ""}`),
-      minZoom: place.major ? 4.5 : 6.75,
+      marker: L.circleMarker(at, {
+        pane: "atlas-dots",
+        renderer,
+        radius: t <= 1 ? 3.2 : t <= 3 ? 2.6 : 2.1,
+        color: "#09090b",
+        weight: 1,
+        fillColor: MAP_COLORS.city,
+        fillOpacity: 1,
+        interactive: false,
+      }),
+      minZoom: DOT_ZOOM[t],
       maxZoom: 99,
+      at,
+    });
+    const major = t <= 1;
+    labels.push({
+      marker: textMarker(L, at, place.name, `atlas-city-label ${major ? "atlas-city-major" : ""}`),
+      at,
+      tier: t,
+      minZoom: LABEL_ZOOM[t],
+      // Rough text box to the right of the dot (labels sit at +6px).
+      width: place.name.length * (major ? 6.6 : 5.6) + 10,
+      shown: false,
     });
   }
-  dots.addTo(map);
-  return dots;
+  // Bigger places first; a label that would overlap one already placed waits
+  // for the next zoom level instead of piling on top of it.
+  labels.sort((a, b) => a.tier - b.tier);
+  const layout = () => {
+    const zoom = map.getZoom();
+    const view = map.getBounds().pad(0.1);
+    const taken: [number, number, number, number][] = [];
+    for (const label of labels) {
+      let want = zoom >= label.minZoom && view.contains(label.at);
+      if (want) {
+        const p = map.latLngToContainerPoint(label.at);
+        const box: [number, number, number, number] = [p.x + 2, p.y - 8, p.x + label.width, p.y + 8];
+        want = !taken.some((b) => box[0] < b[2] && box[2] > b[0] && box[1] < b[3] && box[3] > b[1]);
+        if (want) taken.push(box);
+      }
+      if (want && !label.shown) label.marker.addTo(map);
+      else if (!want && label.shown) label.marker.remove();
+      label.shown = want;
+    }
+  };
+  map.on("zoomend moveend", layout);
+  layout();
+}
+
+interface CityLabel {
+  marker: import("leaflet").Marker;
+  at: [number, number];
+  tier: number;
+  minZoom: number;
+  width: number;
+  shown: boolean;
 }
 
 /** Country + province labels, gated so they hand over as you zoom in. */

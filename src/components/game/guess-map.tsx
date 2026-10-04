@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Globe, LocateFixed, Lock, MapPin, Maximize2, Minimize2, Search, X } from "lucide-react";
 import type { LatLng } from "@/lib/game";
-import { atlasFocus, atlasIncludes, formatDistance, geodesicPoints, haversineKm, searchPlaces, type AtlasSpec, type Place } from "@/lib/game";
+import { atlasFocus, atlasIncludes, formatDistance, geodesicPoints, haversineKm, type AtlasSpec } from "@/lib/game";
+import type { Place } from "@/lib/map/places";
 import { cn } from "@/lib/utils";
 import worldJson from "@/data/world.json";
 import detailJson from "@/data/detail.json";
@@ -148,7 +149,12 @@ export function GuessMap({
   const searchRef = useRef<HTMLInputElement>(null);
   const [region, setRegion] = useState<"ZA" | "NL" | "world" | null>(atlas ? atlasFocus(atlas) : "world");
   const [activeHit, setActiveHit] = useState(0);
-  const hits = useMemo(() => searchPlaces(query, expanded ? 8 : 6), [query, expanded]);
+  // Towns load with the map (thousands of them; not in the page bundle).
+  const [places, setPlaces] = useState<typeof import("@/lib/map/places") | null>(null);
+  const hits = useMemo(
+    () => (places ? places.searchPlaces(query, expanded ? 8 : 6) : []),
+    [places, query, expanded],
+  );
   const readout = useMemo(
     () => (guess ? describePoint(guess, DETAIL.provinces, DETAIL.countries, WORLD) : null),
     [guess],
@@ -200,8 +206,9 @@ export function GuessMap({
 
     void (async () => {
       try {
-        const leaflet = await import("leaflet");
+        const [leaflet, placeModule] = await Promise.all([import("leaflet"), import("@/lib/map/places")]);
         LRef.current = leaflet;
+        if (!cancelled) setPlaces(placeModule);
         await waitForBox();
         if (cancelled || !hostRef.current) return;
         const L = leaflet;
@@ -232,10 +239,10 @@ export function GuessMap({
         detailCountryLayer(L, DETAIL.countries).addTo(map);
         provinceLayer(L, DETAIL.provinces).addTo(map);
         const gate = new ZoomGate(map);
-        cityLayers(L, map, gate);
+        cityLayers(L, map, gate, placeModule.PLACES);
         regionLabels(L, gate, DETAIL.countries, DETAIL.provinces);
         gate.update();
-        map.on("zoomend", () => gate.update());
+        map.on("zoomend moveend", () => gate.update());
 
         L.control.zoom({ position: "bottomright" }).addTo(map);
 
@@ -705,7 +712,7 @@ export function GuessMap({
                                 : "border border-border bg-bg-subtle text-fg",
                           )}
                         >
-                          {place.country === "ZA" ? "SA" : place.country === "NL" ? "NL" : "World"}
+                          {place.country === "ZA" ? "SA" : place.country === "NL" ? "NL" : place.nation}
                         </span>
                       </button>
                     </li>
