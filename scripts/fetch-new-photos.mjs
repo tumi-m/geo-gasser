@@ -25,7 +25,7 @@
  * Review the photos before shipping: a script cannot tell a fine view from a
  * badly framed one, and a photo must not show the place's name.
  */
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 
 const { NEW_LOCATIONS, NEW_LOCATION_SOURCES } = await import("../src/lib/game/new-locations.ts");
 const { enabledLocations } = await import("../src/lib/game/locations.ts");
