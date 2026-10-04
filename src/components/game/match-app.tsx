@@ -1222,6 +1222,7 @@ export function MatchApp({
               }
               showHints={settings.showHints}
               fallbacks={flatScene.fallbacks}
+              views={flatScene.views}
               sourceUrl={loc?.sourceUrl}
               title={loc?.title}
               alt="Location to identify"

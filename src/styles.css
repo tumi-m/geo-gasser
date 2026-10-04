@@ -1018,6 +1018,19 @@ html.reduce-motion::view-transition-old(root),html.reduce-motion::view-transitio
 @keyframes scene-flash {0%{opacity:0}12%{opacity:.5}100%{opacity:0}}
 .reduce-motion .scene-grain,.reduce-motion .scene-flash {display:none}
 @media (prefers-reduced-motion: reduce) {.scene-grain,.scene-flash {display:none}}
+/* The loupe: a magnifier over the photo, from the sharpest plate there is.
+   On touch it floats above the finger so the finger does not hide it. */
+.scene-loupe {position:absolute;z-index:16;width:168px;height:168px;margin:-84px 0 0 -84px;border-radius:50%;pointer-events:none;background-color:#0a1117;background-repeat:no-repeat;border:2px solid #f4f1e7;box-shadow:0 14px 34px #000b,inset 0 0 0 1px #0007,inset 0 0 22px #0005;animation:loupe-in .18s var(--ease-out)}
+.scene-loupe.is-touch {margin-top:-210px}
+.scene-loupe::after {content:"";position:absolute;left:50%;top:50%;width:10px;height:10px;margin:-5px 0 0 -5px;border-radius:50%;border:1.5px solid #d8f36acc}
+@keyframes loupe-in {from{opacity:0;transform:scale(.6)}}
+.scene-controls button.is-on {background:var(--color-accent);color:var(--color-accent-fg)}
+.scene-views {display:inline-flex;align-items:center;gap:0;margin-left:2px;padding-left:4px;border-left:1px solid #ffffff26}
+.scene-views-count {min-width:30px;text-align:center;font-size:12px;font-variant-numeric:tabular-nums;color:var(--color-fg)}
+/* Stepping to another viewpoint: a light passes across, like walking on. */
+.scene-walk {position:absolute;inset:0;z-index:2;pointer-events:none;background:linear-gradient(100deg,transparent 30%,#f4f1e722 50%,transparent 70%);transform:translateX(-100%);animation:scene-walk .7s cubic-bezier(.3,0,.2,1) forwards}
+@keyframes scene-walk {to{transform:translateX(100%)}}
+.reduce-motion .scene-walk {display:none}
 .scene-sheen {position:absolute;inset:0;z-index:1;pointer-events:none;background:linear-gradient(105deg,transparent 35%,#ffffff1f 50%,transparent 65%);transform:translateX(-100%);animation:scene-sheen 1.2s cubic-bezier(.3,0,.2,1) .15s forwards}
 @keyframes scene-sheen {to{transform:translateX(100%)}}
 /* Your pin: a ring spreads each time it lands. */

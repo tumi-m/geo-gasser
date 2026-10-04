@@ -14,7 +14,13 @@
  * what switches a place on. Re-runs skip places already in the manifest.
  *
  *   node --experimental-strip-types scripts/fetch-new-photos.mjs [loc_150 …]
+ *   node --experimental-strip-types scripts/fetch-new-photos.mjs --views
+ *   node --experimental-strip-types scripts/fetch-new-photos.mjs --upgrade
  *   node scripts/build-hires-manifest.mjs
+ *
+ * --views gives every existing place up to two more viewpoints (its plate
+ * stays); --upgrade replaces existing plates narrower than 1400 px with a
+ * sharper photo of the same place. Both record credits in PHOTO_EXTRAS.
  *
  * Review the photos before shipping: a script cannot tell a fine view from a
  * badly framed one, and a photo must not show the place's name.
@@ -22,6 +28,7 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 
 const { NEW_LOCATIONS, NEW_LOCATION_SOURCES } = await import("../src/lib/game/new-locations.ts");
+const { enabledLocations } = await import("../src/lib/game/locations.ts");
 
 const API = "https://commons.wikimedia.org/w/api.php";
 const UA = { "User-Agent": "AtlasDuel-photos/1.0 (https://github.com/tumi-m/geo-gasser)" };
@@ -62,7 +69,10 @@ const INFO = {
 };
 
 async function candidates(loc) {
-  const category = NEW_LOCATION_SOURCES[loc.id];
+  const article = loc.sourceUrl?.match(/\/wiki\/(.+)$/)?.[1];
+  const category =
+    NEW_LOCATION_SOURCES[loc.id] ??
+    (article ? decodeURIComponent(article).replace(/_/g, " ") : loc.title);
   const queries = [
     {
       generator: "categorymembers",
@@ -160,27 +170,89 @@ const thumbAt = (thumbUrl, width) => thumbUrl.replace(/\/\d+px-/, `/${width}px-`
 
 // ── Manifest in and out ──────────────────────────────────────────────────────
 const manifestSrc = readFileSync(MANIFEST, "utf8");
-const current = JSON.parse(
-  manifestSrc.match(/NEW_PHOTOS: Record<string, PhotoCredit> = (\{[\s\S]*?\});/)?.[1] ?? "{}",
-);
+const block = (name) => new RegExp(`${name}: Record<string, [^=]+> = (\\{[\\s\\S]*?\\});`);
+const newPhotos = JSON.parse(manifestSrc.match(block("NEW_PHOTOS"))?.[1] ?? "{}");
+const extras = JSON.parse(manifestSrc.match(block("PHOTO_EXTRAS"))?.[1] ?? "{}");
 
-function writeManifest(entries) {
-  const body = JSON.stringify(entries, null, 2);
-  writeFileSync(
-    MANIFEST,
-    manifestSrc.replace(
-      /NEW_PHOTOS: Record<string, PhotoCredit> = \{[\s\S]*?\};/,
-      `NEW_PHOTOS: Record<string, PhotoCredit> = ${body};`,
-    ),
-  );
+function writeManifest() {
+  let out = manifestSrc;
+  for (const [name, value] of [
+    ["NEW_PHOTOS", newPhotos],
+    ["PHOTO_EXTRAS", extras],
+  ]) {
+    out = out.replace(block(name), (m, body) => m.replace(body, JSON.stringify(value, null, 2)));
+  }
+  writeFileSync(MANIFEST, out);
 }
 
 for (const dir of ["public/locations", "public/locations/hires", "public/locations/views"])
   mkdirSync(dir, { recursive: true });
 
-const only = new Set(process.argv.slice(2));
-const todo = NEW_LOCATIONS.filter((l) => (only.size ? only.has(l.id) : !current[l.id]));
-console.log(`places to fetch: ${todo.length}`);
+const args = process.argv.slice(2);
+const mode = args.includes("--views") ? "views" : args.includes("--upgrade") ? "upgrade" : "new";
+const only = new Set(args.filter((a) => !a.startsWith("--")));
+
+const credit = (p) => `${p.artist} (${p.licence})`;
+const plateWidth = (id) => {
+  try {
+    const buf = readFileSync(`public/locations/${id}.jpg`);
+    // Walk JPEG markers to the first SOF frame for the width.
+    for (let i = 2; i < buf.length;) {
+      const marker = buf[i + 1];
+      const len = buf.readUInt16BE(i + 2);
+      if (marker >= 0xc0 && marker <= 0xcf && ![0xc4, 0xc8, 0xcc].includes(marker))
+        return buf.readUInt16BE(i + 7);
+      i += 2 + len;
+    }
+  } catch {
+    /* missing */
+  }
+  return 0;
+};
+
+let todo;
+if (mode === "new")
+  todo = NEW_LOCATIONS.filter((l) => (only.size ? only.has(l.id) : !newPhotos[l.id]));
+else {
+  const existing = enabledLocations().filter(
+    (l) => !newPhotos[l.id] && l.sceneUrl.startsWith("/locations/"),
+  );
+  todo = existing.filter((l) =>
+    only.size
+      ? only.has(l.id)
+      : mode === "views"
+        ? !extras[l.id]?.views
+        : !extras[l.id]?.source && plateWidth(l.id) < 1400,
+  );
+}
+console.log(`${mode}: ${todo.length} places`);
+
+function pickViews(main, rest, n) {
+  // Other photographers, or the same one from somewhere else.
+  const views = [];
+  for (const p of rest) {
+    if (views.length === n) break;
+    const far =
+      main?.camera && p.camera
+        ? km(
+            { lat: main.camera.lat, lon: main.camera.lon },
+            { lat: p.camera.lat, lon: p.camera.lon },
+          ) > 0.05
+        : true;
+    if (!main || p.artist !== main.artist || far) views.push(p);
+  }
+  return views;
+}
+
+async function saveViews(loc, views) {
+  const used = [];
+  for (const v of views) {
+    if (await download(v.info.thumburl, `public/locations/views/${loc.id}-${used.length + 2}.jpg`))
+      used.push(v);
+    await sleep(300);
+  }
+  return used;
+}
 
 for (const loc of todo) {
   let picks;
@@ -197,49 +269,48 @@ for (const loc of todo) {
     console.log(`${loc.id} ${loc.title}: no usable photo`);
     continue;
   }
-  const [main, ...rest] = picks;
-  // Extra viewpoints: other photographers, or the same one from elsewhere.
-  const views = [];
-  for (const p of rest) {
-    if (views.length === 2) break;
-    const far =
-      main.camera && p.camera
-        ? km(
-            { lat: main.camera.lat, lon: main.camera.lon },
-            { lat: p.camera.lat, lon: p.camera.lon },
-          ) > 0.05
-        : true;
-    if (p.artist !== main.artist || far) views.push(p);
+
+  if (mode === "views") {
+    // The plate stays; two more angles join it.
+    const used = await saveViews(loc, pickViews(null, picks, 2));
+    if (!used.length) continue;
+    extras[loc.id] = {
+      ...extras[loc.id],
+      attribution: `${(extras[loc.id]?.attribution ?? loc.attribution).replace(/\s*More views:.*$/, "")} More views: ${used.map(credit).join(" · ")}, Wikimedia Commons.`,
+      views: used.length,
+    };
+    writeManifest();
+    console.log(`${loc.id} ${loc.title}: +${used.length} views`);
+    await sleep(600);
+    continue;
   }
 
-  const ok = await download(main.info.thumburl, `public/locations/${loc.id}.jpg`);
-  if (!ok) {
+  const [main, ...rest] = picks;
+  if (!(await download(main.info.thumburl, `public/locations/${loc.id}.jpg`))) {
     console.log(`${loc.id} ${loc.title}: download failed`);
     continue;
   }
   if (main.info.width >= 3200)
     await download(thumbAt(main.info.thumburl, HIRES_W), `public/locations/hires/${loc.id}.jpg`);
-  const used = [main];
-  for (const v of views) {
-    if (await download(v.info.thumburl, `public/locations/views/${loc.id}-${used.length + 1}.jpg`))
-      used.push(v);
-    await sleep(300);
-  }
+  const used = [main, ...(await saveViews(loc, pickViews(main, rest, 2)))];
   // Every photographer whose picture is shown gets credited.
-  current[loc.id] = {
+  const entry = {
     attribution:
       used.length === 1
         ? `Photo: ${main.artist}, Wikimedia Commons, ${main.licence}.`
-        : `Photos: ${used.map((p) => `${p.artist} (${p.licence})`).join(" · ")}, Wikimedia Commons.`,
+        : `Photos: ${used.map(credit).join(" · ")}, Wikimedia Commons.`,
     source: main.info.descriptionurl,
     views: used.length - 1,
   };
-  writeManifest(current);
+  if (mode === "new") newPhotos[loc.id] = entry;
+  else extras[loc.id] = entry;
+  writeManifest();
   console.log(
     `${loc.id} ${loc.title}: ${main.page.title} (${main.info.width}px) + ${used.length - 1} views`,
   );
   await sleep(600);
 }
 
-console.log(`manifest: ${Object.keys(current).length} places with photos`);
-if (!existsSync("public/locations/hires")) console.log("no hires plates");
+console.log(
+  `manifest: ${Object.keys(newPhotos).length} new places, ${Object.keys(extras).length} upgraded`,
+);

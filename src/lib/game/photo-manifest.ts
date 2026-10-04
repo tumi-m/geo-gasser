@@ -11,3 +11,9 @@ export interface PhotoCredit {
 }
 
 export const NEW_PHOTOS: Record<string, PhotoCredit> = {};
+
+/**
+ * Existing places: extra viewpoints (and, for the softest old plates, a
+ * sharper replacement photo). The attribution here replaces the place's own.
+ */
+export const PHOTO_EXTRAS: Record<string, Partial<PhotoCredit>> = {};

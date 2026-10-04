@@ -1,5 +1,6 @@
 import { EXTRA_LOCATIONS } from "./extra-locations.ts";
 import { NEW_LOCATIONS } from "./new-locations.ts";
+import { PHOTO_EXTRAS } from "./photo-manifest.ts";
 import { PACK_LOCATIONS } from "./pack-locations.ts";
 import type { GeoLocation } from "./types.ts";
 
@@ -641,6 +642,16 @@ export const ROUND4_LOCATIONS: GeoLocation[] = [
     sceneUrl: "/generated/round4-amsterdam.jpg",
   }),
 ];
+
+// Fetched extras (scripts/fetch-new-photos.mjs --views / --upgrade): more
+// viewpoints and credits for places that predate the photo manifest.
+for (const loc of [...LAUNCH_LOCATIONS, ...PACK_LOCATIONS]) {
+  const extra = PHOTO_EXTRAS[loc.id];
+  if (!extra) continue;
+  if (extra.attribution) loc.attribution = extra.attribution;
+  if (extra.views)
+    loc.views = Array.from({ length: extra.views }, (_, i) => `/locations/views/${loc.id}-${i + 2}.jpg`);
+}
 
 const byId = new Map(
   [...LAUNCH_LOCATIONS, ...ROUND4_LOCATIONS, ...PACK_LOCATIONS, ...NEW_LOCATIONS].map((l) => [l.id, l]),

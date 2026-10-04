@@ -93,6 +93,12 @@ export async function resolveWikiImage(sourceUrl?: string, title?: string): Prom
   return firstThumb(data);
 }
 
+/** The larger companion of a bundled plate, when one ships under hires/. */
+export function hiresScenePath(src: string): string | undefined {
+  const id = /^\/locations\/([A-Za-z0-9_-]+)\.jpg$/.exec(src)?.[1];
+  return id && HIRES_PLATES[id] ? `/locations/hires/${id}.jpg` : undefined;
+}
+
 /** Keep the lightweight plate on phones; allow large displays to request the original. */
 export function responsiveSceneSrcSet(src: string): string | undefined {
   const id = /^\/locations\/([A-Za-z0-9_-]+)\.jpg$/.exec(src)?.[1];

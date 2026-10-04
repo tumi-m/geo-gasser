@@ -1,5 +1,7 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import {
+  ChevronLeft,
+  ChevronRight,
   Maximize,
   Minimize,
   Minus,
@@ -7,8 +9,10 @@ import {
   MoveVertical,
   Plus,
   RotateCcw,
+  Search,
 } from "lucide-react";
 import {
+  hiresScenePath,
   PITCH_SPAN,
   resolveWikiImage,
   responsiveSceneSrcSet,
@@ -36,6 +40,14 @@ const LOOK_RATE = 1.65;
 const ZOOM_RATE = 0.85;
 const ZOOM_MIN = 1.0;
 const ZOOM_MAX = 2.8;
+/** With a larger companion plate there is real detail to zoom into. */
+const ZOOM_MAX_HIRES = 4.5;
+/** Past this zoom the base plate runs out of pixels; swap in the hires one. */
+const HIRES_AT = 1.35;
+/** Hold still this long to raise the loupe. */
+const LOUPE_HOLD_MS = 420;
+const LOUPE_SIZE = 168;
+const LOUPE_POWER = 2.6;
 const ZOOM_START = 1.0;
 /** The look-around sweep that shows a new plate reaches past the frame. */
 const SWEEP_MS = 3400;
@@ -92,8 +104,11 @@ export function SceneExplorer({
   interactive = true,
   onReady,
   onError,
+  views,
 }: {
   src: string;
+  /** More viewpoints of the same place; the player steps between them. */
+  views?: string[];
   alt: string;
   fallbacks?: string[];
   sourceUrl?: string;
@@ -106,6 +121,12 @@ export function SceneExplorer({
   onReady?: () => void;
   onError?: () => void;
 }) {
+  // Viewpoint 0 is the round's plate (with its fallbacks); the rest are views.
+  const viewKey = (views ?? []).join("|");
+  const [viewIndex, setViewIndex] = useState(0);
+  useEffect(() => setViewIndex(0), [src, viewKey]);
+  const viewCount = 1 + (viewKey ? viewKey.split("|").length : 0);
+  const plate = viewIndex === 0 ? src : (viewKey.split("|")[viewIndex - 1] ?? src);
   const hostRef = useRef<HTMLDivElement>(null);
   const imgRef = useRef<HTMLImageElement>(null);
   const sim = useRef({
@@ -146,6 +167,27 @@ export function SceneExplorer({
   // The plate "develops" in when it has loaded, rather than popping in.
   const [ready, setReady] = useState(false);
   const [box, setBox] = useState<{ w: number; h: number } | null>(null);
+  // The hires companion swaps in once you zoom past what the base plate holds.
+  const hires = hiresScenePath(current);
+  const [sharp, setSharp] = useState<string | null>(null);
+  const maxZoom = hires ? ZOOM_MAX_HIRES : ZOOM_MAX;
+  const maxZoomRef = useRef(maxZoom);
+  maxZoomRef.current = maxZoom;
+  const hiresRef = useRef(hires);
+  hiresRef.current = hires;
+  // A magnifier: hold still on the photo (or switch it on) to read a sign.
+  const [loupe, setLoupe] = useState<{
+    x: number;
+    y: number;
+    bx: number;
+    by: number;
+    bw: number;
+    bh: number;
+    touch: boolean;
+  } | null>(null);
+  const [loupeMode, setLoupeMode] = useState(false);
+  const loupeModeRef = useRef(loupeMode);
+  loupeModeRef.current = loupeMode;
   const shown = effectiveFit(fit, natural, box);
   const fitRef = useRef(shown);
   fitRef.current = shown;
@@ -194,19 +236,51 @@ export function SceneExplorer({
     sizedRef.current = "";
     setHint(true);
     wikiTried.current = false;
+    setSharp(null);
+    setLoupe(null);
     const seen = new Set<string>();
     const chain: string[] = [];
-    for (const url of [src, ...(fallbackKey ? fallbackKey.split("|") : [])]) {
+    const backups = viewIndex === 0 && fallbackKey ? fallbackKey.split("|") : [];
+    for (const url of [plate, ...backups]) {
       if (url && !seen.has(url)) {
         seen.add(url);
         chain.push(url);
       }
     }
     queue.current = chain.slice(1);
-    setCurrent(chain[0] ?? src);
+    setCurrent(chain[0] ?? plate);
     const hide = window.setTimeout(() => setHint(false), 4200);
     return () => window.clearTimeout(hide);
-  }, [src, reducedMotion, fallbackKey, sourceUrl, title, retry, fit]);
+  }, [plate, viewIndex, reducedMotion, fallbackKey, sourceUrl, title, retry, fit]);
+
+  // Fetch the hires companion in the background the first time you zoom in,
+  // and only show it once it has fully decoded (no flash, no half-loaded image).
+  const wantSharp = useRef(false);
+  useEffect(() => {
+    wantSharp.current = false;
+  }, [current]);
+  const loadSharp = () => {
+    const url = hiresRef.current;
+    if (!url || wantSharp.current) return;
+    wantSharp.current = true;
+    const img = new Image();
+    img.decoding = "async";
+    img.src = url;
+    void img
+      .decode()
+      .then(() => setSharp(url))
+      .catch(() => undefined);
+  };
+  const loadSharpRef = useRef(loadSharp);
+  loadSharpRef.current = loadSharp;
+  const loupeOn = useRef(false);
+  const stepView = (by: number) => {
+    if (viewCount < 2) return;
+    setViewIndex((i) => (i + by + viewCount) % viewCount);
+    setHint(false);
+  };
+  const stepViewRef = useRef(stepView);
+  stepViewRef.current = stepView;
 
   useEffect(() => {
     const host = hostRef.current;
@@ -322,7 +396,8 @@ export function SceneExplorer({
         s.yaw += look * LOOK_RATE * dt;
         if (keys.has("KeyW") || keys.has("ArrowUp")) s.zoom += ZOOM_RATE * dt;
         if (keys.has("KeyS") || keys.has("ArrowDown")) s.zoom -= ZOOM_RATE * dt;
-        s.zoom = Math.max(ZOOM_MIN, Math.min(ZOOM_MAX, s.zoom));
+        s.zoom = Math.max(ZOOM_MIN, Math.min(maxZoomRef.current, s.zoom));
+        if (s.zoom > HIRES_AT) loadSharpRef.current();
         // No pitch cap here: `apply` bounds both axes by how far the plate
         // actually overhangs the frame, and renormalises so neither runs away.
         // A fixed cap put the top and bottom of a tall photo out of reach.
@@ -339,6 +414,10 @@ export function SceneExplorer({
     const onKeyDown = (e: KeyboardEvent) => {
       if (!interactiveRef.current || typingTarget(e.target)) return;
       const code = e.code;
+      if ((code === "BracketLeft" || code === "BracketRight" || code === "KeyQ" || code === "KeyE") && !e.repeat) {
+        stepViewRef.current(code === "BracketLeft" || code === "KeyQ" ? -1 : 1);
+        return;
+      }
       if (
         code === "KeyA" ||
         code === "KeyD" ||
@@ -386,11 +465,23 @@ export function SceneExplorer({
         sim.current.moved = 0;
       }
       if (sim.current.pointers.size === 1) {
-        sim.current.dragging = true;
+        sim.current.dragging = !loupeModeRef.current;
         sim.current.lx = e.clientX;
         sim.current.ly = e.clientY;
-        host.style.cursor = "grabbing";
+        host.style.cursor = loupeModeRef.current ? "none" : "grabbing";
+        window.clearTimeout(holdTimer);
+        const touch = e.pointerType !== "mouse";
+        if (loupeModeRef.current) showLoupe(e.clientX, e.clientY, touch);
+        else
+          holdTimer = window.setTimeout(() => {
+            if (sim.current.moved < 8 && sim.current.pointers.size === 1) {
+              sim.current.dragging = false;
+              showLoupe(sim.current.lx, sim.current.ly, touch);
+            }
+          }, LOUPE_HOLD_MS);
       } else {
+        window.clearTimeout(holdTimer);
+        setLoupe(null);
         sim.current.dragging = false;
         sim.current.pinch0 = pinchDist();
         sim.current.zoom0 = sim.current.zoom;
@@ -399,14 +490,29 @@ export function SceneExplorer({
     };
     const onMove = (e: PointerEvent) => {
       const s = sim.current;
+      // Loupe mode with a mouse: the loupe follows the pointer, no button held.
+      if (loupeModeRef.current && e.pointerType === "mouse" && !s.pointers.size) {
+        showLoupe(e.clientX, e.clientY);
+        return;
+      }
       if (!interactiveRef.current || !s.pointers.has(e.pointerId)) return;
+      if (loupeOn.current && s.pointers.size === 1) {
+        s.pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+        showLoupe(e.clientX, e.clientY, e.pointerType !== "mouse");
+        return;
+      }
       s.pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
       if (s.pointers.size >= 2 && s.pinch0 > 0) {
         const d = pinchDist();
-        s.zoom = Math.max(ZOOM_MIN, Math.min(ZOOM_MAX, s.zoom0 * (d / s.pinch0)));
+        s.zoom = Math.max(ZOOM_MIN, Math.min(maxZoomRef.current, s.zoom0 * (d / s.pinch0)));
         return;
       }
-      if (!s.dragging) return;
+      if (!s.dragging) {
+        s.moved += Math.abs(e.clientX - s.lx) + Math.abs(e.clientY - s.ly);
+        s.lx = e.clientX;
+        s.ly = e.clientY;
+        return;
+      }
       // The photo follows the finger, pixel for pixel.
       const dx = e.clientX - s.lx;
       const dy = e.clientY - s.ly;
@@ -450,6 +556,11 @@ export function SceneExplorer({
     };
     const onUp = (e: PointerEvent) => {
       const s = sim.current;
+      window.clearTimeout(holdTimer);
+      if (loupeOn.current && !(loupeModeRef.current && e.pointerType === "mouse")) {
+        loupeOn.current = false;
+        setLoupe(null);
+      }
       if (s.pointers.size === 1 && s.moved < 10 && interactiveRef.current) {
         const t = performance.now();
         if (t - s.tapT < 320 && Math.hypot(e.clientX - s.tapX, e.clientY - s.tapY) < 36) {
@@ -478,10 +589,57 @@ export function SceneExplorer({
     const onWheel = (e: WheelEvent) => {
       if (!interactiveRef.current) return;
       e.preventDefault();
+      const s = sim.current;
+      s.sweepStart = null;
+      s.tween = null;
+      const img = imgRef.current;
+      const z0 = s.zoom;
+      const z1 = Math.max(ZOOM_MIN, Math.min(maxZoomRef.current, z0 * (e.deltaY > 0 ? 0.9 : 1.11)));
+      if (img && z1 !== z0) {
+        // Zoom toward the cursor: the point under it stays put.
+        const r = host.getBoundingClientRect();
+        const W = host.clientWidth;
+        const H = host.clientHeight;
+        const frame = { naturalWidth: img.naturalWidth, naturalHeight: img.naturalHeight, boxWidth: W, boxHeight: H, fit: fitRef.current };
+        const now = sceneOffset({ ...frame, zoom: z0 }, s.yaw, s.pitch);
+        const px = e.clientX - (r.left + W / 2);
+        const py = e.clientY - (r.top + H / 2);
+        s.yaw = (px - (z1 * (px - now.x)) / z0) / (W * YAW_SPAN || 1);
+        s.pitch = (py - (z1 * (py - now.y)) / z0) / (H * PITCH_SPAN || 1);
+      }
+      s.zoom = z1;
+      if (z1 > HIRES_AT) loadSharpRef.current();
+      if (loupeOn.current) {
+        loupeOn.current = false;
+        setLoupe(null);
+      }
+      setHint(false);
+    };
+
+    // The loupe reads straight off the drawn photo: where the finger sits on
+    // it, magnified, from the sharpest plate there is.
+    let holdTimer = 0;
+    const showLoupe = (clientX: number, clientY: number, touch = false) => {
+      const img = imgRef.current;
+      if (!img) return;
+      const r = img.getBoundingClientRect();
+      const hr = host.getBoundingClientRect();
+      if (clientX < r.left || clientX > r.right || clientY < r.top || clientY > r.bottom) {
+        setLoupe(null);
+        return;
+      }
+      loupeOn.current = true;
       sim.current.sweepStart = null;
-      sim.current.tween = null;
-      const next = sim.current.zoom * (e.deltaY > 0 ? 0.92 : 1.08);
-      sim.current.zoom = Math.max(ZOOM_MIN, Math.min(ZOOM_MAX, next));
+      loadSharpRef.current();
+      setLoupe({
+        x: clientX - hr.left,
+        y: clientY - hr.top,
+        bx: clientX - r.left,
+        by: clientY - r.top,
+        bw: r.width,
+        bh: r.height,
+        touch,
+      });
       setHint(false);
     };
 
@@ -507,8 +665,14 @@ export function SceneExplorer({
         },
       };
 
+    const onLeave = () => {
+      if (loupeModeRef.current) setLoupe(null);
+    };
+    host.addEventListener("pointerleave", onLeave);
     apply();
     return () => {
+      window.clearTimeout(holdTimer);
+      host.removeEventListener("pointerleave", onLeave);
       cancelAnimationFrame(frame);
       window.removeEventListener("keydown", onKeyDown);
       window.removeEventListener("keyup", onKeyUp);
@@ -531,14 +695,15 @@ export function SceneExplorer({
         aria-label="Look around the location. Drag to look, WASD to inspect, scroll to zoom."
       >
         {ready && !failed && <span key={current} className="scene-sheen" aria-hidden />}
+        {viewIndex > 0 && <span key={`walk-${viewIndex}`} className="scene-walk" aria-hidden />}
         {shown === "contain" && !failed && (
           <img src={current} alt="" aria-hidden className="scene-backdrop" draggable={false} />
         )}
         <img
-          key={retry}
+          key={`${retry}:${viewIndex}`}
           ref={imgRef}
-          src={current}
-          srcSet={responsiveSceneSrcSet(current)}
+          src={sharp ?? current}
+          srcSet={sharp ? undefined : responsiveSceneSrcSet(current)}
           sizes="100vw"
           alt={alt}
           draggable={false}
@@ -585,6 +750,19 @@ export function SceneExplorer({
           }}
         />
       </div>
+      {loupe && (
+        <div
+          className={cn("scene-loupe", loupe.touch && "is-touch")}
+          aria-hidden
+          style={{
+            left: loupe.x,
+            top: loupe.y,
+            backgroundImage: `url("${sharp ?? hires ?? current}")`,
+            backgroundSize: `${loupe.bw * LOUPE_POWER}px ${loupe.bh * LOUPE_POWER}px`,
+            backgroundPosition: `${LOUPE_SIZE / 2 - loupe.bx * LOUPE_POWER}px ${LOUPE_SIZE / 2 - loupe.by * LOUPE_POWER}px`,
+          }}
+        />
+      )}
       {failed && (
         <div className="absolute inset-0 flex items-center justify-center bg-bg-subtle">
           <p className="px-6 text-center text-sm text-muted">Photo unavailable</p>
@@ -607,7 +785,8 @@ export function SceneExplorer({
             type="button"
             aria-label="Zoom in on photo"
             onClick={() => {
-              sim.current.zoom = Math.min(ZOOM_MAX, sim.current.zoom + 0.3);
+              sim.current.zoom = Math.min(maxZoom, sim.current.zoom + 0.35);
+              if (sim.current.zoom > HIRES_AT) loadSharp();
               setHint(false);
             }}
           >
@@ -617,7 +796,7 @@ export function SceneExplorer({
             type="button"
             aria-label="Zoom out of photo"
             onClick={() => {
-              sim.current.zoom = Math.max(ZOOM_MIN, sim.current.zoom - 0.3);
+              sim.current.zoom = Math.max(ZOOM_MIN, sim.current.zoom - 0.35);
               setHint(false);
             }}
           >
@@ -634,6 +813,33 @@ export function SceneExplorer({
           >
             <RotateCcw size={16} />
           </button>
+          <button
+            type="button"
+            aria-label="Magnifier"
+            aria-pressed={loupeMode}
+            title="Magnifier (or press and hold the photo)"
+            className={cn(loupeMode && "is-on")}
+            onClick={() => {
+              setLoupeMode((v) => !v);
+              setLoupe(null);
+              loupeOn.current = false;
+            }}
+          >
+            <Search size={16} />
+          </button>
+          {viewCount > 1 && (
+            <span className="scene-views" role="group" aria-label="Viewpoints">
+              <button type="button" aria-label="Previous viewpoint" onClick={() => stepView(-1)}>
+                <ChevronLeft size={17} />
+              </button>
+              <span className="scene-views-count" aria-live="polite">
+                {viewIndex + 1}/{viewCount}
+              </span>
+              <button type="button" aria-label="Next viewpoint" onClick={() => stepView(1)}>
+                <ChevronRight size={17} />
+              </button>
+            </span>
+          )}
           {onToggleFit && (
             <button
               type="button"
@@ -653,10 +859,10 @@ export function SceneExplorer({
               <span className={cn("scene-hint-arrows", `is-${reach}`)} aria-hidden>
                 {reach === "wide" ? <MoveHorizontal size={15} /> : <MoveVertical size={15} />}
               </span>
-              Drag to look around · double-tap to zoom
+              Drag to look around · hold to magnify{viewCount > 1 ? ` · ${viewCount} viewpoints` : ""}
             </>
           ) : (
-            "Pinch or double-tap to zoom · drag to explore"
+            `Pinch or double-tap to zoom · hold to magnify${viewCount > 1 ? ` · ${viewCount} viewpoints` : ""}`
           )}
         </p>
       )}
