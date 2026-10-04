@@ -40,6 +40,8 @@ import { cn } from "@/lib/utils";
 import { BrushUnderline, FlightPath, WordRise } from "@/components/motion/motion";
 import { useRevealOnScroll } from "@/components/motion/use-reveal";
 import { usePointerTilt } from "@/components/motion/use-pointer-tilt";
+import { DotGlobe } from "@/components/motion/dot-globe";
+import { globeForAtlas } from "@/components/motion/globe-presets";
 
 /** How long each featured destination holds before the hero moves on. */
 const DESTINATION_MS = 7000;
@@ -284,7 +286,15 @@ export function HomeScreen() {
       </section>
       <section className="expedition-packs" aria-labelledby="atlas-title">
         <div className="section-heading" data-reveal>
-          <h2 id="atlas-title">Choose your playground.</h2>
+          <h2 id="atlas-title" className="packs-title">
+            {/* Turns to face whichever map you pick. */}
+            <DotGlobe
+              className="packs-globe"
+              reducedMotion={settings.reducedMotion}
+              {...globeForAtlas(settings.atlas)}
+            />
+            Choose your playground.
+          </h2>
           <button className="nav-link" onClick={() => setPanel("atlas")}>
             Explore maps <ArrowRight size={15} />
           </button>

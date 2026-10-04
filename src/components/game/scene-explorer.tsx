@@ -715,8 +715,8 @@ export function SceneExplorer({
             // zooming stretched that copy — measured ~3x softer at 2.8x.
             // Sized and placed in px by `apply` (the whole scaled plate).
             "absolute left-0 top-0 max-w-none pointer-events-none origin-center select-none",
-            "transition-opacity duration-700 ease-out",
-            failed || !ready ? "opacity-0" : "opacity-100",
+            "scene-plate",
+            failed || !ready ? "is-loading opacity-0" : "opacity-100",
           )}
           onLoad={(e) => {
             const loaded = e.currentTarget;

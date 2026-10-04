@@ -74,6 +74,8 @@ import { QuestionMark, RoundPips, TimerRing } from "./timer-ring";
 import { ScoreTally } from "./score-tally";
 import { FinalResults } from "./final-results";
 import { cn, copyText } from "@/lib/utils";
+import { DotGlobe } from "@/components/motion/dot-globe";
+import { globeForAtlas } from "@/components/motion/globe-presets";
 
 // three.js and the reconstruction scene load only when a round needs them, so
 // flat-photo matches (most of them) never download the 3D code.
@@ -976,8 +978,14 @@ export function MatchApp({
   ) {
     const failed = p2pPeers.some((peer) => peer.connectionState === "failed");
     return (
-      <main className="min-h-dvh bg-bg px-5 py-10 pt-[max(2.5rem,env(safe-area-inset-top))] pb-[max(2.5rem,env(safe-area-inset-bottom))]">
-        <div className="mx-auto max-w-md">
+      <main className="relative min-h-dvh overflow-hidden bg-bg px-5 py-10 pt-[max(2.5rem,env(safe-area-inset-top))] pb-[max(2.5rem,env(safe-area-inset-bottom))]">
+        {/* The world waits with you: a dotted Earth turns behind the room. */}
+        <DotGlobe
+          className="lobby-globe"
+          reducedMotion={settings.reducedMotion}
+          {...globeForAtlas(state.atlas)}
+        />
+        <div className="relative mx-auto max-w-md">
           <div className="flex items-center justify-between gap-3">
             <p className="text-xs uppercase tracking-[0.28em] text-muted">Private room</p>
             <div className="-my-2">
@@ -1183,6 +1191,7 @@ export function MatchApp({
           holdMs={introHoldMs}
           reducedMotion={settings.reducedMotion}
           onStart={finishIntro}
+          atlas={state.atlas}
         />
       )}
 

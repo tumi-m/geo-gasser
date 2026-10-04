@@ -963,6 +963,21 @@ html.reduce-motion::view-transition-old(root),html.reduce-motion::view-transitio
 .round-intro-grid {position:absolute;inset:-10%;width:120%;height:120%;opacity:.16;animation:grid-drift 14s linear infinite}
 .round-intro-grid ellipse,.round-intro-grid line {fill:none;stroke:var(--color-muted);stroke-width:1}
 @keyframes grid-drift {from{transform:rotate(0) scale(1)}to{transform:rotate(8deg) scale(1.08)}}
+/* The dotted Earth behind the title card turns toward the atlas in play. */
+.dot-globe {display:block;pointer-events:none}
+.round-intro-globe {position:absolute;left:50%;top:44%;width:min(96vmin,820px);aspect-ratio:1;transform:translate(-50%,-50%);opacity:.6;animation:globe-in 1.4s var(--ease-smooth-out) backwards}
+@keyframes globe-in {from{opacity:0;transform:translate(-50%,-50%) scale(.82)}}
+.lobby-globe {position:absolute;top:-70px;right:-120px;width:min(440px,110vw);aspect-ratio:1;opacity:.55;animation:fade-in 1.2s var(--ease-out) backwards}
+@media (min-width: 900px) {.lobby-globe {top:50%;right:-9vw;width:min(600px,44vw);transform:translateY(-50%);opacity:.75}}
+/* A new photo arrives out of focus and pulls sharp (filter on the image only,
+   never on text). */
+.scene-plate {transition:opacity .7s var(--ease-out),filter 1s var(--ease-out)}
+.scene-plate.is-loading {filter:blur(18px) saturate(.6) brightness(1.15)}
+.reduce-motion .scene-plate.is-loading {filter:none}
+@keyframes fade-in {from{opacity:0}}
+.packs-title {display:flex;align-items:center;gap:12px}
+.packs-globe {width:64px;height:64px;flex-shrink:0;margin:-12px 0 -12px -8px}
+@media (min-width: 700px) {.packs-globe {width:84px;height:84px;margin:-18px 0 -18px -12px}}
 .round-intro-inner {position:relative;display:flex;flex-direction:column;align-items:center;padding:24px}
 .round-intro-emblem {position:relative;width:132px;height:132px;display:grid;place-items:center}
 .round-intro-compass {position:absolute;inset:0;width:100%;height:100%;overflow:visible}

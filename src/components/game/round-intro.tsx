@@ -1,5 +1,8 @@
 import { Clock, Globe2, Sparkles } from "lucide-react";
 import { WordRise } from "@/components/motion/motion";
+import { DotGlobe } from "@/components/motion/dot-globe";
+import { globeForAtlas } from "@/components/motion/globe-presets";
+import type { AtlasSpec } from "@/lib/game";
 import { cn } from "@/lib/utils";
 
 /**
@@ -20,7 +23,10 @@ export function RoundIntro({
   holdMs,
   reducedMotion,
   onStart,
+  atlas,
 }: {
+  /** Turns the globe behind the card toward the atlas being played. */
+  atlas?: AtlasSpec;
   round: number;
   totalRounds: number;
   /** Set for multi-question rounds: which question is next. */
@@ -52,6 +58,11 @@ export function RoundIntro({
       style={{ "--hold": `${holdMs}ms` } as React.CSSProperties}
     >
       <GridBackdrop />
+      <DotGlobe
+        className="round-intro-globe"
+        reducedMotion={reducedMotion}
+        {...globeForAtlas(atlas)}
+      />
       <div className="round-intro-inner">
         <div className="round-intro-emblem" aria-hidden>
           <Compass />
