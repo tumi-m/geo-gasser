@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { mergeRecentIds, RECENT_LIMIT } from "./recent.ts";
-import { enabledLocations } from "./locations.ts";
+import { enabledLocations, ROUND4_LOCATIONS } from "./locations.ts";
 import { planMatch } from "./selection.ts";
 import type { MatchLengthId } from "./timer.ts";
 import type { AtlasSpec } from "./atlas.ts";
@@ -20,7 +20,10 @@ function session(games: number, length: MatchLengthId, atlas?: AtlasSpec, seed =
 }
 
 describe("no repeats across games", () => {
-  const saNl = enabledLocations().filter((l) => l.country !== "WORLD").length;
+  // Escape deals photographs only: the reconstruction plates are reserved for
+  // the long matches' final round.
+  const reserved = new Set(ROUND4_LOCATIONS.map((l) => l.id));
+  const saNl = enabledLocations().filter((l) => l.country !== "WORLD" && !reserved.has(l.id)).length;
 
   it("remembers every site in the pool, not just the last few games", () => {
     assert.ok(RECENT_LIMIT >= enabledLocations().length, `limit ${RECENT_LIMIT}`);
