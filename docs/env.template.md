@@ -10,7 +10,25 @@ VITE_STUN_URLS=stun:stun.l.google.com:19302,stun:stun.cloudflare.com:3478
 VITE_MATCH_SERVER_URL=https://atlas-duel-match.<account>.workers.dev
 # Mapillary street-level imagery (public client token). Unset = bundled stills.
 VITE_MAPILLARY_TOKEN=
+# Google Street View: walk around each place, GeoGuessr style. A browser key
+# for the Maps JavaScript API. Unset = the bundled photographs.
+VITE_GOOGLE_MAPS_KEY=
 ```
+
+### Street View (walk around the place)
+
+1. In Google Cloud Console, create a project, attach billing, and enable the
+   **Maps JavaScript API**.
+2. Create an API key. Under *Application restrictions* choose *Websites* and
+   add `https://geo-gasser.vercel.app/*` (and any preview domain you use);
+   under *API restrictions* allow only the Maps JavaScript API.
+3. In Vercel → the project → Settings → Environment Variables, add
+   `VITE_GOOGLE_MAPS_KEY` with the key, then redeploy.
+
+Each photo round then opens on the nearest outdoor Street View panorama
+(within ~1.5 km of the place). Road names, the address card and links to
+Google Maps are hidden. Places without coverage use the photo, and the
+Street View / Photo switch lets a player flip between the two.
 
 ### Music (Settings → Sound → Your music, or the music button in any header)
 
@@ -41,4 +59,4 @@ VITE_APPLE_MUSIC_HOUSE_PLAYLIST=https://music.apple.com/...
 Spotify's Web Playback SDK plays in the page only for Premium accounts; free
 accounts are told so and pointed at the pasted-link player.
 
-No Google / Higgsfield keys are used in the launch build.
+No Higgsfield keys are used. The Google key is optional (Street View above).

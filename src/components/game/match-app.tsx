@@ -26,6 +26,8 @@ import {
   GROK_BOT_ID,
   GROK_BOT_NAME,
   isRound4,
+  streetViewKey,
+  streetViewTarget,
   locationAt,
   locationCountryLabel,
   QUESTIONS_PER_ROUND,
@@ -69,6 +71,7 @@ import { RoundIntro } from "./round-intro";
 import { RoundSplash } from "./round-splash";
 import { RoundSummarySplash } from "./round-summary-splash";
 import { SceneExplorer } from "./scene-explorer";
+import { StreetViewScene } from "./street-view-scene";
 import { SettingsPanel } from "./settings-panel";
 import { QuestionMark, RoundPips, TimerRing } from "./timer-ring";
 import { ScoreTally } from "./score-tally";
@@ -150,6 +153,10 @@ export function MatchApp({
   useEffect(() => setCanShare(typeof navigator.share === "function"), []);
   const [shake, setShake] = useState(false);
   const [panoFailed, setPanoFailed] = useState(false);
+  // Street View where it is configured and covers the place; the photo is one
+  // tap away, and takes over if there is no panorama nearby.
+  const [streetFailed, setStreetFailed] = useState(false);
+  const [viewSource, setViewSource] = useState<"street" | "photo">("street");
   const [scene3dFailed, setScene3dFailed] = useState(false);
   const [pendingLock, setPendingLock] = useState<{
     roundStartedAtMs?: number;
@@ -606,7 +613,16 @@ export function MatchApp({
   useEffect(() => {
     setPanoFailed(false);
     setScene3dFailed(false);
+    setStreetFailed(false);
   }, [scene?.src, env?.id]);
+  const streetTarget = useMemo(
+    () => (streetViewKey() ? streetViewTarget(scene, loc ?? undefined) : null),
+    // The target only changes with the place on screen.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [scene?.src, loc?.id],
+  );
+  const streetAvailable = Boolean(streetTarget) && !streetFailed;
+  const showStreet = streetAvailable && viewSource === "street";
 
   // Warm the next plate while the player studies the current one. Only the
   // host/solo knows the deck, so guests simply skip this.
@@ -1241,6 +1257,13 @@ export function MatchApp({
               reducedMotion={settings.reducedMotion}
               interactive={!showSettings}
             />
+          ) : showStreet && streetTarget ? (
+            <StreetViewScene
+              key={`${streetTarget.latitude},${streetTarget.longitude}`}
+              target={streetTarget}
+              interactive={canGuess && !showSettings && !showingReveal}
+              onUnavailable={() => setStreetFailed(true)}
+            />
           ) : live3d && env && !scene3dFailed ? (
             <Round4Scene
               key={env.id}
@@ -1302,6 +1325,17 @@ export function MatchApp({
           <i className="scene-tension" />
         </div>
       </div>
+
+      {streetAvailable && !showingReveal && (
+        <div className="view-source" role="group" aria-label="Scene">
+          <button type="button" aria-pressed={viewSource === "street"} onClick={() => setViewSource("street")}>
+            Street View
+          </button>
+          <button type="button" aria-pressed={viewSource === "photo"} onClick={() => setViewSource("photo")}>
+            Photo
+          </button>
+        </div>
+      )}
 
       <header
         ref={measureHud}
