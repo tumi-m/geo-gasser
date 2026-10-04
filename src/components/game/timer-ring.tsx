@@ -68,12 +68,19 @@ export function TimerRing({
 
 export function RoundPips({ index, total = 4 }: { index: number; total?: number }) {
   return (
-    <div className="flex gap-1" role="img" aria-label={`Round ${index + 1} of ${total}`}>
+    // Pips share a capped width: ten rounds no longer push the HUD buttons
+    // off a phone screen.
+    <div
+      className="flex gap-1"
+      style={{ width: `min(${total * 1.5}rem, 9rem)` }}
+      role="img"
+      aria-label={`Round ${index + 1} of ${total}`}
+    >
       {Array.from({ length: total }, (_, i) => (
         <span
           key={i}
           className={cn(
-            "h-1.5 w-5 rounded-full",
+            "h-1.5 min-w-1 flex-1 rounded-full",
             i < index ? "bg-accent" : i === index ? "bg-fg" : "bg-border",
           )}
         />

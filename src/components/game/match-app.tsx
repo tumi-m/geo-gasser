@@ -1341,7 +1341,7 @@ export function MatchApp({
         ref={measureHud}
         className="match-hud relative z-20 flex items-start justify-between gap-3 px-4 py-3 pt-[max(0.75rem,env(safe-area-inset-top))]"
       >
-        <div className="flex flex-col gap-2">
+        <div className="flex min-w-0 flex-col gap-2">
           {!showingReveal && (
             <TimerRing
               remaining={remaining}
@@ -1363,7 +1363,7 @@ export function MatchApp({
             </div>
           ) : null}
         </div>
-        <div className="flex items-start gap-2">
+        <div className="hud-actions flex shrink-0 items-start gap-2">
           {!showingReveal && (
             <button
               type="button"
@@ -1417,7 +1417,9 @@ export function MatchApp({
               </div>
             </div>
           )}
-          <MusicHudButton />
+          <span className="music-hud flex">
+            <MusicHudButton />
+          </span>
           <Button
             variant="ghost"
             size="icon"
