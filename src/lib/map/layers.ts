@@ -33,9 +33,12 @@ export const NL_BOUNDS: [[number, number], [number, number]] = [
   [50.75, 3.32],
   [53.55, 7.23],
 ];
+// The lived-in band, centred near 10°N in Mercator. The old 56°S–72°N box
+// centred near 19°N, so where the minimum zoom stops the fit (narrow phones)
+// South Africa dropped off the bottom of the map.
 export const WORLD_BOUNDS: [[number, number], [number, number]] = [
-  [-56, -160],
-  [72, 170],
+  [-50, -160],
+  [62, 170],
 ];
 
 /** A marker that is only on the map inside a zoom window. */

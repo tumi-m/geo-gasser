@@ -233,6 +233,16 @@ export function GuessMap({
           preferCanvas: false,
         });
         mapRef.current = map;
+        // The furthest zoom-out shows the world once across the panel's
+        // width: a fixed 1.5 kept short panels (the desktop corner sheet)
+        // from ever fitting the Netherlands and South Africa together, and
+        // a wide expanded map from zooming out into empty sea.
+        const fitMinZoom = () => {
+          const width = map?.getSize().x ?? 0;
+          if (width > 0) map?.setMinZoom(Math.max(1, Math.floor(Math.log2(width / 256) * 4) / 4));
+        };
+        fitMinZoom();
+        map.on("resize", fitMinZoom);
 
         graticuleLayer(L).addTo(map);
         worldLayer(L, WORLD, DETAIL_CODES).addTo(map);
