@@ -1,17 +1,17 @@
 import { useState } from "react";
 import {
   applyRegion,
-  enabledLocations,
-  nationOf,
   ATLAS_PRESETS,
   atlasLabel,
   atlasPoolSize,
   nationCounts,
   nationLabel,
   NATION_LABEL,
+  playableCities,
   REGION_NATIONS,
   regionFullyOn,
   sanitizeAtlas,
+  streetViewUsable,
   toggleNation,
   type AtlasSpec,
 } from "@/lib/game";
@@ -28,9 +28,13 @@ export function AtlasPicker({
 }) {
   const [cityQuery, setCityQuery] = useState("");
   const spec = sanitizeAtlas(value);
-  const cities = [...new Set(enabledLocations().filter(l=>spec.nations.includes(nationOf(l))).map(l=>l.city).filter((c):c is string=>!!c))].sort();
-  const counts = nationCounts();
-  const pool = atlasPoolSize(spec);
+  // Only places a match can deal: the counts and cities here are a promise.
+  const streetView = streetViewUsable();
+  const playable = playableCities(spec.nations, streetView);
+  // A city picked earlier stays listed so it can be switched off again.
+  const cities = [...new Set([...playable, ...(spec.cities ?? [])])].sort((a, b) => a.localeCompare(b));
+  const counts = nationCounts(streetView);
+  const pool = atlasPoolSize(spec, streetView);
   const custom = spec.preset === "custom";
   const selected = new Set(spec.nations);
 
@@ -116,6 +120,12 @@ export function AtlasPicker({
       {!compact ? (
         <p className="text-xs text-subtle">
           {atlasLabel(spec)} · {plural(pool, "unique place")}
+        </p>
+      ) : null}
+      {pool === 0 ? (
+        <p className="text-xs text-muted">
+          No place here can be played right now, so a match uses the whole map. Pick other cities or
+          countries.
         </p>
       ) : null}
       {pool > 0 && pool < 5 ? (

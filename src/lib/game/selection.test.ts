@@ -1,12 +1,15 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { getLocation, ROUND4_LOCATIONS } from "./locations.ts";
+import { nationCounts } from "./atlas.ts";
+import { getLocation, placeCity, playableLocations, ROUND4_LOCATIONS } from "./locations.ts";
 import { UNFIT_PHOTOS } from "./photo-review.ts";
 import { STREET_LOCATIONS } from "./street-locations.ts";
 import {
+  atlasPoolSize,
   MATCH_QUOTA,
   PHOTO_QUESTIONS,
   planMatch,
+  playableCities,
   ROUND4_QUESTIONS,
   TOTAL_QUESTIONS,
 } from "./selection.ts";
@@ -144,5 +147,60 @@ describe("photos that cannot be played, and Street View places", () => {
   it("never deals reconstruction plates while the 3D round is parked", () => {
     const reserved = new Set(ROUND4_LOCATIONS.map((l) => l.id));
     for (const id of all({ streetView: true })) assert.ok(!reserved.has(id), id);
+  });
+});
+
+describe("what the menus count", () => {
+  const SA_NL = { preset: "sa-nl" as const, nations: ["NL", "ZA"] };
+  it("counts only places a match can deal", () => {
+    const plain = playableLocations(false);
+    const unfit = new Set(Object.keys(UNFIT_PHOTOS));
+    const r4 = new Set(ROUND4_LOCATIONS.map((l) => l.id));
+    assert.ok(plain.length > 0);
+    assert.ok(plain.every((l) => !r4.has(l.id) && !unfit.has(l.id) && l.sceneKind !== "street"));
+    const withStreet = playableLocations(true);
+    assert.equal(withStreet.length, plain.length + unfit.size + STREET_LOCATIONS.length);
+  });
+  it("the pool size is what an Odyssey on that map deals", () => {
+    for (const streetView of [false, true]) {
+      const plan = planMatch(5, "full", SA_NL, [], { streetView });
+      const earth = plan.locationIds.filter((id) => getLocation(id)?.country !== "SPACE");
+      assert.ok(atlasPoolSize(SA_NL, streetView) >= earth.length);
+    }
+    assert.ok(atlasPoolSize(SA_NL, true) > atlasPoolSize(SA_NL, false));
+    // A map smaller than the match deals every place on it, no more.
+    const small = { preset: "custom" as const, nations: ["JP", "US"] };
+    const plan = planMatch(2, "standard", small);
+    assert.ok(atlasPoolSize(small) < 40);
+    assert.equal(plan.locationIds.length, atlasPoolSize(small));
+  });
+  it("nation counts skip unplayable places", () => {
+    // Assen's only plate is unfit; Australia's Uluru plate too.
+    const plain = nationCounts(false);
+    const withStreet = nationCounts(true);
+    assert.ok((withStreet.NL ?? 0) > (plain.NL ?? 0));
+    assert.ok((withStreet.ZA ?? 0) > (plain.ZA ?? 0));
+  });
+  it("lists only cities a match can reach", () => {
+    const plain = playableCities(["NL", "ZA"], false);
+    const withStreet = playableCities(["NL", "ZA"], true);
+    assert.ok(!plain.includes("Assen"), "Assen has only an unfit plate");
+    assert.ok(withStreet.includes("Assen"));
+    assert.ok(withStreet.includes("Urk"), "Street View places add their towns");
+    assert.ok(!plain.includes("Urk"));
+    for (const city of plain) {
+      const plan = planMatch(3, "escape", { preset: "sa-nl", nations: ["NL", "ZA"], cities: [city] });
+      assert.ok(plan.locationIds.every((id) => getLocation(id)?.city === city), city);
+    }
+  });
+});
+
+describe("placeCity", () => {
+  it("names the city unless the title already does", () => {
+    assert.equal(placeCity({ title: "The Big Hole", city: "Kimberley" }), "Kimberley");
+    assert.equal(placeCity({ title: "Grote Markt, Groningen", city: "Groningen" }), undefined);
+    assert.equal(placeCity({ title: "Clarens", city: "Clarens" }), undefined);
+    assert.equal(placeCity({ title: "Edersee dam", city: "Ede" }), "Ede");
+    assert.equal(placeCity({ title: "Acropolis" }), undefined);
   });
 });

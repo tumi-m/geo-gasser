@@ -25,13 +25,14 @@ import {
   DEFAULT_SETTINGS,
   DIFFICULTY_SECONDS,
   EMPTY_STATS,
-  enabledLocations,
   loadSettings,
   loadStats,
   planMatch,
+  playableLocations,
   saveSettings,
   sanitizeAtlas,
   sanitizeAvatar,
+  streetViewUsable,
   type GameSettings,
 } from "@/lib/game";
 import { Input } from "@/components/ui/input";
@@ -103,7 +104,8 @@ export function HomeScreen() {
   useRevealOnScroll(homeRef);
   // Depth under the mouse: the hero photo and the map cards shift against it.
   usePointerTilt(homeRef, ".journey-hero, .pack-card");
-  const plan = planMatch(1, settings.matchLength, settings.atlas);
+  const streetView = streetViewUsable();
+  const plan = planMatch(1, settings.matchLength, settings.atlas, [], { streetView });
   useEffect(() => {
     if (!loaded) return; // never write the defaults over what is stored
     document.documentElement.classList.toggle("hc", settings.highContrast);
@@ -346,7 +348,7 @@ export function HomeScreen() {
       <footer className="expedition-footer">
         <span>
           <Compass size={16} />
-          {enabledLocations().length} places. Endless perspective.
+          {playableLocations(streetView).length} places. Endless perspective.
         </span>
         {stats.matchesPlayed > 0 ? (
           <span>

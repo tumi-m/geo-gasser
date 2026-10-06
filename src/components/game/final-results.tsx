@@ -7,6 +7,7 @@ import {
   formatMiss,
   getLocation,
   locationCountryLabel,
+  placeCity,
   shareCard,
   type MatchState,
 } from "@/lib/game";
@@ -38,6 +39,7 @@ export function FinalResults({
   const you = state.players.find((p) => p.id === selfId);
   const other = state.players.find((p) => p.id !== selfId);
   const duel = state.mode === "duel" && Boolean(other);
+  const escape = state.matchLength === "escape";
   const shared = state.winnerIds.length > 1;
   const youWin = state.winnerIds.includes(selfId);
   const delta = you && other ? Math.abs(you.totalScore - other.totalScore) : 0;
@@ -117,11 +119,11 @@ export function FinalResults({
           </p>
         ) : null}
         <ol className={cn("space-y-5", duel && other ? "mt-5" : "mt-8")}>
-          {Array.from({ length: state.totalRounds || 4 }, (_, round) => {
-            const rows = state.roundHistory.filter(
-              (r) =>
-                (state.matchLength === "escape" ? r.index : Math.floor(r.index / 10)) === round,
-            );
+          {/* An Escape is five single stops: one list, not five one-row rounds. */}
+          {Array.from({ length: escape ? 1 : state.totalRounds || 4 }, (_, round) => {
+            const rows = escape
+              ? state.roundHistory
+              : state.roundHistory.filter((r) => Math.floor(r.index / 10) === round);
             if (!rows.length) return null;
             const roundYou = rows.reduce(
               (n, r) => n + (r.guesses[selfId]?.score.roundScore ?? 0),
@@ -134,7 +136,7 @@ export function FinalResults({
               <li key={round}>
                 <div className="mb-2 flex items-baseline justify-between gap-3" data-reveal>
                   <p className="text-[11px] uppercase tracking-[0.2em] text-subtle">
-                    Round {round + 1}
+                    {escape ? "Your stops" : `Round ${round + 1}`}
                   </p>
                   {duel && other ? (
                     <p className="text-xs tabular text-muted">
@@ -171,11 +173,9 @@ export function FinalResults({
                                       : "bg-za",
                               )}
                             />
-                            {loc?.city && loc.city !== loc.title
-                              ? loc.city
-                              : loc
-                                ? locationCountryLabel(loc)
-                                : ""}
+                            {loc
+                              ? [placeCity(loc), locationCountryLabel(loc)].filter(Boolean).join(" · ")
+                              : ""}
                           </span>
                         </span>
                         {duel ? (
@@ -219,7 +219,7 @@ export function FinalResults({
           />
           <Stat
             i={2}
-            label="Total distance"
+            label="Total miss"
             reduced={Boolean(reducedMotion)}
             value={closest.reduce((sum, km) => sum + km, 0)}
             format={formatDistance}

@@ -11,7 +11,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { atlasLabel, planMatch, sanitizeAvatar, type GameSettings } from "@/lib/game";
+import { atlasLabel, planMatch, sanitizeAvatar, streetViewUsable, type GameSettings } from "@/lib/game";
 import { useMusic } from "@/lib/music/use-music";
 import { AtlasPicker } from "./atlas-picker";
 import { MusicSettingsSection } from "./music-player";
@@ -41,7 +41,7 @@ export function SettingsPanel({
   const [tab, setTab] = useState<TabId>(onQuit ? "picture" : "game");
   const music = useMusic();
   const update = (patch: Partial<GameSettings>) => onChange({ ...settings, ...patch });
-  const plan = planMatch(1, settings.matchLength, settings.atlas);
+  const plan = planMatch(1, settings.matchLength, settings.atlas, [], { streetView: streetViewUsable() });
   const slider = (key: "master" | "music" | "sfx", label: string, hint: string) => (
     <label className={cn("settings-volume", settings.muted && "opacity-45")}>
       <span>

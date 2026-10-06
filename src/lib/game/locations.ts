@@ -681,6 +681,28 @@ export function enabledLocations(): GeoLocation[] {
   );
 }
 
+/**
+ * The Earth places a match can deal: real photos, plus the Street View-only
+ * places when Street View is usable. Reconstruction plates belong to the
+ * parked 3D round and are never in it. Counts, city lists and the dealer all
+ * read this, so what the menus promise is what a match plays.
+ */
+export function playableLocations(streetView = false): GeoLocation[] {
+  const reserved = new Set(ROUND4_LOCATIONS.map((l) => l.id));
+  return [
+    ...enabledLocations().filter((l) => !reserved.has(l.id) && (streetView || !needsStreetView(l))),
+    ...(streetView ? STREET_LOCATIONS : []),
+  ];
+}
+
+/** The city to name under a place, unless its title already says it ("Grote Markt, Groningen"). */
+export function placeCity(loc: Pick<GeoLocation, "title" | "city">): string | undefined {
+  const city = loc.city?.trim();
+  if (!city) return undefined;
+  const escaped = city.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  return new RegExp(`(^|[^\\p{L}])${escaped}($|[^\\p{L}])`, "u").test(loc.title) ? undefined : city;
+}
+
 export function locationCountryLabel(loc: Pick<GeoLocation, "country" | "region" | "nation">): string {
   if (loc.country === "ZA") return "South Africa";
   if (loc.country === "NL") return "Netherlands";

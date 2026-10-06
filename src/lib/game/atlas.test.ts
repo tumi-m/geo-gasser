@@ -1,14 +1,13 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import {
-  atlasPoolSize,
   DEFAULT_ATLAS,
   inferPreset,
   sanitizeAtlas,
   toggleNation,
 } from "./atlas.ts";
 import { getLocation } from "./locations.ts";
-import { planMatch } from "./selection.ts";
+import { atlasPoolSize, planMatch } from "./selection.ts";
 
 describe("atlas", () => {
   it("defaults to South Africa × Netherlands", () => {

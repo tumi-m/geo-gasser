@@ -31,6 +31,7 @@ import {
   streetViewUsable,
   locationAt,
   locationCountryLabel,
+  placeCity,
   QUESTIONS_PER_ROUND,
   questionInRound,
   ROUND4_3D_LIVE,
@@ -1596,7 +1597,7 @@ export function MatchApp({
           you={you}
           opponent={opponent}
           locationTitle={loc.title}
-          city={loc.city && loc.city !== loc.title ? loc.city : undefined}
+          city={placeCity(loc)}
           country={loc ? locationCountryLabel(loc) : ""}
           roundLabel={roundLabel}
           lastRound={lastRound}

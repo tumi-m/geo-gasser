@@ -1,13 +1,13 @@
 import {
   DEFAULT_ATLAS,
   filterByAtlas,
+  nationOf,
   sanitizeAtlas,
   type AtlasSpec,
 } from "./atlas.ts";
 import { COSMOS_LOCATIONS, COSMOS_QUESTIONS } from "./cosmos.ts";
 import { environmentForLocation, ROUND4_ENVIRONMENTS } from "./environments.ts";
-import { enabledLocations, needsStreetView, ROUND4_LOCATIONS } from "./locations.ts";
-import { STREET_LOCATIONS } from "./street-locations.ts";
+import { playableLocations, ROUND4_LOCATIONS } from "./locations.ts";
 import { mulberry32, shuffle } from "./rng.ts";
 import { MATCH_LENGTH, type MatchLengthId } from "./timer.ts";
 import type { EarthCountry, GeoLocation } from "./types.ts";
@@ -221,11 +221,26 @@ export function isCosmosQuestion(plan: Pick<MatchPlan, "locationIds">, questionI
   return plan.locationIds[questionIndex]?.startsWith("cos_") ?? false;
 }
 
+/** Unique places a match on this map can deal. */
+export function atlasPoolSize(spec: AtlasSpec, streetView = false): number {
+  const photos = filterByAtlas(playableLocations(streetView), spec).length;
+  return photos + (ROUND4_3D_LIVE ? filterByAtlas(ROUND4_LOCATIONS, spec).length : 0);
+}
+
+/** Cities with at least one place a match can deal, in the given nations. */
+export function playableCities(nations: string[], streetView = false): string[] {
+  const set = new Set(nations);
+  const cities = playableLocations(streetView)
+    .filter((l) => set.has(nationOf(l)) && l.city)
+    .map((l) => l.city!);
+  return [...new Set(cities)].sort((a, b) => a.localeCompare(b));
+}
+
 /**
  * Deal a match from the selected atlas.
  * SA × NL keeps a balanced 15/15, and the final round is real places too
  * (5/5) while the 3D reconstruction renderer is parked.
- * Other atlases filter the 149-site pool and shrink the match if the map is smaller.
+ * Other atlases filter the playable pool and shrink the match if the map is smaller.
  *
  * `avoidLocationIds` is every site this player has been shown, newest first.
  * Unseen sites are always dealt first; only when none are left does a site
@@ -253,13 +268,7 @@ export function planMatch(
   // Reconstruction plates belong only to a live 3D final round; every other
   // question is a real place. Places that need Street View (no usable photo)
   // join the pool only when Street View is configured.
-  const reserved = new Set(ROUND4_LOCATIONS.map((l) => l.id));
-  const base = [
-    ...enabledLocations().filter(
-      (l) => !reserved.has(l.id) && (options.streetView || !needsStreetView(l)),
-    ),
-    ...(options.streetView ? STREET_LOCATIONS : []),
-  ];
+  const base = playableLocations(options.streetView);
   if (matchLength === "escape") {
     const pool = pickPool(base, spec);
     let picked: GeoLocation[];

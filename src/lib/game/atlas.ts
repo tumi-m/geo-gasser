@@ -1,4 +1,5 @@
-import { enabledLocations, ROUND4_LOCATIONS } from "./locations.ts";
+import { enabledLocations, playableLocations } from "./locations.ts";
+import { STREET_LOCATIONS } from "./street-locations.ts";
 import type { GeoLocation } from "./types.ts";
 
 export type AtlasPreset = "sa-nl" | "za" | "nl" | "world" | "mix" | "custom";
@@ -104,7 +105,7 @@ function uniqueSorted(codes: Iterable<string>): string[] {
 
 export function worldNations(): string[] {
   return uniqueSorted(
-    enabledLocations()
+    [...enabledLocations(), ...STREET_LOCATIONS]
       .filter((l) => l.country === "WORLD" && l.nation)
       .map((l) => l.nation!.toUpperCase()),
   );
@@ -188,16 +189,6 @@ export function filterByAtlas(list: GeoLocation[], spec: AtlasSpec): GeoLocation
   return list.filter((l) => n.has(nationOf(l)) && (!cities?.length || !!l.city && cities.includes(l.city)));
 }
 
-export function atlasPoolSize(spec: AtlasSpec): number {
-  const reserved = new Set(ROUND4_LOCATIONS.map((l) => l.id));
-  const photos = filterByAtlas(
-    enabledLocations().filter((l) => !reserved.has(l.id)),
-    spec,
-  ).length;
-  const r4 = filterByAtlas(ROUND4_LOCATIONS, spec).length;
-  return photos + r4;
-}
-
 export function atlasLabel(spec: AtlasSpec): string {
   const s = sanitizeAtlas(spec);
   switch (s.preset) {
@@ -248,9 +239,10 @@ export function regionFullyOn(spec: AtlasSpec, regionId: string): boolean {
   return region.nations.filter((c) => available.has(c)).every((c) => set.has(c));
 }
 
-export function nationCounts(): Record<string, number> {
+/** Places a match can deal in each nation; Street View places count only when it is usable. */
+export function nationCounts(streetView = false): Record<string, number> {
   const counts: Record<string, number> = {};
-  for (const loc of enabledLocations()) {
+  for (const loc of playableLocations(streetView)) {
     const n = nationOf(loc);
     counts[n] = (counts[n] ?? 0) + 1;
   }
