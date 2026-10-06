@@ -95,7 +95,7 @@ export const FEEDBACK_COPY: Record<FeedbackId, string> = {
   instincts: "NICE INSTINCTS",
   close: "SO CLOSE",
   country: "RIGHT COUNTRY",
-  tough: "TOUGH ONE — NEXT ROUND",
+  tough: "TOUGH ONE",
 };
 
 /** The verdict line for a round: cosmic rounds have neighbourhoods, not countries. */

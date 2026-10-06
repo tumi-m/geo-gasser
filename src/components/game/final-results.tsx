@@ -112,103 +112,16 @@ export function FinalResults({
         )}
         <ExpeditionRoute
           className="mt-7"
-          stops={state.roundHistory.filter((r) => !r.cosmos).map((r) => ({
-            latitude: r.truth.latitude,
-            longitude: r.truth.longitude,
-            score: r.guesses[selfId]?.score.roundScore,
-          }))}
+          stops={state.roundHistory
+            .filter((r) => !r.cosmos)
+            .map((r) => ({
+              latitude: r.truth.latitude,
+              longitude: r.truth.longitude,
+              score: r.guesses[selfId]?.score.roundScore,
+            }))}
         />
         <PassportStamps history={state.roundHistory} />
-        {duel && other ? (
-          <p className="mt-8 text-xs text-subtle">
-            Per question · {you?.name ?? "you"} then {other.name}
-          </p>
-        ) : null}
-        <ol className={cn("space-y-5", duel && other ? "mt-5" : "mt-8")}>
-          {/* An Escape is five single stops: one list, not five one-row rounds. */}
-          {Array.from({ length: escape ? 1 : state.totalRounds || 4 }, (_, round) => {
-            const rows = escape
-              ? state.roundHistory
-              : state.roundHistory.filter((r) => Math.floor(r.index / 10) === round);
-            if (!rows.length) return null;
-            const roundYou = rows.reduce(
-              (n, r) => n + (r.guesses[selfId]?.score.roundScore ?? 0),
-              0,
-            );
-            const roundOther = other
-              ? rows.reduce((n, r) => n + (r.guesses[other.id]?.score.roundScore ?? 0), 0)
-              : 0;
-            return (
-              <li key={round}>
-                <div className="mb-2 flex items-baseline justify-between gap-3" data-reveal>
-                  <p className="text-[11px] uppercase tracking-[0.2em] text-subtle">
-                    {escape ? "Your stops" : `Round ${round + 1}`}
-                  </p>
-                  {duel && other ? (
-                    <p className="text-xs tabular text-muted">
-                      {roundYou.toLocaleString()} · {roundOther.toLocaleString()}
-                    </p>
-                  ) : null}
-                </div>
-                <ol className="space-y-1.5">
-                  {rows.map((r) => {
-                    const g = r.guesses[selfId];
-                    const og = other ? r.guesses[other.id] : undefined;
-                    const loc = getLocation(r.locationId);
-                    return (
-                      <li
-                        key={r.index}
-                        data-reveal
-                        style={{ "--i": Math.min(6, cardIndex++ % 7) } as React.CSSProperties}
-                        className="flex items-center justify-between gap-3 rounded-[var(--radius-md)] border border-border px-3 py-2 text-sm"
-                      >
-                        <span className="min-w-0">
-                          <span className="block truncate text-fg">
-                            {loc?.title ?? `Q${r.index + 1}`}
-                          </span>
-                          <span className="mt-0.5 flex items-center gap-2 text-xs text-muted">
-                            <span
-                              className={cn(
-                                "inline-block size-1.5 rounded-full",
-                                loc?.country === "NL"
-                                  ? "bg-nl"
-                                  : loc?.country === "WORLD"
-                                    ? "bg-accent"
-                                    : loc?.country === "SPACE"
-                                      ? "bg-[#8fb4ff]"
-                                      : "bg-za",
-                              )}
-                            />
-                            {loc
-                              ? [placeCity(loc), locationCountryLabel(loc)].filter(Boolean).join(" · ")
-                              : ""}
-                          </span>
-                        </span>
-                        {duel ? (
-                          <span className="shrink-0 text-right text-xs tabular sm:text-sm">
-                            <span className="block">
-                              {g ? g.score.roundScore.toLocaleString() : "—"}
-                            </span>
-                            <span className="text-muted">
-                              {og ? og.score.roundScore.toLocaleString() : "—"}
-                            </span>
-                          </span>
-                        ) : (
-                          <span className="shrink-0 tabular text-xs sm:text-sm">
-                            {g
-                              ? `${g.score.roundScore.toLocaleString()} · ${formatMiss(g.score)}`
-                              : "—"}
-                          </span>
-                        )}
-                      </li>
-                    );
-                  })}
-                </ol>
-              </li>
-            );
-          })}
-        </ol>
-        <dl className="mt-6 grid grid-cols-2 gap-3 text-sm">
+        <dl className="mt-8 grid grid-cols-2 gap-3 text-sm">
           <Stat
             i={0}
             label="Closest guess"
@@ -238,16 +151,12 @@ export function FinalResults({
             format={(v) => Math.round(v).toLocaleString()}
           />
         </dl>
-        <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+        <div className="mt-6 flex flex-col gap-3 sm:flex-row">
           <Button className="rematch-nudge sm:flex-1" onClick={onRematch}>
             Rematch
           </Button>
           {state.mode === "duel" && (
-            <Button
-              variant="secondary"
-              className="sm:flex-1"
-              onClick={() => navigate("/duel")}
-            >
+            <Button variant="secondary" className="sm:flex-1" onClick={() => navigate("/duel")}>
               New opponent
             </Button>
           )}
@@ -256,6 +165,117 @@ export function FinalResults({
             Home
           </Button>
         </div>
+        {/* The breakdown comes after the actions: after a 40-question match
+            Rematch used to sit under forty rows. Long matches fold each round
+            into one line that opens on demand. */}
+        <section className="mt-10" aria-labelledby="result-breakdown">
+          <h2 id="result-breakdown" className="text-[11px] uppercase tracking-[0.2em] text-subtle">
+            {escape ? "Your stops" : "Round by round"}
+          </h2>
+          {duel && other ? (
+            <p className="mt-1 text-xs text-subtle">
+              Per question · {you?.name ?? "you"} then {other.name}
+            </p>
+          ) : null}
+          <ol className="mt-3 space-y-2">
+            {/* An Escape is five single stops: one list, not five one-row rounds. */}
+            {Array.from({ length: escape ? 1 : state.totalRounds || 4 }, (_, round) => {
+              const rows = escape
+                ? state.roundHistory
+                : state.roundHistory.filter((r) => Math.floor(r.index / 10) === round);
+              if (!rows.length) return null;
+              const roundYou = rows.reduce(
+                (n, r) => n + (r.guesses[selfId]?.score.roundScore ?? 0),
+                0,
+              );
+              const roundOther = other
+                ? rows.reduce((n, r) => n + (r.guesses[other.id]?.score.roundScore ?? 0), 0)
+                : 0;
+              const list = (
+                <ol className="space-y-1.5">
+                  {rows.map((r) => {
+                    const g = r.guesses[selfId];
+                    const og = other ? r.guesses[other.id] : undefined;
+                    const loc = getLocation(r.locationId);
+                    return (
+                      <li
+                        key={r.index}
+                        data-reveal={escape ? "" : undefined}
+                        style={{ "--i": Math.min(6, cardIndex++ % 7) } as React.CSSProperties}
+                        className="flex items-center justify-between gap-3 rounded-[var(--radius-md)] border border-border px-3 py-2 text-sm"
+                      >
+                        <span className="min-w-0">
+                          <span className="block truncate text-fg">
+                            {loc?.title ?? `Q${r.index + 1}`}
+                          </span>
+                          <span className="mt-0.5 flex items-center gap-2 text-xs text-muted">
+                            <span
+                              className={cn(
+                                "inline-block size-1.5 rounded-full",
+                                loc?.country === "NL"
+                                  ? "bg-nl"
+                                  : loc?.country === "WORLD"
+                                    ? "bg-accent"
+                                    : loc?.country === "SPACE"
+                                      ? "bg-[#8fb4ff]"
+                                      : "bg-za",
+                              )}
+                            />
+                            {loc
+                              ? [placeCity(loc), locationCountryLabel(loc)]
+                                  .filter(Boolean)
+                                  .join(" · ")
+                              : ""}
+                          </span>
+                        </span>
+                        {duel ? (
+                          <span className="shrink-0 text-right text-xs tabular sm:text-sm">
+                            <span className="block">
+                              {g ? g.score.roundScore.toLocaleString() : "—"}
+                            </span>
+                            <span className="text-muted">
+                              {og ? og.score.roundScore.toLocaleString() : "—"}
+                            </span>
+                          </span>
+                        ) : (
+                          <span className="shrink-0 tabular text-xs sm:text-sm">
+                            {g
+                              ? `${g.score.roundScore.toLocaleString()} · ${formatMiss(g.score)}`
+                              : "—"}
+                          </span>
+                        )}
+                      </li>
+                    );
+                  })}
+                </ol>
+              );
+              if (escape) return <li key={round}>{list}</li>;
+              return (
+                <li key={round}>
+                  <details className="result-round" data-reveal>
+                    <summary>
+                      <span className="result-round-name">
+                        {state.roundHistory.some(
+                          (r) => r.cosmos && Math.floor(r.index / 10) === round,
+                        )
+                          ? `Round ${round + 1} · cosmos`
+                          : `Round ${round + 1}`}
+                      </span>
+                      <span className="text-xs text-muted">{rows.length} places</span>
+                      <span className="ml-auto text-sm tabular">
+                        {roundYou.toLocaleString()}
+                        {duel && other ? (
+                          <span className="text-muted"> · {roundOther.toLocaleString()}</span>
+                        ) : null}
+                      </span>
+                    </summary>
+                    <div className="pt-2">{list}</div>
+                  </details>
+                </li>
+              );
+            })}
+          </ol>
+        </section>
       </div>
     </main>
   );

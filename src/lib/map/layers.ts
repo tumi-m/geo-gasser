@@ -243,6 +243,10 @@ interface CityLabel {
 }
 
 /** Country + province labels, gated so they hand over as you zoom in. */
+// Small neighbours wait for a closer zoom: at the zoom a far reveal settles
+// on, "BELGIUM", "GERMANY" and "LUXEMBOURG" stacked on the answer pin.
+const NEIGHBOUR_LABEL_ZOOM: Record<string, number> = { DE: 4.25, BE: 5, LU: 6.5, LS: 5.25, SZ: 5.75 };
+
 export function regionLabels(L: Leaflet, gate: ZoomGate, countries: RegionCollection, provinces: RegionCollection) {
   for (const f of countries.features) {
     const code = f.properties.c;
@@ -252,7 +256,11 @@ export function regionLabels(L: Leaflet, gate: ZoomGate, countries: RegionCollec
       const at: [number, number] = code === "ZA" ? [-29.6, 24.6] : [52.25, 5.3];
       gate.add({ marker: textMarker(L, at, name, "atlas-country-label atlas-country-focus"), minZoom: 0, maxZoom: 4.75 });
     } else {
-      gate.add({ marker: textMarker(L, [lat, lng], name, "atlas-country-label"), minZoom: 3.25, maxZoom: 8 });
+      gate.add({
+        marker: textMarker(L, [lat, lng], name, "atlas-country-label"),
+        minZoom: NEIGHBOUR_LABEL_ZOOM[code] ?? 3.25,
+        maxZoom: 8,
+      });
     }
   }
   for (const f of provinces.features) {

@@ -1399,3 +1399,13 @@ html.reduce-motion .street-view-hint {animation:sv-hint-out .01s linear 7s forwa
 .street-view-missing {position:absolute;inset:0;display:grid;place-content:center;gap:6px;padding:24px;text-align:center;background:radial-gradient(ellipse at 50% 40%,#16262e,#0a1117 70%)}
 .street-view-missing p:first-child {font-family:var(--font-display);font-size:20px;color:var(--color-fg)}
 .street-view-missing p:last-child {font-size:13px;color:var(--color-muted)}
+
+/* Results: each round of a long match folds into one line. */
+.result-round {border:1px solid var(--color-border);border-radius:var(--radius-md);background:color-mix(in oklab,var(--color-bg) 60%,transparent)}
+.result-round > summary {display:flex;align-items:center;gap:10px;min-height:48px;padding:10px 12px;cursor:pointer;list-style:none;border-radius:inherit}
+.result-round > summary::-webkit-details-marker {display:none}
+.result-round > summary::after {content:"";width:8px;height:8px;margin-left:4px;border-right:2px solid var(--color-muted);border-bottom:2px solid var(--color-muted);transform:rotate(45deg) translateY(-2px);transition:transform .2s var(--ease-out)}
+.result-round[open] > summary::after {transform:rotate(-135deg) translateY(-2px)}
+.result-round[open] > summary {border-bottom:1px solid var(--color-border);border-bottom-left-radius:0;border-bottom-right-radius:0}
+.result-round > div {padding:0 8px 8px}
+.result-round-name {font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:var(--color-fg)}

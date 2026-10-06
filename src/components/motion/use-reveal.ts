@@ -19,7 +19,9 @@ export function useRevealOnScroll(root: RefObject<HTMLElement | null>) {
           io.unobserve(e.target);
         }
       },
-      { rootMargin: "0px 0px -8% 0px", threshold: 0.15 },
+      // A small fixed inset, not a share of the screen: the last card on a
+      // page sits in the bottom strip and can never scroll out of it.
+      { rootMargin: "0px 0px -24px 0px", threshold: 0.1 },
     );
     targets.forEach((t) => io.observe(t));
     return () => io.disconnect();
