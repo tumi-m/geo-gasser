@@ -1,7 +1,8 @@
-import { DEFAULT_ATLAS, type AtlasSpec } from "./atlas.ts";
+import { DEFAULT_ATLAS, filterByAtlas, type AtlasSpec } from "./atlas.ts";
 import { cosmosTarget } from "./cosmos.ts";
 import { environmentById } from "./environments.ts";
-import { getLocation, needsStreetView } from "./locations.ts";
+import { getLocation, needsStreetView, playableLocations } from "./locations.ts";
+import { mulberry32 } from "./rng.ts";
 import { sceneCandidates } from "./scene.ts";
 import { NO_GUESS_KM, rankPlayers, scoreGuess } from "./scoring.ts";
 import { currentEnvId, currentLocationId, isRound4Question, planMatch, PHOTO_QUESTIONS, QUESTIONS_PER_ROUND, ROUND4_3D_LIVE, roundOf, TOTAL_QUESTIONS } from "./selection.ts";
@@ -43,6 +44,8 @@ export type MatchEvent =
       responseMs?: number;
     }
   | { type: "HANDOFF_DONE"; now: number }
+  /** The current place needs Street View and it could not load: deal a photo place instead. */
+  | { type: "SWAP_PLACE"; now: number }
   | { type: "TIMEOUT"; now: number }
   | { type: "REVEAL_DONE"; now: number }
   | { type: "CONTINUE"; now: number }
@@ -220,6 +223,31 @@ function beginQuestion(state: MatchState, now: number, intro: boolean): MatchSta
   return { ...bump(next, "round_active", now), roundStartedAtMs: now };
 }
 
+/**
+ * A photo place to stand in for one Street View could not show: same country
+ * where the map has one (the match keeps its mix), never a place already in
+ * the deck, and the same pick for the same match and question.
+ */
+function standInFor(state: MatchState, loc: { country: string }) {
+  const used = new Set(state.locationIds);
+  const all = playableLocations(false);
+  const onMap = filterByAtlas(all, state.atlas);
+  const pool = (onMap.length ? onMap : all).filter((l) => !used.has(l.id));
+  const same = pool.filter((l) => l.country === loc.country);
+  const from = same.length ? same : pool;
+  if (!from.length) return undefined;
+  const rand = mulberry32((state.seed ^ Math.imul(state.questionIndex + 1, 2654435761)) >>> 0);
+  return from[Math.floor(rand() * from.length)];
+}
+
+/** True when SWAP_PLACE would deal a stand-in for the current question. */
+export function canSwapPlace(state: MatchState): boolean {
+  if (state.phase !== "round_intro" && state.phase !== "round_active") return false;
+  if (state.players.some((p) => p.locked)) return false;
+  const loc = locationForQuestion(state, state.questionIndex);
+  return Boolean(loc && needsStreetView(loc) && standInFor(state, loc));
+}
+
 function beginRound(state: MatchState, now: number): MatchState {
   return beginQuestion(state, now, true);
 }
@@ -357,6 +385,14 @@ export function reduce(state: MatchState, event: MatchEvent): MatchState {
       return beginRound({ ...state, roundIndex: 0, questionIndex: 0, roundHistory: [], winnerIds: [], players: state.players.map((p) => ({
         ...emptyPlayer(p.id, p.name, p.avatarId, p.kind),
       })) }, event.now);
+    }
+    case "SWAP_PLACE": {
+      // Only before anyone has answered, and only for a place that cannot be
+      // shown without Street View. The clock starts again for the new place.
+      if (!canSwapPlace(state)) return state;
+      const stand = standInFor(state, locationForQuestion(state, state.questionIndex)!)!;
+      const locationIds = state.locationIds.map((id, i) => (i === state.questionIndex ? stand.id : id));
+      return beginQuestion({ ...state, locationIds }, event.now, state.phase === "round_intro");
     }
     case "INTRO_DONE": {
       if (state.phase !== "round_intro") return state;

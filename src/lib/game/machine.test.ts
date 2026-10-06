@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { createLobbyState, isRound4, reduce, sceneInfoFor, toPublicSnapshot } from "./machine.ts";
-import { getLocation } from "./locations.ts";
+import { canSwapPlace, createLobbyState, isRound4, reduce, sceneInfoFor, toPublicSnapshot } from "./machine.ts";
+import { getLocation, needsStreetView } from "./locations.ts";
 
 const now = 1_000_000;
 
@@ -474,5 +474,51 @@ describe("forty-question match", () => {
     const again = reduce(s, { type: "REMATCH", seed: 6, now: now + 1 });
     assert.equal(again.streetView, true);
     assert.ok(again.locationIds.some((id) => id.startsWith("st_")));
+  });
+  describe("a Street View place that cannot load", () => {
+    const streetMatch = () => {
+      const s = reduce(createLobbyState(), {
+        type: "CREATE_SOLO",
+        playerId: "p1",
+        name: "Ada",
+        seed: 5,
+        now,
+        matchLength: "full",
+        streetView: true,
+      });
+      const i = s.locationIds.findIndex((id) => id.startsWith("st_"));
+      return { ...s, questionIndex: i, truth: undefined, phase: "round_intro" as const };
+    };
+    it("is swapped for a photo place from the same country before anyone answers", () => {
+      const s = streetMatch();
+      const was = getLocation(s.locationIds[s.questionIndex])!;
+      assert.ok(canSwapPlace(s));
+      const next = reduce(s, { type: "SWAP_PLACE", now: now + 5 });
+      const stand = getLocation(next.locationIds[next.questionIndex])!;
+      assert.notEqual(stand.id, was.id);
+      assert.equal(stand.country, was.country);
+      assert.equal(needsStreetView(stand), false);
+      assert.equal(new Set(next.locationIds).size, next.locationIds.length, "no repeat");
+      assert.deepEqual(next.truth, { latitude: stand.latitude, longitude: stand.longitude });
+      assert.equal(next.phase, "round_intro");
+      assert.equal(sceneInfoFor(next)!.kind, "photo");
+      // Deterministic: the same match swaps to the same place.
+      assert.equal(reduce(s, { type: "SWAP_PLACE", now: now + 9 }).locationIds[s.questionIndex], stand.id);
+    });
+    it("restarts the clock when the round was already running", () => {
+      const s = reduce(streetMatch(), { type: "INTRO_DONE", now: now + 10 });
+      const next = reduce(s, { type: "SWAP_PLACE", now: now + 4000 });
+      assert.equal(next.phase, "round_active");
+      assert.equal(next.roundStartedAtMs, now + 4000);
+    });
+    it("never swaps after a lock, or a place that has a photo", () => {
+      let s = reduce(streetMatch(), { type: "INTRO_DONE", now: now + 10 });
+      s = reduce(s, { type: "PLACE_PIN", playerId: "p1", guess: { latitude: 0, longitude: 0 }, now: now + 20 });
+      s = reduce(s, { type: "LOCK", playerId: "p1", now: now + 30 });
+      assert.equal(canSwapPlace(s), false);
+      assert.equal(reduce(s, { type: "SWAP_PLACE", now: now + 40 }), s);
+      const photo = reduce(createLobbyState(), { type: "CREATE_SOLO", playerId: "p1", name: "Ada", seed: 7, now });
+      assert.equal(canSwapPlace(photo), false);
+    });
   });
 });

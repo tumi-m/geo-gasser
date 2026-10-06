@@ -409,6 +409,15 @@ div.leaflet-container {
   color: var(--color-fg);
 }
 
+/* At the zoom limit Leaflet greys the button out on a white block; keep it
+   in the chrome, just quieter. */
+.leaflet-bar a.leaflet-disabled,
+.leaflet-bar a.leaflet-disabled:hover {
+  background: color-mix(in oklab, var(--color-bg) 80%, transparent);
+  color: var(--color-subtle);
+  opacity: 0.55;
+}
+
 @keyframes atlas-drop {
   from {
     transform: translateY(-18px) scale(0.6);
@@ -1374,6 +1383,14 @@ button.duel-mode:hover .duel-mode-go {transform:translateX(4px);color:var(--colo
 @media (prefers-reduced-motion: reduce) {.street-view-pano{transition:none}.street-view-status{animation:none}}
 html.reduce-motion .street-view-pano {transition:none}
 html.reduce-motion .street-view-status {animation:none}
+.street-view-hint {position:absolute;left:50%;bottom:1.25rem;z-index:4;display:inline-flex;align-items:center;gap:8px;transform:translateX(-50%);max-width:calc(100% - 24px);padding:7px 14px;border-radius:999px;background:#0a1722cc;font-size:12px;color:var(--color-fg);white-space:nowrap;pointer-events:none;animation:sv-hint-in .5s var(--ease-out) .4s both, sv-hint-out .6s ease-in 7s forwards}
+.street-view-hint svg {color:var(--color-accent)}
+@keyframes sv-hint-in {from{opacity:0;transform:translate(-50%,6px)}to{opacity:1;transform:translate(-50%,0)}}
+@keyframes sv-hint-out {to{opacity:0}}
+@media (max-width: 640px) {.street-view-hint {bottom:60px;font-size:11px}}
+html.reduce-motion .street-view-hint {animation:sv-hint-out .01s linear 7s forwards}
+@media (prefers-reduced-motion: reduce) {.street-view-hint,.scene-swap-notice {animation:none}}
+.scene-swap-notice {position:absolute;left:50%;top:calc(var(--atlas-hud-h,72px) + 12px);z-index:16;width:max-content;max-width:calc(100% - 32px);transform:translateX(-50%);padding:9px 16px;border-radius:14px;border:1px solid var(--color-border);background:#0b1620f0;font-size:13px;line-height:1.4;text-align:center;color:var(--color-fg);box-shadow:0 10px 30px #0008;animation:sv-hint-in .4s var(--ease-out) both}
 .street-view-missing {position:absolute;inset:0;display:grid;place-content:center;gap:6px;padding:24px;text-align:center;background:radial-gradient(ellipse at 50% 40%,#16262e,#0a1117 70%)}
 .street-view-missing p:first-child {font-family:var(--font-display);font-size:20px;color:var(--color-fg)}
 .street-view-missing p:last-child {font-size:13px;color:var(--color-muted)}

@@ -26,9 +26,9 @@ import {
   GROK_BOT_ID,
   GROK_BOT_NAME,
   isRound4,
-  streetViewKey,
   streetViewTarget,
   streetViewUsable,
+  canSwapPlace,
   locationAt,
   locationCountryLabel,
   placeCity,
@@ -157,7 +157,9 @@ export function MatchApp({
   const [panoFailed, setPanoFailed] = useState(false);
   // Street View where it is configured and covers the place; the photo is one
   // tap away, and takes over if there is no panorama nearby.
-  const [streetFailed, setStreetFailed] = useState(false);
+  // The scene whose Street View failed. Keyed to the scene, not a flag, so a
+  // failure on one place never carries over to the next before it has tried.
+  const [streetFailedSrc, setStreetFailedSrc] = useState<string | null>(null);
   const [viewSource, setViewSource] = useState<"street" | "photo">("street");
   const [scene3dFailed, setScene3dFailed] = useState(false);
   const [pendingLock, setPendingLock] = useState<{
@@ -620,18 +622,47 @@ export function MatchApp({
   useEffect(() => {
     setPanoFailed(false);
     setScene3dFailed(false);
-    setStreetFailed(false);
   }, [scene?.src, env?.id]);
   const streetTarget = useMemo(
-    () => (streetViewKey() ? streetViewTarget(scene, loc ?? undefined) : null),
+    // Once Google has refused the key, photo places stop trying Street View.
+    () => (streetViewUsable() ? streetViewTarget(scene, loc ?? undefined) : null),
     // The target only changes with the place on screen.
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [scene?.src, loc?.id],
   );
   // A place with no usable photo is Street View only: no Photo switch.
   const streetOnly = scene?.kind === "street";
+  const streetFailed = streetFailedSrc !== null && streetFailedSrc === scene?.src;
   const streetAvailable = Boolean(streetTarget) && !streetFailed;
   const showStreet = streetAvailable && (streetOnly || viewSource === "street");
+
+  // A Street View-only place that cannot load would be a blind round. Where
+  // this screen runs the match, a photo place from the same country takes its
+  // place before anyone answers, and the clock starts again. (An online guest
+  // sees the swap arrive with the host's next snapshot.)
+  const [swapped, setSwapped] = useState<"intro" | "live" | null>(null);
+  const swapTried = useRef("");
+  const streetDead =
+    streetOnly &&
+    !streetAvailable &&
+    (state.phase === "round_intro" || state.phase === "round_active") &&
+    !state.players.some((p) => p.locked);
+  useEffect(() => {
+    const runsMatch = !serverMode && !(mode === "duel" && duelKind === "online" && !hostRef.current);
+    if (!streetDead || !runsMatch) return;
+    const key = `${state.seed}:${state.questionIndex}`;
+    if (swapTried.current === key) return;
+    swapTried.current = key;
+    if (!canSwapPlace(stateRef.current)) return;
+    const live = stateRef.current.phase === "round_active";
+    dispatch({ type: "SWAP_PLACE", now: mode === "solo" ? performance.now() : Date.now() });
+    setSwapped(live ? "live" : "intro");
+  }, [streetDead, serverMode, duelKind, state.seed, state.questionIndex, mode, dispatch]);
+  useEffect(() => {
+    if (!swapped) return;
+    const id = window.setTimeout(() => setSwapped(null), 5000);
+    return () => window.clearTimeout(id);
+  }, [swapped]);
 
   // Warm the next plate while the player studies the current one. Only the
   // host/solo knows the deck, so guests simply skip this.
@@ -1278,7 +1309,8 @@ export function MatchApp({
               target={streetTarget}
               wide={streetOnly}
               interactive={canGuess && !showSettings && !showingReveal}
-              onUnavailable={() => setStreetFailed(true)}
+              showHints={settings.showHints}
+              onUnavailable={() => setStreetFailedSrc(scene?.src ?? null)}
             />
           ) : streetOnly ? (
             <div className="street-view-missing" role="status">
@@ -1331,6 +1363,12 @@ export function MatchApp({
           )}
         </Suspense>
         <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(180deg,rgba(9,9,11,0.22)_0%,transparent_18%,transparent_78%,rgba(9,9,11,0.28)_100%)]" />
+        {swapped && !showingReveal && (
+          <p className="scene-swap-notice" role="status">
+            Street View could not load that place, so here is another.
+            {swapped === "live" ? " The clock has restarted." : ""}
+          </p>
+        )}
         {/* A lens over the photo: vignette and grain, and in the last ten
             seconds a red edge that closes in on every heartbeat. */}
         <div

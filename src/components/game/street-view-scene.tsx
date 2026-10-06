@@ -1,4 +1,4 @@
-import { LocateFixed } from "lucide-react";
+import { Footprints, LocateFixed } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import {
   loadGoogleMaps,
@@ -20,6 +20,7 @@ export function StreetViewScene({
   target,
   wide = false,
   interactive = true,
+  showHints = true,
   onUnavailable,
   className,
 }: {
@@ -27,6 +28,8 @@ export function StreetViewScene({
   /** Street View is the only scene: search further before giving up. */
   wide?: boolean;
   interactive?: boolean;
+  /** A first-look hint on how to move, until the player moves or looks around. */
+  showHints?: boolean;
   onUnavailable: () => void;
   className?: string;
 }) {
@@ -35,6 +38,7 @@ export function StreetViewScene({
   const startRef = useRef<{ pano: string; heading: number } | null>(null);
   const [status, setStatus] = useState<"loading" | "ready">("loading");
   const [moved, setMoved] = useState(false);
+  const [looked, setLooked] = useState(false);
   const failRef = useRef(onUnavailable);
   failRef.current = onUnavailable;
 
@@ -95,7 +99,12 @@ export function StreetViewScene({
         scrollwheel: true,
       });
       panoRef.current = panorama;
-      panorama.addListener("pano_changed", () => setMoved(panorama.getPano() !== startRef.current?.pano));
+      panorama.addListener("pano_changed", () => {
+        const away = panorama.getPano() !== startRef.current?.pano;
+        setMoved(away);
+        if (away) setLooked(true);
+      });
+      panorama.addListener("pov_changed", () => setLooked(true));
       setStatus("ready");
     })().catch(fail);
     return () => {
@@ -128,6 +137,12 @@ export function StreetViewScene({
       {status === "loading" && (
         <p className="street-view-status" role="status">
           Finding the street…
+        </p>
+      )}
+      {status === "ready" && interactive && showHints && !looked && (
+        <p className="street-view-hint" aria-hidden>
+          <Footprints className="size-4" />
+          Drag to look around · use the arrows to walk
         </p>
       )}
       {status === "ready" && interactive && moved && (
