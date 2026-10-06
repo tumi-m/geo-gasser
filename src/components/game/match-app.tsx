@@ -275,7 +275,7 @@ export function MatchApp({
       matchLength: settings.matchLength,
       atlas: settings.atlas,
       avoidLocationIds: loadRecentIds(),
-              streetView: streetViewUsable(),
+      streetView: streetViewUsable(),
     });
   }, [
     mode,
@@ -301,7 +301,7 @@ export function MatchApp({
         matchLength: settings.matchLength,
         atlas: settings.atlas,
         avoidLocationIds: loadRecentIds(),
-              streetView: streetViewUsable(),
+        streetView: streetViewUsable(),
         seats: [
           { id: selfId, name, avatarId },
           { id: GROK_BOT_ID, name: GROK_BOT_NAME, avatarId: "grok", kind: "bot" },
@@ -328,7 +328,7 @@ export function MatchApp({
         matchLength: settings.matchLength,
         atlas: settings.atlas,
         avoidLocationIds: loadRecentIds(),
-              streetView: streetViewUsable(),
+        streetView: streetViewUsable(),
         seats: [
           { id: selfId, name, avatarId },
           { id: "seat-2", name: guest.name, avatarId: sanitizeAvatar(guest.avatarId) },
@@ -382,7 +382,7 @@ export function MatchApp({
         matchLength: settings.matchLength,
         atlas: settings.atlas,
         avoidLocationIds: loadRecentIds(),
-              streetView: streetViewUsable(),
+        streetView: streetViewUsable(),
       });
     }
   }, [
@@ -401,6 +401,31 @@ export function MatchApp({
     settings.atlas,
   ]);
 
+  // Rematch handshake: the guest asks, the host accepts.
+  const [rematchAsk, setRematchAsk] = useState<string | null>(null);
+  const [rematchSent, setRematchSent] = useState(false);
+  const finished = state.phase === "final_reveal" || state.phase === "match_complete";
+  useEffect(() => {
+    if (finished) return;
+    setRematchAsk(null);
+    setRematchSent(false);
+  }, [finished]);
+
+  // The host speaks every 2.5 s (the snapshot heartbeat below). A guest who
+  // hears nothing for longer has lost the host: say so, instead of leaving a
+  // round on screen that will never resolve.
+  const lastHostWord = useRef(0);
+  const [hostSilent, setHostSilent] = useState(false);
+  useEffect(() => {
+    if (mode !== "duel" || duelKind !== "online" || serverMode) return;
+    const id = window.setInterval(() => {
+      setHostSilent(
+        !hostRef.current && lastHostWord.current > 0 && Date.now() - lastHostWord.current > 10_000,
+      );
+    }, 1000);
+    return () => window.clearInterval(id);
+  }, [mode, duelKind, serverMode]);
+
   useEffect(() => {
     if (mode !== "duel" || serverMode) return;
     return p2pOnMessage((_from, data) => {
@@ -411,6 +436,7 @@ export function MatchApp({
         if (p2pHostId && p2pHostId !== _from) return;
         if (stateRef.current.hostId && stateRef.current.hostId !== _from) return;
         clockOffset.current = msg.sentAt - Date.now();
+        lastHostWord.current = Date.now();
         setState((prev) => mergeHostSnapshot(prev, msg.state, selfId));
         return;
       }
@@ -440,8 +466,10 @@ export function MatchApp({
         dispatch({ type: "LOCK", playerId: _from, now });
       }
       if (msg.t === "continue") dispatch({ type: "CONTINUE", now });
+      // A guest's rematch is a request: the host may still be reading the
+      // results. It shows on the host's screen until they accept.
       if (msg.t === "rematch" && ["final_reveal", "match_complete"].includes(current.phase))
-        dispatch({ type: "REMATCH", seed: msg.nextSeed, now });
+        setRematchAsk(_from);
     });
   }, [mode, serverMode, p2pOnMessage, p2pSend, dispatch, selfId, p2pHostId]);
 
@@ -648,7 +676,8 @@ export function MatchApp({
     (state.phase === "round_intro" || state.phase === "round_active") &&
     !state.players.some((p) => p.locked);
   useEffect(() => {
-    const runsMatch = !serverMode && !(mode === "duel" && duelKind === "online" && !hostRef.current);
+    const runsMatch =
+      !serverMode && !(mode === "duel" && duelKind === "online" && !hostRef.current);
     if (!streetDead || !runsMatch) return;
     const key = `${state.seed}:${state.questionIndex}`;
     if (swapTried.current === key) return;
@@ -1172,11 +1201,7 @@ export function MatchApp({
               {state.players.length < 2 ? "Start when they join" : "Start match"}
             </Button>
           )}
-          <Button
-            variant="secondary"
-            className="mt-3 w-full"
-            onClick={() => navigate("/duel/bot")}
-          >
+          <Button variant="secondary" className="mt-3 w-full" onClick={() => navigate("/duel/bot")}>
             <PlayerAvatar id="grok" size={24} />
             Play vs Grok instead
           </Button>
@@ -1201,25 +1226,44 @@ export function MatchApp({
             socketSend({ t: "rematch" });
             return;
           }
-          if (mode === "duel" && duelKind === "online" && !hostRef.current)
+          if (mode === "duel" && duelKind === "online" && !hostRef.current) {
             p2pSend({
               t: "rematch",
               nextSeed: seed,
               roundStartedAtMs: state.roundStartedAtMs,
               questionIndex: state.questionIndex,
             });
-          else
-            dispatch({
-              type: "REMATCH",
-              seed,
-              now: mode === "solo" ? performance.now() : Date.now(),
-              difficulty: settings.difficulty,
-              matchLength: settings.matchLength,
-              atlas: settings.atlas,
-              avoidLocationIds: loadRecentIds(),
-              streetView: streetViewUsable(),
-            });
+            setRematchSent(true);
+            return;
+          }
+          const now = mode === "solo" ? performance.now() : Date.now();
+          dispatch({
+            type: "REMATCH",
+            seed,
+            now,
+            difficulty: settings.difficulty,
+            matchLength: settings.matchLength,
+            atlas: settings.atlas,
+            avoidLocationIds: loadRecentIds(),
+            streetView: streetViewUsable(),
+          });
+          // Both have asked for it: no lobby stop on the way back in.
+          if (rematchAsk && state.players.some((p) => p.id === rematchAsk && p.connected))
+            dispatch({ type: "START_MATCH", now });
         }}
+        rematchNote={
+          hostSilent
+            ? `Lost touch with ${state.players.find((p) => p.id === state.hostId)?.name ?? "the host"}`
+            : rematchAsk && hostRef.current
+              ? `${state.players.find((p) => p.id === rematchAsk)?.name ?? "Your rival"} wants a rematch`
+              : rematchSent
+                ? `Asked ${state.players.find((p) => p.id === state.hostId)?.name ?? "the host"} for a rematch`
+                : undefined
+        }
+        rematchLabel={
+          rematchAsk && hostRef.current ? "Accept rematch" : rematchSent ? "Waiting…" : undefined
+        }
+        rematchPending={rematchSent || hostSilent}
         onHome={quit}
       />
     );
@@ -1387,10 +1431,18 @@ export function MatchApp({
 
       {streetAvailable && !streetOnly && !showingReveal && (
         <div className="view-source" role="group" aria-label="Scene">
-          <button type="button" aria-pressed={viewSource === "street"} onClick={() => setViewSource("street")}>
+          <button
+            type="button"
+            aria-pressed={viewSource === "street"}
+            onClick={() => setViewSource("street")}
+          >
             Street View
           </button>
-          <button type="button" aria-pressed={viewSource === "photo"} onClick={() => setViewSource("photo")}>
+          <button
+            type="button"
+            aria-pressed={viewSource === "photo"}
+            onClick={() => setViewSource("photo")}
+          >
             Photo
           </button>
         </div>
@@ -1660,6 +1712,17 @@ export function MatchApp({
         >
           {connectionNotice}
         </p>
+      )}
+      {hostSilent && (
+        <div role="status" className="host-silent">
+          <p>
+            Lost touch with {state.players.find((p) => p.id === state.hostId)?.name ?? "the host"}.
+            Waiting for them to come back…
+          </p>
+          <button type="button" onClick={quit}>
+            Leave match
+          </button>
+        </div>
       )}
       {showSettings && (
         <SettingsPanel

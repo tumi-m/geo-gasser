@@ -28,12 +28,20 @@ export function FinalResults({
   onRematch,
   onHome,
   reducedMotion,
+  rematchNote,
+  rematchLabel,
+  rematchPending,
 }: {
   state: MatchState;
   selfId: string;
   onRematch: () => void;
   onHome: () => void;
   reducedMotion?: boolean;
+  /** Online: "Guesty wants a rematch", or that this player has asked. */
+  rematchNote?: string;
+  rematchLabel?: string;
+  /** Asked and waiting on the host: the button rests. */
+  rematchPending?: boolean;
 }) {
   const navigate = useNavigate();
   const you = state.players.find((p) => p.id === selfId);
@@ -151,9 +159,14 @@ export function FinalResults({
             format={(v) => Math.round(v).toLocaleString()}
           />
         </dl>
+        {rematchNote ? (
+          <p className="rematch-note" role="status">
+            {rematchNote}
+          </p>
+        ) : null}
         <div className="mt-6 flex flex-col gap-3 sm:flex-row">
-          <Button className="rematch-nudge sm:flex-1" onClick={onRematch}>
-            Rematch
+          <Button className="rematch-nudge sm:flex-1" onClick={onRematch} disabled={rematchPending}>
+            {rematchLabel ?? "Rematch"}
           </Button>
           {state.mode === "duel" && (
             <Button variant="secondary" className="sm:flex-1" onClick={() => navigate("/duel")}>
