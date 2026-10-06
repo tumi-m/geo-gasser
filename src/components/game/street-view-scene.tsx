@@ -18,11 +18,14 @@ import { cn } from "@/lib/utils";
  */
 export function StreetViewScene({
   target,
+  wide = false,
   interactive = true,
   onUnavailable,
   className,
 }: {
   target: LatLng;
+  /** Street View is the only scene: search further before giving up. */
+  wide?: boolean;
   interactive?: boolean;
   onUnavailable: () => void;
   className?: string;
@@ -43,18 +46,17 @@ export function StreetViewScene({
       const maps = await loadGoogleMaps(streetViewKey());
       const service = new maps.StreetViewService();
       const location = { lat: target.latitude, lng: target.longitude };
-      // Outdoor imagery close by first; then anything within a short walk.
+      // Google's own street imagery only, never visitors' uploaded
+      // photospheres (those can be anything: a bird, a room, a selfie).
+      // Closest first, widening to a short drive for street-only places.
+      const source = maps.StreetViewSource?.GOOGLE ?? maps.StreetViewSource?.OUTDOOR;
       let pano: string | undefined;
-      for (const [radius, outdoor] of [
-        [120, true],
-        [600, true],
-        [1500, false],
-      ] as const) {
+      for (const radius of [120, 600, 1500, ...(wide ? [5000] : [])]) {
         try {
           const { data } = await service.getPanorama({
             location,
             radius,
-            ...(outdoor && maps.StreetViewSource ? { source: maps.StreetViewSource.OUTDOOR } : {}),
+            ...(source ? { source } : {}),
             ...(maps.StreetViewPreference ? { preference: maps.StreetViewPreference.NEAREST } : {}),
           });
           pano = data.location?.pano;

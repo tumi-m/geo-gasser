@@ -21,6 +21,8 @@ export type RoomCommand =
       difficulty?: TimeDifficulty;
       matchLength?: MatchLengthId;
       atlas?: AtlasSpec;
+      /** The creator's build can show Street View-only places. */
+      streetView?: boolean;
       now: number;
     }
   | { t: "start"; playerId: string; now: number }
@@ -52,6 +54,7 @@ export function applyRoomCommand(state: MatchState, cmd: RoomCommand): MatchStat
           difficulty: cmd.difficulty,
           matchLength: cmd.matchLength,
           atlas: cmd.atlas,
+          streetView: cmd.streetView,
         });
       }
       return autoStart(

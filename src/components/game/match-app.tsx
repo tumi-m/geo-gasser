@@ -28,6 +28,7 @@ import {
   isRound4,
   streetViewKey,
   streetViewTarget,
+  streetViewUsable,
   locationAt,
   locationCountryLabel,
   QUESTIONS_PER_ROUND,
@@ -205,6 +206,7 @@ export function MatchApp({
     difficulty: settings.difficulty,
     matchLength: settings.matchLength,
     atlas: settings.atlas,
+    streetView: streetViewUsable(),
     enabled: serverMode,
   });
   const {
@@ -270,6 +272,7 @@ export function MatchApp({
       matchLength: settings.matchLength,
       atlas: settings.atlas,
       avoidLocationIds: loadRecentIds(),
+              streetView: streetViewUsable(),
     });
   }, [
     mode,
@@ -295,6 +298,7 @@ export function MatchApp({
         matchLength: settings.matchLength,
         atlas: settings.atlas,
         avoidLocationIds: loadRecentIds(),
+              streetView: streetViewUsable(),
         seats: [
           { id: selfId, name, avatarId },
           { id: GROK_BOT_ID, name: GROK_BOT_NAME, avatarId: "grok", kind: "bot" },
@@ -321,6 +325,7 @@ export function MatchApp({
         matchLength: settings.matchLength,
         atlas: settings.atlas,
         avoidLocationIds: loadRecentIds(),
+              streetView: streetViewUsable(),
         seats: [
           { id: selfId, name, avatarId },
           { id: "seat-2", name: guest.name, avatarId: sanitizeAvatar(guest.avatarId) },
@@ -374,6 +379,7 @@ export function MatchApp({
         matchLength: settings.matchLength,
         atlas: settings.atlas,
         avoidLocationIds: loadRecentIds(),
+              streetView: streetViewUsable(),
       });
     }
   }, [
@@ -621,8 +627,10 @@ export function MatchApp({
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [scene?.src, loc?.id],
   );
+  // A place with no usable photo is Street View only: no Photo switch.
+  const streetOnly = scene?.kind === "street";
   const streetAvailable = Boolean(streetTarget) && !streetFailed;
-  const showStreet = streetAvailable && viewSource === "street";
+  const showStreet = streetAvailable && (streetOnly || viewSource === "street");
 
   // Warm the next plate while the player studies the current one. Only the
   // host/solo knows the deck, so guests simply skip this.
@@ -1177,6 +1185,7 @@ export function MatchApp({
               matchLength: settings.matchLength,
               atlas: settings.atlas,
               avoidLocationIds: loadRecentIds(),
+              streetView: streetViewUsable(),
             });
         }}
         onHome={quit}
@@ -1186,6 +1195,9 @@ export function MatchApp({
 
   const qNum = state.matchLength === "escape" ? 1 : questionInRound(state.questionIndex) + 1;
   const rounds = state.totalRounds || 4;
+  // The last round of a multi-round match: real places, like every other.
+  const finalRound =
+    state.matchLength !== "escape" && rounds > 1 && state.roundIndex === rounds - 1 && !cosmic;
   const roundLabel =
     state.matchLength === "escape"
       ? `Round ${state.roundIndex + 1} of ${rounds}${state.questionIndex === 4 && state.atlas.preset === "sa-nl" && !state.atlas.cities?.length ? " · World wildcard" : ""}`
@@ -1238,7 +1250,9 @@ export function MatchApp({
               ? ROUND4_3D_LIVE
                 ? "3D reconstruction"
                 : "Reconstruction"
-              : undefined
+              : finalRound
+                ? `Final round · ${state.durationSec || 45}s on the clock`
+                : undefined
           }
           holdMs={introHoldMs}
           reducedMotion={settings.reducedMotion}
@@ -1261,9 +1275,15 @@ export function MatchApp({
             <StreetViewScene
               key={`${streetTarget.latitude},${streetTarget.longitude}`}
               target={streetTarget}
+              wide={streetOnly}
               interactive={canGuess && !showSettings && !showingReveal}
               onUnavailable={() => setStreetFailed(true)}
             />
+          ) : streetOnly ? (
+            <div className="street-view-missing" role="status">
+              <p>Street View could not load this place.</p>
+              <p>Make your best guess, or wait out the clock.</p>
+            </div>
           ) : live3d && env && !scene3dFailed ? (
             <Round4Scene
               key={env.id}
@@ -1326,7 +1346,7 @@ export function MatchApp({
         </div>
       </div>
 
-      {streetAvailable && !showingReveal && (
+      {streetAvailable && !streetOnly && !showingReveal && (
         <div className="view-source" role="group" aria-label="Scene">
           <button type="button" aria-pressed={viewSource === "street"} onClick={() => setViewSource("street")}>
             Street View
@@ -1360,6 +1380,10 @@ export function MatchApp({
           ) : cosmic ? (
             <div className="w-fit rounded-full border border-accent/40 bg-bg/75 px-2.5 py-1 text-[10px] uppercase tracking-wider text-accent">
               Cosmos round
+            </div>
+          ) : finalRound ? (
+            <div className="w-fit rounded-full border border-accent/40 bg-bg/75 px-2.5 py-1 text-[10px] uppercase tracking-wider text-accent">
+              Final round
             </div>
           ) : null}
         </div>

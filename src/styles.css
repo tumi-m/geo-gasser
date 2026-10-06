@@ -1374,3 +1374,6 @@ button.duel-mode:hover .duel-mode-go {transform:translateX(4px);color:var(--colo
 @media (prefers-reduced-motion: reduce) {.street-view-pano{transition:none}.street-view-status{animation:none}}
 html.reduce-motion .street-view-pano {transition:none}
 html.reduce-motion .street-view-status {animation:none}
+.street-view-missing {position:absolute;inset:0;display:grid;place-content:center;gap:6px;padding:24px;text-align:center;background:radial-gradient(ellipse at 50% 40%,#16262e,#0a1117 70%)}
+.street-view-missing p:first-child {font-family:var(--font-display);font-size:20px;color:var(--color-fg)}
+.street-view-missing p:last-child {font-size:13px;color:var(--color-muted)}

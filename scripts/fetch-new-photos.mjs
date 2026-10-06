@@ -16,11 +16,15 @@
  *   node --experimental-strip-types scripts/fetch-new-photos.mjs [loc_150 …]
  *   node --experimental-strip-types scripts/fetch-new-photos.mjs --views
  *   node --experimental-strip-types scripts/fetch-new-photos.mjs --upgrade
+ *   node --experimental-strip-types scripts/fetch-new-photos.mjs --unfit
  *   node scripts/build-hires-manifest.mjs
  *
  * --views gives every existing place up to two more viewpoints (its plate
  * stays); --upgrade replaces existing plates narrower than 1400 px with a
- * sharper photo of the same place. Both record credits in PHOTO_EXTRAS.
+ * sharper photo of the same place; --unfit replaces the plates listed in
+ * src/lib/game/photo-review.ts (animal close-ups, plaques, AI images), which
+ * puts those places back in the photo pool. All record credits in
+ * PHOTO_EXTRAS.
  *
  * Review the photos before shipping: a script cannot tell a fine view from a
  * badly framed one, and a photo must not show the place's name.
@@ -29,6 +33,7 @@ import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 
 const { NEW_LOCATIONS, NEW_LOCATION_SOURCES } = await import("../src/lib/game/new-locations.ts");
 const { enabledLocations } = await import("../src/lib/game/locations.ts");
+const { UNFIT_PHOTOS } = await import("../src/lib/game/photo-review.ts");
 
 const API = "https://commons.wikimedia.org/w/api.php";
 const UA = { "User-Agent": "AtlasDuel-photos/1.0 (https://github.com/tumi-m/geo-gasser)" };
@@ -38,7 +43,7 @@ const HIRES_W = 3840;
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 const EXCLUDE =
-  /\b(map|plan|logo|diagram|interior|inside|night|aerial|drone|panorama|drawing|painting|sign|plaque|museum|ticket|menu|coat of arms|flag|postcard|engraving|lithograph|sketch|model|detail|closeup|close-up|selfie|portrait|people|wedding|black and white|monochrome|sepia|infrared|hdr)\b/i;
+  /\b(map|plan|logo|diagram|interior|inside|night|aerial|drone|panorama|drawing|painting|sign|plaque|museum|ticket|menu|coat of arms|flag|postcard|engraving|lithograph|sketch|model|detail|closeup|close-up|macro|selfie|portrait|people|guard|soldier|wedding|black and white|monochrome|sepia|infrared|hdr|birds?|gulls?|seagulls?|hornbills?|eagle|owl|heron|pigeon|insect|butterfly|elephant|gazelle|antelope|impala|giraffe|zebra|rhino|lion|leopard|monkey|baboon)\b/i;
 const FREE = /^(cc[ -]by(-sa)?([ -][\d.]+)?|cc0|public domain|pd)/i;
 
 async function api(params) {
@@ -189,8 +194,9 @@ for (const dir of ["public/locations", "public/locations/hires", "public/locatio
   mkdirSync(dir, { recursive: true });
 
 const args = process.argv.slice(2);
-const mode = args.includes("--views") ? "views" : args.includes("--upgrade") ? "upgrade" : "new";
+const mode = args.includes("--views") ? "views" : args.includes("--upgrade") || args.includes("--unfit") ? "upgrade" : "new";
 const only = new Set(args.filter((a) => !a.startsWith("--")));
+if (args.includes("--unfit")) for (const id of Object.keys(UNFIT_PHOTOS)) only.add(id);
 
 const credit = (p) => `${p.artist} (${p.licence})`;
 const plateWidth = (id) => {

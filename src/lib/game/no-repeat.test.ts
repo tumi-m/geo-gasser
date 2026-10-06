@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { mergeRecentIds, RECENT_LIMIT } from "./recent.ts";
-import { enabledLocations, ROUND4_LOCATIONS } from "./locations.ts";
+import { enabledLocations, needsStreetView, ROUND4_LOCATIONS } from "./locations.ts";
 import { planMatch } from "./selection.ts";
 import type { MatchLengthId } from "./timer.ts";
 import type { AtlasSpec } from "./atlas.ts";
@@ -23,7 +23,9 @@ describe("no repeats across games", () => {
   // Escape deals photographs only: the reconstruction plates are reserved for
   // the long matches' final round.
   const reserved = new Set(ROUND4_LOCATIONS.map((l) => l.id));
-  const saNl = enabledLocations().filter((l) => l.country !== "WORLD" && !reserved.has(l.id)).length;
+  const saNl = enabledLocations().filter(
+    (l) => l.country !== "WORLD" && !reserved.has(l.id) && !needsStreetView(l),
+  ).length;
 
   it("remembers every site in the pool, not just the last few games", () => {
     assert.ok(RECENT_LIMIT >= enabledLocations().length, `limit ${RECENT_LIMIT}`);
@@ -59,9 +61,13 @@ describe("no repeats across games", () => {
   });
 
   it("standard games do not repeat photo sites until the pool is used up", () => {
-    const { decks } = session(3, "standard");
-    const photos = decks.flatMap((d) => d.slice(0, 30));
-    assert.equal(new Set(photos).size, photos.length);
+    // The second match deals every place the first left unseen before it
+    // repeats any.
+    const { decks } = session(2, "standard");
+    assert.equal(new Set(decks[0]).size, decks[0].length);
+    const first = new Set(decks[0]);
+    const fresh = decks[1].filter((id) => !first.has(id));
+    assert.equal(fresh.length, Math.min(decks[1].length, saNl - decks[0].length));
   });
 
   it("never deals the same site twice in one match", () => {

@@ -21,6 +21,7 @@ export function useMatchRoom(options: {
   difficulty?: string;
   matchLength?: string;
   atlas?: unknown;
+  streetView?: boolean;
   enabled: boolean;
 }) {
   const [selfId, setSelfId] = useState("");

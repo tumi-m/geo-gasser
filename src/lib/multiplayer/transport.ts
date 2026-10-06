@@ -12,6 +12,8 @@ export interface MatchIdentity {
   difficulty?: string;
   matchLength?: string;
   atlas?: unknown;
+  /** The creator can deal Street View-only places. */
+  streetView?: boolean;
 }
 
 /**
@@ -38,6 +40,7 @@ export function matchSocketUrl(base: string, room: string, identity: MatchIdenti
   if (identity.avatarId) url.searchParams.set("avatarId", identity.avatarId);
   if (identity.difficulty) url.searchParams.set("difficulty", identity.difficulty);
   if (identity.matchLength) url.searchParams.set("matchLength", identity.matchLength);
+  if (identity.streetView) url.searchParams.set("streetView", "1");
   if (identity.atlas) {
     try {
       url.searchParams.set("atlas", JSON.stringify(identity.atlas));

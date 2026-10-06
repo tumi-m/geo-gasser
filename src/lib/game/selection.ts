@@ -6,7 +6,8 @@ import {
 } from "./atlas.ts";
 import { COSMOS_LOCATIONS, COSMOS_QUESTIONS } from "./cosmos.ts";
 import { environmentForLocation, ROUND4_ENVIRONMENTS } from "./environments.ts";
-import { enabledLocations, ROUND4_LOCATIONS } from "./locations.ts";
+import { enabledLocations, needsStreetView, ROUND4_LOCATIONS } from "./locations.ts";
+import { STREET_LOCATIONS } from "./street-locations.ts";
 import { mulberry32, shuffle } from "./rng.ts";
 import { MATCH_LENGTH, type MatchLengthId } from "./timer.ts";
 import type { EarthCountry, GeoLocation } from "./types.ts";
@@ -172,6 +173,21 @@ function dealQuota(
   return shuffle(picked, rand).slice(0, want);
 }
 
+/** Split `n` questions in the proportions of a country quota (largest remainder). */
+function scaleQuota(q: Record<EarthCountry, number>, n: number): Record<EarthCountry, number> {
+  const keys = Object.keys(q) as EarthCountry[];
+  const total = keys.reduce((sum, k) => sum + q[k], 0) || 1;
+  const exact = keys.map((k) => ({ k, v: (q[k] / total) * n }));
+  const out = Object.fromEntries(exact.map(({ k, v }) => [k, Math.floor(v)])) as Record<EarthCountry, number>;
+  let left = n - keys.reduce((sum, k) => sum + out[k], 0);
+  for (const { k } of [...exact].sort((a, b) => (b.v % 1) - (a.v % 1))) {
+    if (left <= 0) break;
+    out[k] += 1;
+    left -= 1;
+  }
+  return out;
+}
+
 /**
  * Slot the cosmos questions into the photo run as whole rounds: one block
  * goes after the photos (just before the reconstructions); with two, the first
@@ -187,10 +203,16 @@ function withCosmos(photoIds: string[], cosmosIds: string[]): string[] {
   blocks.forEach((block, k) => {
     const last = k === blocks.length - 1;
     const share = Math.floor((photoIds.length * (k + 1)) / blocks.length / QUESTIONS_PER_ROUND) * QUESTIONS_PER_ROUND;
-    const at = last ? photoIds.length : Math.max(from, share);
+    // The last block goes after the last whole round of photos, so a map
+    // too small to fill every round still gets cosmos rounds, not halves.
+    const at = last
+      ? Math.max(from, Math.floor(photoIds.length / QUESTIONS_PER_ROUND) * QUESTIONS_PER_ROUND)
+      : Math.max(from, share);
     out.push(...photoIds.slice(from, at), ...block);
     from = at;
   });
+  // Photos past the last whole round follow the cosmos.
+  out.push(...photoIds.slice(from));
   return out;
 }
 
@@ -201,7 +223,8 @@ export function isCosmosQuestion(plan: Pick<MatchPlan, "locationIds">, questionI
 
 /**
  * Deal a match from the selected atlas.
- * SA × NL keeps a balanced 15/15 + 10 reconstructions.
+ * SA × NL keeps a balanced 15/15, and the final round is real places too
+ * (5/5) while the 3D reconstruction renderer is parked.
  * Other atlases filter the 149-site pool and shrink the match if the map is smaller.
  *
  * `avoidLocationIds` is every site this player has been shown, newest first.
@@ -213,6 +236,7 @@ export function planMatch(
   matchLength: MatchLengthId = "standard",
   atlas: AtlasSpec = DEFAULT_ATLAS,
   avoidLocationIds: readonly string[] = [],
+  options: { streetView?: boolean } = {},
 ): MatchPlan {
   const spec = sanitizeAtlas(atlas);
   // An empty atlas filter must not deal a blank match; a filter that simply
@@ -226,18 +250,22 @@ export function planMatch(
   // Most recent first → rank 0. Every dealing path below orders by this.
   const recency: Recency = new Map(avoidLocationIds.map((id, i) => [id, i] as const));
   const fresh = (l: GeoLocation) => !recency.has(l.id);
-  // Reconstruction plates belong to the final round of the long matches; a
-  // short match is dealt real photographs only.
+  // Reconstruction plates belong only to a live 3D final round; every other
+  // question is a real place. Places that need Street View (no usable photo)
+  // join the pool only when Street View is configured.
   const reserved = new Set(ROUND4_LOCATIONS.map((l) => l.id));
+  const base = [
+    ...enabledLocations().filter(
+      (l) => !reserved.has(l.id) && (options.streetView || !needsStreetView(l)),
+    ),
+    ...(options.streetView ? STREET_LOCATIONS : []),
+  ];
   if (matchLength === "escape") {
-    const pool = pickPool(
-      enabledLocations().filter((l) => !reserved.has(l.id)),
-      spec,
-    );
+    const pool = pickPool(base, spec);
     let picked: GeoLocation[];
     if (spec.preset === "sa-nl" && !spec.cities?.length) {
       picked = dealQuota(pool, { ZA: 2, NL: 2, WORLD: 0 }, rand, 4, recency);
-      const world = enabledLocations().filter((l) => l.country === "WORLD" && !reserved.has(l.id));
+      const world = base.filter((l) => l.country === "WORLD");
       const finale = byFreshness(world, rand, recency)[0];
       if (finale) picked.push(finale);
     } else {
@@ -268,24 +296,32 @@ export function planMatch(
       totalRounds: picked.length,
     };
   }
-  const photoPoolAll = enabledLocations().filter((l) => !reserved.has(l.id));
+  const photoPoolAll = base;
+  const r4All = ROUND4_3D_LIVE ? ROUND4_LOCATIONS : [];
   let photoPool = filterByAtlas(photoPoolAll, spec);
-  let r4Pool = filterByAtlas(ROUND4_LOCATIONS, spec);
+  let r4Pool = filterByAtlas(r4All, spec);
   if (photoPool.length + r4Pool.length === 0) {
     photoPool = photoPoolAll;
-    r4Pool = ROUND4_LOCATIONS;
+    r4Pool = r4All;
   }
   // The cosmos ignores the atlas: it is the same universe from every map.
   const cosmosWant = COSMOS_QUESTIONS[matchLength];
   const photoCap = cfg.photoQuestions - cosmosWant;
 
+  const quota =
+    spec.preset === "sa-nl" ? MATCH_QUOTA[matchLength] : spec.preset === "mix" ? MIX_QUOTA[matchLength] : null;
+  const deal = (pool: GeoLocation[], want: number, q: Record<EarthCountry, number> | null) =>
+    q ? dealQuota(pool, q, rand, want, recency) : byFreshness(pool, rand, recency).slice(0, want);
   const wantPhotos = Math.min(photoCap, photoPool.length);
-  const photos =
-    spec.preset === "sa-nl"
-      ? dealQuota(photoPool, MATCH_QUOTA[matchLength], rand, wantPhotos, recency)
-      : spec.preset === "mix"
-        ? dealQuota(photoPool, MIX_QUOTA[matchLength], rand, wantPhotos, recency)
-        : byFreshness(photoPool, rand, recency).slice(0, wantPhotos);
+  const photos = deal(photoPool, wantPhotos, quota);
+  // While the 3D renderer is parked, the final round is real places too, in
+  // the same country mix as the rest of the match.
+  const finalWant = ROUND4_3D_LIVE ? 0 : cfg.totalQuestions - cfg.photoQuestions;
+  const dealt = new Set(photos.map((l) => l.id));
+  const rest = photoPool.filter((l) => !dealt.has(l.id));
+  const finalPhotos = finalWant
+    ? deal(rest, Math.min(finalWant, rest.length), quota && scaleQuota(quota, finalWant))
+    : [];
 
   // A small map never turns into a space match: the cosmos gets at most as
   // many whole rounds as the map fills.
@@ -306,13 +342,13 @@ export function planMatch(
     cosmos.map((l) => l.id),
   );
   const reconstructions = byFreshness(r4Pool, rand, recency).slice(0, r4Take);
-  const locationIds = [...photoIds, ...reconstructions.map((l) => l.id)];
+  const locationIds = [...photoIds, ...finalPhotos.map((l) => l.id), ...reconstructions.map((l) => l.id)];
   const envIds = reconstructions.map(
     (l, i) => environmentForLocation(l.id)?.id ?? ROUND4_ENVIRONMENTS[i % ROUND4_ENVIRONMENTS.length].id,
   );
 
   const totalQuestions = locationIds.length;
-  const photoQuestions = photoIds.length;
+  const photoQuestions = photoIds.length + finalPhotos.length;
   const totalRounds = Math.max(1, Math.ceil(totalQuestions / QUESTIONS_PER_ROUND));
   const photoRounds = Math.max(0, Math.ceil(photoQuestions / QUESTIONS_PER_ROUND));
 

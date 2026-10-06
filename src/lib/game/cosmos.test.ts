@@ -100,14 +100,13 @@ describe("cosmos rounds in the deck", () => {
       ext.locationIds.flatMap((id, i) => (getLocation(id)?.country === "SPACE" ? [roundOf(i)] : [])),
     );
     assert.deepEqual([...extRounds], [5]);
-    const full = planMatch(5, "full");
+    const full = planMatch(5, "full", undefined, [], { streetView: true });
     assert.equal(full.totalQuestions, 100);
     const fullRounds = new Set(
       full.locationIds.flatMap((id, i) => (getLocation(id)?.country === "SPACE" ? [roundOf(i)] : [])),
     );
     assert.deepEqual([...fullRounds], [3, 8]);
-    // Reconstructions still close the match.
-    assert.equal(full.photoQuestions, 90);
+    // A final round of real places closes the match.
     assert.ok(full.locationIds.slice(90).every((id) => getLocation(id)?.country !== "SPACE"));
     assert.equal(QUESTIONS_PER_ROUND, 10);
   });

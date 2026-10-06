@@ -71,7 +71,8 @@ export interface GeoLocation {
   verifiedAt: string;
   enabled: boolean;
   sceneUrl: string;
-  sceneKind: "wikimedia" | "generated-reconstruction" | "cosmos";
+  /** "street": no photo, played in Google Street View only (street-locations.ts). */
+  sceneKind: "wikimedia" | "generated-reconstruction" | "cosmos" | "street";
 }
 
 export interface RoundScore {
@@ -144,7 +145,8 @@ export interface RoundRecord {
  * source URL or coordinate that could decode the answer.
  */
 export interface SceneInfo {
-  kind: "photo" | "generated" | "cosmos";
+  /** "street": Street View only; `src` is `street:<id>`, like a photo's neutral path. */
+  kind: "photo" | "generated" | "cosmos" | "street";
   src: string;
   fallbacks: string[];
   /** Cosmos rounds: how to draw the target, and one observation. No name. */
@@ -180,6 +182,8 @@ export interface MatchState {
   timeDifficulty: TimeDifficulty;
   matchLength: MatchLengthId;
   atlas: AtlasSpec;
+  /** The deck may include Street View-only places (the host has a key). */
+  streetView?: boolean;
   roundStartedAtMs?: number;
   players: PlayerState[];
   /** Host-only until reveal. Stripped from public snapshots. */

@@ -22,10 +22,14 @@ export function streetViewKey(): string {
  * Street View sends nothing new over the wire.
  */
 export function streetViewTarget(scene: SceneInfo | undefined, known?: { id: string; latitude: number; longitude: number; sceneKind?: string; country?: string }): LatLng | null {
-  if (!scene || scene.kind !== "photo") return null;
+  if (!scene || (scene.kind !== "photo" && scene.kind !== "street")) return null;
   if (known) {
-    if (known.country === "SPACE" || known.sceneKind !== "wikimedia") return null;
+    if (known.country === "SPACE" || (known.sceneKind !== "wikimedia" && known.sceneKind !== "street")) return null;
     return { latitude: known.latitude, longitude: known.longitude };
+  }
+  if (scene.kind === "street") {
+    const loc = getLocation(scene.src.replace(/^street:/, ""));
+    return loc ? { latitude: loc.latitude, longitude: loc.longitude } : null;
   }
   for (const url of [scene.src, ...scene.fallbacks]) {
     const id = url.match(/^\/locations\/(loc_[A-Za-z0-9_]+)\.jpg$/)?.[1];
@@ -56,7 +60,8 @@ export interface GoogleMapsLike {
     ): Promise<{ data: { location?: { pano?: string } } }>;
   };
   StreetViewPanorama: new (el: HTMLElement, options: Record<string, unknown>) => StreetViewPanoramaLike;
-  StreetViewSource?: { OUTDOOR: string };
+  /** GOOGLE: Google's own imagery only, never visitors' photospheres. */
+  StreetViewSource?: { OUTDOOR: string; GOOGLE?: string };
   StreetViewPreference?: { NEAREST: string };
   ControlPosition?: { LEFT_CENTER: number };
 }
@@ -80,6 +85,7 @@ export function loadGoogleMaps(key: string): Promise<GoogleMapsLike> {
     };
     // Google calls this when the key is invalid or not allowed for this site.
     w.gm_authFailure = () => {
+      markStreetViewBroken();
       window.dispatchEvent(new Event("atlas-maps-auth-failure"));
       fail("key refused");
     };
@@ -90,4 +96,28 @@ export function loadGoogleMaps(key: string): Promise<GoogleMapsLike> {
     document.head.appendChild(s);
   });
   return loader;
+}
+
+const BROKEN_KEY = "atlas-street-view-broken";
+
+/**
+ * May new matches include Street View-only places? Yes when a key is set and
+ * Google has not refused it this session (a refused key would leave those
+ * rounds with nothing to show).
+ */
+export function streetViewUsable(): boolean {
+  if (!streetViewKey()) return false;
+  try {
+    return sessionStorage.getItem(BROKEN_KEY) !== "1";
+  } catch {
+    return true;
+  }
+}
+
+export function markStreetViewBroken(): void {
+  try {
+    sessionStorage.setItem(BROKEN_KEY, "1");
+  } catch {
+    /* private mode: the next refusal says so again */
+  }
 }

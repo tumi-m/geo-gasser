@@ -25,10 +25,17 @@ VITE_GOOGLE_MAPS_KEY=
 3. In Vercel → the project → Settings → Environment Variables, add
    `VITE_GOOGLE_MAPS_KEY` with the key, then redeploy.
 
-Each photo round then opens on the nearest outdoor Street View panorama
-(within ~1.5 km of the place). Road names, the address card and links to
-Google Maps are hidden. Places without coverage use the photo, and the
-Street View / Photo switch lets a player flip between the two.
+Each photo round then opens on the nearest Street View panorama of Google's
+own imagery (never visitors' uploaded photospheres), within ~1.5 km of the
+place. Road names, the address card and links to Google Maps are hidden.
+Places without coverage use the photo, and the Street View / Photo switch
+lets a player flip between the two.
+
+The key also unlocks 55 places that have no usable photo and play in Street
+View only: the 30 street-level spots in `src/lib/game/street-locations.ts`
+and the 25 places whose plate was pulled in `src/lib/game/photo-review.ts`.
+Without a key the game never deals them. If Google refuses the key, the game
+notices and stops dealing them for the rest of the session.
 
 ### Music (Settings → Sound → Your music, or the music button in any header)
 

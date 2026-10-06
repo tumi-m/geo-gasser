@@ -1,7 +1,7 @@
 import { DEFAULT_ATLAS, type AtlasSpec } from "./atlas.ts";
 import { cosmosTarget } from "./cosmos.ts";
 import { environmentById } from "./environments.ts";
-import { getLocation } from "./locations.ts";
+import { getLocation, needsStreetView } from "./locations.ts";
 import { sceneCandidates } from "./scene.ts";
 import { NO_GUESS_KM, rankPlayers, scoreGuess } from "./scoring.ts";
 import { currentEnvId, currentLocationId, isRound4Question, planMatch, PHOTO_QUESTIONS, QUESTIONS_PER_ROUND, ROUND4_3D_LIVE, roundOf, TOTAL_QUESTIONS } from "./selection.ts";
@@ -12,8 +12,8 @@ export { TOTAL_ROUNDS, TOTAL_QUESTIONS, QUESTIONS_PER_ROUND } from "./selection.
 
 export type MatchEvent =
   | { type: "HYDRATE"; state: MatchState }
-  | { type: "CREATE_SOLO"; playerId: string; name: string; avatarId?: string; seed: number; now: number; difficulty?: TimeDifficulty; matchLength?: MatchLengthId; atlas?: AtlasSpec; avoidLocationIds?: string[] }
-  | { type: "CREATE_DUEL"; playerId: string; name: string; avatarId?: string; roomCode: string; seed: number; now: number; difficulty?: TimeDifficulty; matchLength?: MatchLengthId; atlas?: AtlasSpec; avoidLocationIds?: string[] }
+  | { type: "CREATE_SOLO"; playerId: string; name: string; avatarId?: string; seed: number; now: number; difficulty?: TimeDifficulty; matchLength?: MatchLengthId; atlas?: AtlasSpec; avoidLocationIds?: string[]; streetView?: boolean }
+  | { type: "CREATE_DUEL"; playerId: string; name: string; avatarId?: string; roomCode: string; seed: number; now: number; difficulty?: TimeDifficulty; matchLength?: MatchLengthId; atlas?: AtlasSpec; avoidLocationIds?: string[]; streetView?: boolean }
   | {
       type: "CREATE_LOCAL_DUEL";
       seats: Array<{ id: string; name: string; avatarId?: string; kind?: "human" | "bot" }>;
@@ -24,6 +24,7 @@ export type MatchEvent =
       matchLength?: MatchLengthId;
       atlas?: AtlasSpec;
       avoidLocationIds?: string[];
+      streetView?: boolean;
     }
   | { type: "PLAYER_JOIN"; playerId: string; name: string; avatarId?: string; kind?: "human" | "bot"; now: number }
   | { type: "PLAYER_LEAVE"; playerId: string; now: number }
@@ -45,7 +46,7 @@ export type MatchEvent =
   | { type: "TIMEOUT"; now: number }
   | { type: "REVEAL_DONE"; now: number }
   | { type: "CONTINUE"; now: number }
-  | { type: "REMATCH"; seed: number; now: number; difficulty?: TimeDifficulty; matchLength?: MatchLengthId; atlas?: AtlasSpec; avoidLocationIds?: string[] }
+  | { type: "REMATCH"; seed: number; now: number; difficulty?: TimeDifficulty; matchLength?: MatchLengthId; atlas?: AtlasSpec; avoidLocationIds?: string[]; streetView?: boolean }
   | { type: "HOME"; now: number };
 
 function bump(state: MatchState, phase: MatchPhase, now: number): MatchState {
@@ -186,8 +187,9 @@ function matchOptions(difficulty?: TimeDifficulty, matchLength?: MatchLengthId) 
   };
 }
 
-function applyPlan(plan: ReturnType<typeof planMatch>) {
+function applyPlan(plan: ReturnType<typeof planMatch>, streetView?: boolean) {
   return {
+    streetView: Boolean(streetView),
     locationIds: plan.locationIds,
     envId: plan.envIds[0] ?? ROUND4_DEFAULT,
     envIds: plan.envIds,
@@ -229,7 +231,7 @@ export function reduce(state: MatchState, event: MatchEvent): MatchState {
     case "HOME":
       return createLobbyState();
     case "CREATE_SOLO": {
-      const plan = planMatch(event.seed, event.matchLength, event.atlas, event.avoidLocationIds);
+      const plan = planMatch(event.seed, event.matchLength, event.atlas, event.avoidLocationIds, { streetView: event.streetView });
       const opts = matchOptions(event.difficulty, event.matchLength);
       return beginRound(
         {
@@ -240,7 +242,7 @@ export function reduce(state: MatchState, event: MatchEvent): MatchState {
           seed: event.seed,
           roundIndex: 0,
           questionIndex: 0,
-          ...applyPlan(plan),
+          ...applyPlan(plan, event.streetView),
           ...opts,
           players: [emptyPlayer(event.playerId, event.name, event.avatarId)],
           revealed: false,
@@ -252,7 +254,7 @@ export function reduce(state: MatchState, event: MatchEvent): MatchState {
       );
     }
     case "CREATE_DUEL": {
-      const plan = planMatch(event.seed, event.matchLength, event.atlas, event.avoidLocationIds);
+      const plan = planMatch(event.seed, event.matchLength, event.atlas, event.avoidLocationIds, { streetView: event.streetView });
       const opts = matchOptions(event.difficulty, event.matchLength);
       return {
         seq: 1,
@@ -263,7 +265,7 @@ export function reduce(state: MatchState, event: MatchEvent): MatchState {
         seed: event.seed,
         roundIndex: 0,
         questionIndex: 0,
-        ...applyPlan(plan),
+        ...applyPlan(plan, event.streetView),
         ...opts,
         players: [emptyPlayer(event.playerId, event.name, event.avatarId)],
         revealed: false,
@@ -274,7 +276,7 @@ export function reduce(state: MatchState, event: MatchEvent): MatchState {
       };
     }
     case "CREATE_LOCAL_DUEL": {
-      const plan = planMatch(event.seed, event.matchLength, event.atlas, event.avoidLocationIds);
+      const plan = planMatch(event.seed, event.matchLength, event.atlas, event.avoidLocationIds, { streetView: event.streetView });
       const opts = matchOptions(event.difficulty, event.matchLength);
       const seats = event.seats.slice(0, 2).map((s) =>
         emptyPlayer(s.id, s.name, s.avatarId, s.kind ?? "human"),
@@ -288,7 +290,7 @@ export function reduce(state: MatchState, event: MatchEvent): MatchState {
         seed: event.seed,
         roundIndex: 0,
         questionIndex: 0,
-        ...applyPlan(plan),
+        ...applyPlan(plan, event.streetView),
         ...opts,
         players: seats,
         revealed: false,
@@ -483,7 +485,8 @@ export function reduce(state: MatchState, event: MatchEvent): MatchState {
     }
     case "REMATCH": {
       if (!["final_reveal","match_complete"].includes(state.phase)) return state;
-      const plan = planMatch(event.seed, event.matchLength ?? state.matchLength, event.atlas ?? state.atlas, event.avoidLocationIds);
+      const streetView = event.streetView ?? state.streetView;
+      const plan = planMatch(event.seed, event.matchLength ?? state.matchLength, event.atlas ?? state.atlas, event.avoidLocationIds, { streetView });
       const opts = matchOptions(event.difficulty ?? state.timeDifficulty, event.matchLength ?? state.matchLength);
       // A rematch never resurrects an absent seat: disconnected players are
       // dropped so the room waits for a real opponent instead of a ghost.
@@ -497,7 +500,7 @@ export function reduce(state: MatchState, event: MatchEvent): MatchState {
         seed: event.seed,
         roundIndex: 0,
         questionIndex: 0,
-        ...applyPlan(plan),
+        ...applyPlan(plan, streetView),
         ...opts,
         players,
         revealed: false,
@@ -523,6 +526,11 @@ export function reduce(state: MatchState, event: MatchEvent): MatchState {
 export function sceneInfoFor(state: MatchState): SceneInfo | undefined {
   const loc = locationForQuestion(state, state.questionIndex);
   if (!loc) return undefined;
+  if (needsStreetView(loc)) {
+    // No usable photo: Street View only. The neutral path names the place the
+    // way a photo's file name does, so a guest can open the same panorama.
+    return { kind: "street", src: `street:${loc.id}`, fallbacks: [] };
+  }
   if (loc.country === "SPACE") {
     const target = cosmosTarget(loc.id);
     if (!target) return undefined;

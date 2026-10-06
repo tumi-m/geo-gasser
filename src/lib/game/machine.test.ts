@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { createLobbyState, reduce, toPublicSnapshot } from "./machine.ts";
+import { createLobbyState, isRound4, reduce, sceneInfoFor, toPublicSnapshot } from "./machine.ts";
 import { getLocation } from "./locations.ts";
 
 const now = 1_000_000;
@@ -373,7 +373,7 @@ describe("match options", () => {
     assert.equal(new Set(s.locationIds).size, 70);
     assert.equal(s.totalRounds, 7);
   });
-  it("full game deals 100 unique questions across 10 rounds", () => {
+  it("full game deals 100 unique questions across 10 rounds (with Street View)", () => {
     const s = reduce(createLobbyState(), {
       type: "CREATE_SOLO",
       playerId: "p1",
@@ -381,7 +381,9 @@ describe("match options", () => {
       seed: 19,
       now,
       matchLength: "full",
+      streetView: true,
     });
+    assert.equal(s.streetView, true);
     assert.equal(s.totalQuestions, 100);
     assert.equal(s.locationIds.length, 100);
     assert.equal(new Set(s.locationIds).size, 100);
@@ -426,7 +428,7 @@ describe("forty-question match", () => {
     assert.equal(s.phase, "round_intro");
     assert.equal(s.roundHistory.length, 10);
   });
-  it("opens round 4 on question 30 with reserved reconstructions", () => {
+  it("opens the final round on question 30 with real places, not reconstructions", () => {
     let s = reduce(createLobbyState(), {
       type: "CREATE_SOLO",
       playerId: "p1",
@@ -434,9 +436,9 @@ describe("forty-question match", () => {
       seed: 3,
       now,
     });
-    assert.equal(s.photoQuestions, 30);
+    assert.equal(s.photoQuestions, 40);
     assert.equal(s.totalQuestions, 40);
-    assert.equal(s.envIds.length, 10);
+    assert.equal(s.envIds.length, 0);
     for (let q = 0; q < 30; q++) {
       if (s.phase === "round_intro") s = reduce(s, { type: "INTRO_DONE", now: now + q * 100 });
       s = reduce(s, { type: "PLACE_PIN", playerId: "p1", guess: s.truth!, now: now + q * 100 + 1 });
@@ -446,7 +448,31 @@ describe("forty-question match", () => {
     assert.equal(s.questionIndex, 30);
     assert.equal(s.roundIndex, 3);
     assert.equal(s.phase, "round_intro");
-    assert.ok(s.envId);
-    assert.equal(s.roundHistory.filter((r) => r.isRound4).length, 0);
+    const scene = sceneInfoFor(s)!;
+    assert.equal(scene.kind, "photo");
+    assert.match(scene.src, /^\/locations\/loc_/);
+    assert.equal(isRound4(s), false);
+  });
+  it("describes a Street View-only place without naming it, and rematches keep the option", () => {
+    let s = reduce(createLobbyState(), {
+      type: "CREATE_SOLO",
+      playerId: "p1",
+      name: "Ada",
+      seed: 5,
+      now,
+      matchLength: "full",
+      streetView: true,
+    });
+    const i = s.locationIds.findIndex((id) => id.startsWith("st_"));
+    assert.ok(i >= 0);
+    s = { ...s, questionIndex: i };
+    const scene = sceneInfoFor(s)!;
+    assert.equal(scene.kind, "street");
+    assert.equal(scene.src, `street:${s.locationIds[i]}`);
+    assert.ok(!JSON.stringify(scene).includes(getLocation(s.locationIds[i])!.title));
+    s = { ...s, phase: "match_complete" };
+    const again = reduce(s, { type: "REMATCH", seed: 6, now: now + 1 });
+    assert.equal(again.streetView, true);
+    assert.ok(again.locationIds.some((id) => id.startsWith("st_")));
   });
 });

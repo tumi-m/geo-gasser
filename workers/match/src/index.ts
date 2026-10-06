@@ -170,6 +170,7 @@ export class MatchRoom extends DurableObject<Env> {
       difficulty: parseDifficulty(url.searchParams.get("difficulty")),
       matchLength: parseMatchLength(url.searchParams.get("matchLength")),
       atlas: parseAtlas(url.searchParams.get("atlas")),
+      streetView: url.searchParams.get("streetView") === "1",
       now: Date.now(),
     });
     const state = await this.hydrate();
