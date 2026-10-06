@@ -11,6 +11,8 @@ export interface RouteDef {
   /** "/duel/:code" style; segments starting with ":" are params. */
   path: string;
   component: ComponentType<{ params: Params }>;
+  /** The tab title before the app name; none for the home screen. */
+  title?: string | ((params: Params) => string);
 }
 
 const listeners = new Set<() => void>();

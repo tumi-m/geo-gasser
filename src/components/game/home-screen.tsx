@@ -263,7 +263,7 @@ export function HomeScreen() {
           <span key={featured.note} className="journey-swap is-late">
             {featured.note}
           </span>
-          <div className="destination-switcher" aria-label="Featured destinations">
+          <div className="destination-switcher" role="group" aria-label="Featured destinations">
             {destinations.map((place, index) => (
               <button
                 key={place.name}

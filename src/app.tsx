@@ -9,12 +9,17 @@ import { Router } from "@/lib/router";
 
 const routes: RouteDef[] = [
   { path: "/", component: HomeScreen },
-  { path: "/play", component: () => <MatchApp mode="solo" /> },
-  { path: "/duel", component: DuelLobby },
-  { path: "/duel/bot", component: () => <MatchApp mode="duel" duelKind="bot" /> },
-  { path: "/duel/hotseat", component: () => <MatchApp mode="duel" duelKind="hotseat" /> },
+  { path: "/play", component: () => <MatchApp mode="solo" />, title: "Solo" },
+  { path: "/duel", component: DuelLobby, title: "Duel" },
+  { path: "/duel/bot", component: () => <MatchApp mode="duel" duelKind="bot" />, title: "Duel vs Grok" },
+  {
+    path: "/duel/hotseat",
+    component: () => <MatchApp mode="duel" duelKind="hotseat" />,
+    title: "Pass and play",
+  },
   {
     path: "/duel/:code",
+    title: (params) => `Room ${params.code.toUpperCase()}`,
     component: ({ params }) => {
       const code = params.code.toUpperCase();
       return <MatchApp key={code} mode="duel" roomCode={code} duelKind="online" />;

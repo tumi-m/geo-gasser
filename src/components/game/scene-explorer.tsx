@@ -783,7 +783,7 @@ export function SceneExplorer({
         </button>
       )}
       {interactive && !failed && (
-        <div className="scene-controls" aria-label="Photo controls">
+        <div className="scene-controls" role="group" aria-label="Photo controls">
           <button
             type="button"
             aria-label="Zoom in on photo"

@@ -260,7 +260,7 @@ export function PanoViewer({
       onWheel={onWheel}
     >
       {interactive && (
-        <div className="scene-controls" aria-label="Panorama controls">
+        <div className="scene-controls" role="group" aria-label="Panorama controls">
           <button
             type="button"
             aria-label="Zoom in on panorama"

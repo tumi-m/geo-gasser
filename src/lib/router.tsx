@@ -1,5 +1,8 @@
-import { Component, type ComponentType, type ErrorInfo, type ReactNode } from "react";
-import { matchPath, usePathname, type RouteDef } from "./navigation";
+import { Component, useEffect, useRef, type ComponentType, type ErrorInfo, type ReactNode } from "react";
+import { matchPath, usePathname, type Params, type RouteDef } from "./navigation";
+
+// The name in index.html, read once: every screen's title ends with it.
+const APP_TITLE = typeof document === "undefined" ? "" : document.title;
 
 /**
  * The whole router: match the path against a list, render that screen inside
@@ -8,19 +11,44 @@ import { matchPath, usePathname, type RouteDef } from "./navigation";
 
 export function Router({ routes, fallback }: { routes: RouteDef[]; fallback: ComponentType }) {
   const path = usePathname();
+  let match: { route: RouteDef; params: Params } | null = null;
   for (const route of routes) {
     const params = matchPath(route.path, path);
     if (params) {
-      const Page = route.component;
-      return (
-        <ErrorBoundary key={route.path}>
-          <Page params={params} />
-        </ErrorBoundary>
-      );
+      match = { route, params };
+      break;
     }
   }
-  const Fallback = fallback;
-  return <Fallback />;
+  const title = match
+    ? typeof match.route.title === "function"
+      ? match.route.title(match.params)
+      : match.route.title
+    : undefined;
+  useEffect(() => {
+    document.title = title ? `${title} · ${APP_TITLE}` : APP_TITLE;
+  }, [title]);
+  // A new screen takes focus, so keyboard and screen-reader users start at
+  // its top instead of on a button that has just disappeared. Not on the
+  // first load: the browser already starts there.
+  const shown = useRef(path);
+  useEffect(() => {
+    if (shown.current === path) return;
+    shown.current = path;
+    const main = document.querySelector("main");
+    if (!(main instanceof HTMLElement) || main.contains(document.activeElement)) return;
+    main.setAttribute("tabindex", "-1");
+    main.focus({ preventScroll: true });
+  }, [path]);
+  if (!match) {
+    const Fallback = fallback;
+    return <Fallback />;
+  }
+  const Page = match.route.component;
+  return (
+    <ErrorBoundary key={match.route.path}>
+      <Page params={match.params} />
+    </ErrorBoundary>
+  );
 }
 
 class ErrorBoundary extends Component<{ children: ReactNode }, { error: unknown }> {

@@ -78,6 +78,11 @@ html.hc {
     outline-offset: 3px;
   }
 
+  /* A screen focused on arrival needs no ring around the whole page. */
+  main[tabindex="-1"]:focus {
+    outline: none;
+  }
+
   ::selection {
     background: color-mix(in oklab, var(--color-accent) 30%, transparent);
   }

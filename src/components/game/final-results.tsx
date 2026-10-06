@@ -62,11 +62,17 @@ export function FinalResults({
   // Cards and stat tiles come in as they scroll into view (styles.css).
   const shellRef = useRef<HTMLElement>(null);
   useRevealOnScroll(shellRef);
+  // The match screen gives way to this one in place: bring focus along, or it
+  // is left on the map that just disappeared.
+  useEffect(() => {
+    shellRef.current?.focus({ preventScroll: true });
+  }, []);
   let cardIndex = 0;
 
   return (
     <main
       ref={shellRef}
+      tabIndex={-1}
       className="result-shell min-h-dvh px-5 py-10 pt-[max(2.5rem,env(safe-area-inset-top))] pb-[max(2.5rem,env(safe-area-inset-bottom))]"
     >
       <div className="mx-auto flex min-h-[calc(100dvh-5rem)] max-w-lg flex-col justify-center">

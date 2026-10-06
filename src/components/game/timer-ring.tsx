@@ -22,8 +22,15 @@ export function TimerRing({
   const r = 18;
   const c = 2 * Math.PI * r;
   const label = locked ? "Guess locked" : `${Math.ceil(remaining)} seconds remaining`;
+  // The clock itself stays quiet for screen readers; two warnings are spoken.
+  const left = Math.ceil(remaining);
+  const warning =
+    running && !locked && left > 0 && left <= 10 ? (left <= 5 ? "5 seconds left" : "10 seconds left") : "";
   return (
     <div className="flex items-center gap-3" role="timer" aria-live="off" aria-label={label}>
+      <span className="sr-only" aria-live="assertive">
+        {warning}
+      </span>
       <svg
         viewBox="0 0 44 44"
         className={cn("size-11 -rotate-90", urgent && !locked && "timer-urgent")}
@@ -91,11 +98,15 @@ export function RoundPips({ index, total = 4 }: { index: number; total?: number 
 
 export function QuestionMark({ current, total = 10 }: { current: number; total?: number }) {
   return (
-    <p
-      className="text-[10px] uppercase tracking-[0.18em] text-muted"
-      aria-label={`Question ${current} of ${total}`}
-    >
-      Q {current} / {total}
+    // aria-label is not read on a paragraph; the spoken form sits beside the
+    // visible shorthand instead.
+    <p className="text-[10px] uppercase tracking-[0.18em] text-muted">
+      <span aria-hidden>
+        Q {current} / {total}
+      </span>
+      <span className="sr-only">
+        Question {current} of {total}
+      </span>
     </p>
   );
 }

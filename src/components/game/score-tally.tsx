@@ -66,7 +66,7 @@ export function ScoreTally({
                   {p.totalScore.toLocaleString()}
                 </span>
                 {p.locked && !winnerIds?.length ? (
-                  <span className="tally-in-dot" aria-label="locked in" />
+                  <span className="tally-in-dot" role="img" aria-label="locked in" />
                 ) : null}
               </div>
             </div>
