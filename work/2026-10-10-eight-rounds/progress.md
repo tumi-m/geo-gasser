@@ -2,8 +2,8 @@
 
 ## Graph
 
-- **Done:** 1 Winner moment, 2 Live round motion
-- **Running:** 3 Reveal motion
+- **Done:** 1 Winner moment, 2 Live round motion, 3 Reveal motion
+- **Running:** 4 Match finale
 - **Blocked:** none
 
 ## Outputs
@@ -17,4 +17,4 @@
 
 ## Next action
 
-Round 3: reveal motion (points fly into the score, streaks).
+Round 4: the match finale (results screen).

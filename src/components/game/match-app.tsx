@@ -32,6 +32,7 @@ import {
   locationAt,
   locationCountryLabel,
   placeCity,
+  scoreStreak,
   QUESTIONS_PER_ROUND,
   questionInRound,
   ROUND4_3D_LIVE,
@@ -69,6 +70,7 @@ import { RevealOverlay } from "./reveal-sequence";
 import { RollingScore } from "./rolling-score";
 import { useMusic } from "@/lib/music/use-music";
 import { LockStamp } from "./lock-stamp";
+import { PointsFly } from "./points-fly";
 import { RoundIntro } from "./round-intro";
 import { RoundSplash } from "./round-splash";
 import { RoundSummarySplash } from "./round-summary-splash";
@@ -774,6 +776,11 @@ export function MatchApp({
   const questionSplash = revealKey !== null && splashSeen !== revealKey && Boolean(you?.roundScore);
   // When the question closes a multi-question round (Quick is one round of
   // ten), the round summary follows the question's own splash.
+  // Solo: the header holds the old total until the round's points have flown
+  // up from the reveal card, then rolls over as they land.
+  const [flownFor, setFlownFor] = useState<string | null>(null);
+  const pointsInFlight =
+    mode === "solo" && revealKey !== null && flownFor !== revealKey ? (you?.roundScore?.roundScore ?? 0) : 0;
   const summarySplash =
     revealKey !== null && !questionSplash && summarySeen !== revealKey && endsRound(state);
   const splashing = questionSplash || summarySplash;
@@ -1591,9 +1598,9 @@ export function MatchApp({
                 <div className="hud-score-label text-[10px] uppercase tracking-wider text-subtle">
                   Score
                 </div>
-                <div className="font-display tabular text-lg leading-none">
+                <div className="font-display tabular text-lg leading-none" data-score-target>
                   <RollingScore
-                    value={you?.totalScore ?? 0}
+                    value={(you?.totalScore ?? 0) - pointsInFlight}
                     reducedMotion={settings.reducedMotion}
                   />
                 </div>
@@ -1775,7 +1782,17 @@ export function MatchApp({
           timedOut={state.phase === "round_expired"}
           reducedMotion={settings.reducedMotion}
           markSelf={duelKind !== "hotseat"}
+          streak={you ? scoreStreak(state.roundHistory, you.id) : 0}
           onContinue={continueRound}
+        />
+      )}
+
+      {pointsInFlight > 0 && showingReveal && !splashing && revealKey && (
+        <PointsFly
+          key={revealKey}
+          points={pointsInFlight}
+          reduced={settings.reducedMotion}
+          onDone={() => setFlownFor(revealKey)}
         />
       )}
 

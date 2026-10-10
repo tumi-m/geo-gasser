@@ -587,6 +587,11 @@ export function GuessMap({
       const mid = pts[Math.floor(pts.length / 2)];
       animateArc(pts, { color: MAP_COLORS.arc, weight: 2.25, opacity: 0.9 }, 1100, () => {
         if (!mapRef.current) return;
+        // A close guess puts the line's midpoint on top of both pins and the
+        // "Answer" tag; the reveal card already says the distance, so skip it.
+        const a = map.latLngToContainerPoint([currentGuess.latitude, currentGuess.longitude]);
+        const b = map.latLngToContainerPoint([currentTruth.latitude, currentTruth.longitude]);
+        if (a.distanceTo(b) < 90) return;
         const label = textMarker(L, mid, formatDistance(haversineKm(currentGuess, currentTruth)), "atlas-distance-label");
         label.addTo(map);
         revealLayers.current.push(label);

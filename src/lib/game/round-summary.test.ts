@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { endsRound, roundStars, roundSummary } from "./round-summary.ts";
+import { endsRound, roundStars, roundSummary, scoreStreak } from "./round-summary.ts";
 import type { PlayerState, RoundRecord, RoundScore } from "./types.ts";
 
 const player = (id: string, name: string): PlayerState => ({
@@ -97,5 +97,17 @@ describe("roundStars", () => {
     assert.equal(roundStars(6000), 1);
     assert.equal(roundStars(5999), 0);
     assert.equal(roundStars(0), 0);
+  });
+});
+
+describe("scoreStreak", () => {
+  const rec = (points: number) =>
+    ({ guesses: { me: { guess: null, score: { roundScore: points } } } }) as unknown as RoundRecord;
+  it("counts good guesses back from the latest, stopping at the first miss", () => {
+    assert.equal(scoreStreak([], "me"), 0);
+    assert.equal(scoreStreak([rec(15000), rec(3000), rec(13000), rec(12000)], "me"), 2);
+    assert.equal(scoreStreak([rec(13000), rec(14000), rec(19000)], "me"), 3);
+    assert.equal(scoreStreak([rec(19000), rec(11999)], "me"), 0);
+    assert.equal(scoreStreak([rec(19000)], "someone else"), 0);
   });
 });

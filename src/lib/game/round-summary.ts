@@ -33,6 +33,20 @@ export function endsRound(
   return last || (state.questionIndex + 1) % QUESTIONS_PER_ROUND === 0;
 }
 
+/**
+ * Good guesses in a row (12,000+ points, of 20,000), counting back from the
+ * latest question. The reveal shows a flame from two in a row.
+ */
+export function scoreStreak(history: readonly RoundRecord[], playerId: string, threshold = 12000): number {
+  let streak = 0;
+  for (let i = history.length - 1; i >= 0; i--) {
+    const score = history[i].guesses[playerId]?.score.roundScore ?? 0;
+    if (score < threshold) break;
+    streak++;
+  }
+  return streak;
+}
+
 /** Stars a round earns from its average points per question (max 20,000). */
 export function roundStars(averagePoints: number): number {
   if (averagePoints >= 15000) return 3;

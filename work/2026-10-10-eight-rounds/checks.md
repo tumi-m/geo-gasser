@@ -13,3 +13,7 @@
 | 2 | Final five seconds: one number a beat over the scene | pass | live-count-390 shows "5" with the red edge |
 | 2 | Lock shockwave in duel and solo; rings removed after | pass | shock.mjs: 2 rings on lock, 0 after 1.2 s, both modes |
 | 2 | gates | pass | verify --build and smoke green |
+| 3 | Solo: points fly from the reveal card into the header; the total waits for them | pass | fly.mjs: header 0 → 19,657 and 19,657 → 38,9xx only after the flight; fly-mid-390 |
+| 3 | Streak badge from two good guesses in a row | pass | "2 IN A ROW" on the second; scoreStreak tests |
+| 3 | Close guesses no longer stack the distance label on the answer | pass | sheet-dist: close guess shows no label, far guess keeps "2,422 km" |
+| 3 | gates | pass | verify --build and smoke green |
