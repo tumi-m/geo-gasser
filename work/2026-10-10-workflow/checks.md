@@ -9,4 +9,4 @@
 | B | `npm run smoke` plays an Escape to the results on the production build | pass | home "114 places", 5 stop rows, a rematch starts, no page errors |
 | C | AGENTS.md names no assistant or tool | pass | `git grep -i` for assistant names over the commit: no matches |
 | D | README setup and testing point at verify and smoke | pass | README.md › Setup, Testing |
-| final | Vercel deploy for the pushed commit | unresolved | checked after the push |
+| final | Vercel deploy for the pushed commit | pass | 6314aa0: GitHub status "success" (Vercel) |

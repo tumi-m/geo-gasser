@@ -30,4 +30,4 @@
 
 ## Next action
 
-Push, then confirm the Vercel deploy and update the last row of checks.md.
+None. Pushed as 6314aa0; the Vercel deploy is green.
