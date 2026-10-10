@@ -2,8 +2,8 @@
 
 ## Graph
 
-- **Done:** 1 Winner moment, 2 Live round motion, 3 Reveal motion, 4 Match finale, 5 Home and menus, 6 Duel room
-- **Running:** 7 Sweep
+- **Done:** 1 Winner moment, 2 Live round motion, 3 Reveal motion, 4 Match finale, 5 Home and menus, 6 Duel room, 7 Sweep
+- **Running:** 8 Ship
 - **Blocked:** none
 
 ## Outputs
@@ -22,6 +22,9 @@
 
 ## Open issues
 
+- 740×360 landscape: the map's world view clips the "SOUTH AFRICA" label
+  (the country is in view). Framing untouched.
+
 ## Next action
 
-Round 7: sweep (axe, keyboard, reduced motion, phones and landscape).
+Round 8: release note, lessons, gates, deploy check.

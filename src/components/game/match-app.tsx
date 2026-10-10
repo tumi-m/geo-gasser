@@ -1121,6 +1121,16 @@ export function MatchApp({
     navigate("/");
   };
 
+  const keyboardStart = useRef(false);
+  useEffect(() => {
+    if (state.phase !== "round_active" || !keyboardStart.current) return;
+    keyboardStart.current = false;
+    const id = requestAnimationFrame(() =>
+      document.querySelector<HTMLElement>('[aria-label="Guessing map"]')?.focus({ preventScroll: true }),
+    );
+    return () => cancelAnimationFrame(id);
+  }, [state.phase, state.questionIndex]);
+
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       const el = e.target as HTMLElement | null;
@@ -1133,8 +1143,11 @@ export function MatchApp({
         }
       }
       if (typing || showSettings) return;
-      if (e.key === "Enter" && state.phase === "round_intro") {
-        finishIntro();
+      if ((e.key === "Enter" || e.key === " ") && state.phase === "round_intro") {
+        // Started from the keyboard: the map takes focus when the round
+        // opens, instead of fifteen Tabs away behind the header buttons.
+        keyboardStart.current = true;
+        if (e.key === "Enter") finishIntro();
         return;
       }
       if (

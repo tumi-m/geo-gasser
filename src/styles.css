@@ -1255,15 +1255,16 @@ button.duel-mode:hover .duel-mode-go {transform:translateX(4px);color:var(--colo
 
 /* ───────────────────────── Phone HUD ───────────────────────── */
 .tally-in-dot {display:none}
-@media (max-width: 640px) {
+@media (max-width: 640px), (orientation: landscape) and (max-height: 520px) {
   /* Everything fits on a 360–390px screen: icon-only Explore, a name-free
-     duel tally (the bots tell players apart), buttons that never shrink. */
+     duel tally (the bots tell players apart), buttons that never shrink.
+     Landscape phones too: a full-size tally reached down under the map. */
   .match-hud > div:last-child {gap:6px}
   .match-hud .view-mode-button {width:44px;min-height:44px;height:44px;padding:0;border-radius:999px}
   .match-hud .view-mode-label {position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
   .match-hud .score-tally {min-width:0;padding:5px 9px}
   .match-hud .score-tally .tally-name-line {display:none}
-  .match-hud .score-tally [role=row] {gap:7px;padding:2px 0}
+  .match-hud .score-tally [role=listitem] {gap:7px;padding:2px 0}
   .match-hud .tally-in-dot {display:inline-block;width:6px;height:6px;border-radius:999px;background:var(--color-accent);align-self:center}
   .match-hud .music-bars {height:12px}
 }
@@ -1565,3 +1566,19 @@ html.reduce-motion .best-stamp,html.reduce-motion .best-stamp svg {animation:non
 @keyframes vs-slam {0%{opacity:0;transform:scale(2.6) rotate(-20deg)}60%{opacity:1;transform:scale(.9) rotate(4deg)}100%{transform:none}}
 .start-ready {animation:atlas-pulse-ready 1.8s var(--ease-out) .6s 3}
 .is-copied svg {animation:tick-pop .5s cubic-bezier(.34,1.56,.64,1);color:var(--color-accent)}
+/* Landscape phones: the map covers the scene's middle, so the last five
+   seconds count in the strip of scene to its left, sized to the short screen. */
+@media (orientation: landscape) and (max-height: 520px) {
+  .final-count {left:calc((100% - var(--atlas-map-w) - .75rem) / 2);top:52%;font-size:clamp(72px,30vh,130px)}
+}
+/* Landscape phones: the two duel rows sit side by side, so the header stays
+   short enough to clear the map. */
+@media (orientation: landscape) and (max-height: 520px) {
+  .match-hud .score-tally {display:flex;align-items:center;gap:14px}
+  .match-hud .score-tally [role=listitem] {padding:0}
+}
+/* Short landscape phones (360 px tall): the map gives up a few pixels rather
+   than slide under the header buttons. */
+@media (orientation: landscape) and (max-height: 520px) {
+  :root {--atlas-map-h: min(300px, calc(100dvh - 4.5rem))}
+}

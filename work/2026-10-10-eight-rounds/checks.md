@@ -36,3 +36,13 @@
 | 6 | Screen readers hear who sat down | pass | host status "Guesty is here", guest status "Tumz is here" (there was no announcement before) |
 | 6 | Copy invite: the tick pops | pass | `.is-copied` while "Copied" shows |
 | 6 | No page errors in either browser | pass | lobby6.mjs at three widths |
+| 7 | axe on every screen with the new motion: home, name prompt, settings (4 tabs), duel picker, room (waiting, joined: host and guest), live round, final five seconds, rival locked, round splashes, reveals, results during and after confetti | pass | axe7.mjs, match7.mjs, lobby7.mjs: no violations |
+| 7 | Keyboard only: solo and bot duel from intro to Rematch | pass | kb7.mjs: 5 rounds each, results focused, Rematch 2 Tabs away, new match starts |
+| 7 | Keyboard start puts focus on the map | pass | kb7.mjs: the map was 15 Tabs away every round, now 0; mouse and touch starts unchanged |
+| 7 | Reduced motion (setting, or the OS alone): no confetti, rays or shake; stamp and crown stay | pass | rm7.mjs: 0 confetti with the setting; with the OS setting alone confetti is in the page but hidden, rays 0 |
+| 7 | Bug: in landscape the final-seconds number sat behind the map | pass | m7-count-844: now centred in the scene strip left of the map |
+| 7 | Bug: on landscape phones the map covered Grok's score in the duel card | pass | hudmap.mjs: card bottom 102 vs map top 78 before; rows now side by side, clear at 844×390, 667×375, 740×360, 932×430 and in portrait |
+| 7 | Bug: the phone tally's tighter-row rule never applied (it targeted `role=row`; the rows are `listitem`) | pass | selector fixed; portrait card unchanged in size (88 px bottom) |
+| 7 | 740×360 landscape: the map stops below the header (288 px instead of 300) | pass | hudmap.mjs: map top 60, header 56 |
+| 7 | 740×360 landscape: the "SOUTH AFRICA" label is clipped at the map's lower edge; the country itself is in view | unresolved | hudmap-740 frame; the framing was left alone this round |
+| 7 | Finale, room and live round in landscape and at 360 px | pass | fin.mjs 844×390 and 360×740, lobby6.mjs 844×390, match7.mjs 844×390 |
