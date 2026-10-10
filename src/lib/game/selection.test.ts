@@ -8,6 +8,7 @@ import {
   atlasPoolSize,
   MATCH_QUOTA,
   PHOTO_QUESTIONS,
+  planCounts,
   planMatch,
   playableCities,
   ROUND4_QUESTIONS,
@@ -202,5 +203,29 @@ describe("placeCity", () => {
     assert.equal(placeCity({ title: "Clarens", city: "Clarens" }), undefined);
     assert.equal(placeCity({ title: "Edersee dam", city: "Ede" }), "Ede");
     assert.equal(placeCity({ title: "Acropolis" }), undefined);
+  });
+});
+
+describe("planCounts", () => {
+  const MIX = { preset: "mix" as const, nations: [] };
+  it("an Odyssey counts its space targets apart from the places on the map", () => {
+    for (const streetView of [false, true]) {
+      const plan = planMatch(1, "full", MIX, [], { streetView });
+      const c = planCounts(plan, streetView);
+      assert.equal(c.earth + c.space, plan.locationIds.length);
+      assert.equal(c.space, 20);
+      assert.equal(c.earth, 80);
+      assert.equal(c.pool, atlasPoolSize(MIX, streetView));
+      assert.ok(c.pool > c.earth);
+    }
+  });
+  it("a short match has no space targets", () => {
+    const c = planCounts(planMatch(1, "escape"));
+    assert.deepEqual([c.earth, c.space], [5, 0]);
+  });
+  it("a small map is played in full", () => {
+    const small = { preset: "custom" as const, nations: ["JP", "US"] };
+    const c = planCounts(planMatch(2, "standard", small));
+    assert.equal(c.earth, c.pool);
   });
 });

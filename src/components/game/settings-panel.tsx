@@ -11,7 +11,15 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { atlasLabel, planMatch, sanitizeAvatar, streetViewUsable, type GameSettings } from "@/lib/game";
+import {
+  atlasLabel,
+  planCounts,
+  planMatch,
+  sanitizeAvatar,
+  streetViewUsable,
+  type GameSettings,
+  type MatchLengthId,
+} from "@/lib/game";
 import { useMusic } from "@/lib/music/use-music";
 import { AtlasPicker } from "./atlas-picker";
 import { MusicSettingsSection } from "./music-player";
@@ -27,6 +35,14 @@ const tabs = [
 ] as const;
 type TabId = (typeof tabs)[number]["id"];
 
+const LENGTH_NAME: Record<MatchLengthId, string> = {
+  escape: "Escape",
+  quick: "Quick",
+  standard: "Classic",
+  extended: "Voyage",
+  full: "Odyssey",
+};
+
 export function SettingsPanel({
   settings,
   onChange,
@@ -41,7 +57,11 @@ export function SettingsPanel({
   const [tab, setTab] = useState<TabId>(onQuit ? "picture" : "game");
   const music = useMusic();
   const update = (patch: Partial<GameSettings>) => onChange({ ...settings, ...patch });
-  const plan = planMatch(1, settings.matchLength, settings.atlas, [], { streetView: streetViewUsable() });
+  const streetView = streetViewUsable();
+  const plan = planMatch(1, settings.matchLength, settings.atlas, [], { streetView });
+  // The map's size and what this length plays from it. Space targets are
+  // not places on the map, so they are counted apart.
+  const counts = planCounts(plan, streetView);
   const slider = (key: "master" | "music" | "sfx", label: string, hint: string) => (
     <label className={cn("settings-volume", settings.muted && "opacity-45")}>
       <span>
@@ -144,7 +164,9 @@ export function SettingsPanel({
             </Section>
             <Section
               title="How far will you go?"
-              hint={`${plural(plan.totalQuestions, "unique place")} in your selected map.`}
+              hint={`Your map has ${plural(counts.pool, "place")}. ${LENGTH_NAME[settings.matchLength]} plays ${
+                counts.earth >= counts.pool ? "every one" : `${counts.earth} of them`
+              }${counts.space ? `, plus ${counts.space} in space` : ""}.`}
             >
               <div className="settings-choices lengths">
                 {(

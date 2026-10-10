@@ -27,6 +27,7 @@ import {
   EMPTY_STATS,
   loadSettings,
   loadStats,
+  planCounts,
   planMatch,
   playableLocations,
   saveSettings,
@@ -105,7 +106,10 @@ export function HomeScreen() {
   // Depth under the mouse: the hero photo and the map cards shift against it.
   usePointerTilt(homeRef, ".journey-hero, .pack-card");
   const streetView = streetViewUsable();
-  const plan = planMatch(1, settings.matchLength, settings.atlas, [], { streetView });
+  const counts = planCounts(
+    planMatch(1, settings.matchLength, settings.atlas, [], { streetView }),
+    streetView,
+  );
   useEffect(() => {
     if (!loaded) return; // never write the defaults over what is stored
     document.documentElement.classList.toggle("hc", settings.highContrast);
@@ -246,7 +250,10 @@ export function HomeScreen() {
             aria-label="Change game setup"
           >
             <SlidersHorizontal size={14} />
-            <span>{plural(plan.totalQuestions, "place")}</span>
+            <span>
+              {plural(counts.earth, "place")}
+              {counts.space ? ` + ${counts.space} in space` : ""}
+            </span>
             <i />
             <span>{DIFFICULTY_SECONDS[settings.difficulty]}s per guess</span>
             <ChevronDown size={13} />

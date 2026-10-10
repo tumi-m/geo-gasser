@@ -7,7 +7,7 @@ import {
 } from "./atlas.ts";
 import { COSMOS_LOCATIONS, COSMOS_QUESTIONS } from "./cosmos.ts";
 import { environmentForLocation, ROUND4_ENVIRONMENTS } from "./environments.ts";
-import { playableLocations, ROUND4_LOCATIONS } from "./locations.ts";
+import { getLocation, playableLocations, ROUND4_LOCATIONS } from "./locations.ts";
 import { mulberry32, shuffle } from "./rng.ts";
 import { MATCH_LENGTH, type MatchLengthId } from "./timer.ts";
 import type { EarthCountry, GeoLocation } from "./types.ts";
@@ -225,6 +225,19 @@ export function isCosmosQuestion(plan: Pick<MatchPlan, "locationIds">, questionI
 export function atlasPoolSize(spec: AtlasSpec, streetView = false): number {
   const photos = filterByAtlas(playableLocations(streetView), spec).length;
   return photos + (ROUND4_3D_LIVE ? filterByAtlas(ROUND4_LOCATIONS, spec).length : 0);
+}
+
+/**
+ * What a planned match plays, against the size of its map: Earth places,
+ * cosmos targets (not places on the map), and how many places the map holds.
+ */
+export function planCounts(plan: MatchPlan, streetView = false) {
+  const space = plan.locationIds.filter((id) => getLocation(id)?.country === "SPACE").length;
+  return {
+    earth: plan.locationIds.length - space,
+    space,
+    pool: atlasPoolSize(plan.atlas, streetView),
+  };
 }
 
 /** Cities with at least one place a match can deal, in the given nations. */
