@@ -24,3 +24,10 @@
 | 4 | Pass-and-play neither sets nor beats a record | pass | rearm.mjs: bests unchanged, no stamp |
 | 4 | Bug: an online guest whose host started the rematch never had the next match recorded | pass | fixed by re-arming when the results close; rearm.mjs: matchesPlayed 3 → 4 → 5 without pressing Rematch |
 | 4 | Reduced motion: stamp shown still, no confetti | pass | fin-play-you-20000-rm |
+| 5 | Bug: picking a map card faded it (and the old pick) out for good | pass | packs.mjs: opacity 0.40 → 0 after the click before; 1 / 1 / 1 after. The reveal marker is now an attribute React leaves alone |
+| 5 | Results reveals still work with the attribute | pass | revchk.mjs: 7 of 7 shown and visible; passport stamps animate |
+| 5 | Bug: at 320 px the header pushed Settings half off screen | pass | w320.mjs: bot was at 302–346 px, now 260–304 |
+| 5 | Settings tabs: one highlight slides to the chosen tab; labels clear the edge at 320–390 px | pass | menu5.mjs: highlight matches the tab to the pixel at 320, 390, 1280; tabs.mjs: "Picture" had 0 px right padding at 360, now 3.2 px, icons drop below 340 px |
+| 5 | Picks pop: map card ring and tick, settings option tick | pass | e5-choice-390 |
+| 5 | "Let's explore" catches the light; the bot perks up and bobs as you type its name | pass | e5-cta-390, e5-cta-1280, e5-name-390 |
+| 5 | No horizontal overflow or page errors on home, name prompt, map cards, settings tabs, help, duel | pass | menus.mjs at 320, 360, 390, 1280 |

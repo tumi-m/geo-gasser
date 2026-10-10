@@ -92,7 +92,13 @@ export function SettingsPanel({
           <X size={20} />
         </Button>
       </header>
-      <div className="settings-tabs" role="tablist" aria-label="Settings sections">
+      <div
+        className="settings-tabs"
+        role="tablist"
+        aria-label="Settings sections"
+        // The highlight slides to the chosen tab (styles.css).
+        style={{ "--tab-i": tabs.findIndex((t) => t.id === tab) } as React.CSSProperties}
+      >
         {tabs.map((item, index) => (
           <button
             key={item.id}

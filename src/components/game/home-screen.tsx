@@ -102,6 +102,8 @@ export function HomeScreen() {
     return () => window.clearTimeout(id);
   }, [autoplay, destination, destinations.length]);
   const homeRef = useRef<HTMLElement>(null);
+  const nameBotRef = useRef<HTMLSpanElement>(null);
+  const [nameDraft, setNameDraft] = useState("");
   useRevealOnScroll(homeRef);
   // Depth under the mouse: the hero photo and the map cards shift against it.
   usePointerTilt(homeRef, ".journey-hero, .pack-card");
@@ -237,7 +239,7 @@ export function HomeScreen() {
             <br />A whole world to discover.
           </p>
           <div className="hero-actions">
-            <Button size="lg" onClick={() => play("/play")}>
+            <Button size="lg" className="cta-shine" onClick={() => play("/play")}>
               Let’s explore <ArrowRight size={19} />
             </Button>
             <Button size="lg" variant="secondary" onClick={() => play("/duel")}>
@@ -410,7 +412,15 @@ export function HomeScreen() {
             </p>
             {/* Name first (it is the one thing asked); the bot builder is optional. */}
             <div className="mt-5 flex items-center gap-3">
-              <PlayerAvatar id={settings.avatarId} size={56} track />
+              {/* The bot perks up once it has a name, and bobs as you type it. */}
+              <span ref={nameBotRef} className="inline-flex">
+                <PlayerAvatar
+                  id={settings.avatarId}
+                  size={56}
+                  track
+                  mood={nameDraft.trim() ? "happy" : "neutral"}
+                />
+              </span>
               <Input
                 name="name"
                 aria-label="Your name"
@@ -418,6 +428,18 @@ export function HomeScreen() {
                 maxLength={24}
                 autoComplete="nickname"
                 data-autofocus
+                onChange={(e) => {
+                  setNameDraft(e.target.value);
+                  if (!settings.reducedMotion)
+                    nameBotRef.current?.animate(
+                      [
+                        { transform: "none" },
+                        { transform: "translateY(-5px) rotate(-4deg)" },
+                        { transform: "none" },
+                      ],
+                      { duration: 260, easing: "ease-out" },
+                    );
+                }}
               />
             </div>
             <AvatarBuilder

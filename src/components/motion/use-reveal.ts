@@ -1,9 +1,13 @@
 import { useEffect, type RefObject } from "react";
 
 /**
- * Marks `[data-reveal]` children of `root` with `is-in` as they scroll into
- * view, so CSS can bring them in. Elements are only hidden once this has run
- * (`.reveal-armed` on the root), so the server HTML and no-JS stay visible.
+ * Marks `[data-reveal]` children of `root` with `data-shown` as they scroll
+ * into view, so CSS can bring them in. Elements are only hidden once this has
+ * run (`.reveal-armed` on the root), so the server HTML and no-JS stay visible.
+ *
+ * An attribute, not a class: React rewrites `className` whenever it changes
+ * (a map card being selected), which wiped an added class and faded the card
+ * out for good. React leaves attributes it does not render alone.
  */
 export function useRevealOnScroll(root: RefObject<HTMLElement | null>) {
   useEffect(() => {
@@ -15,7 +19,7 @@ export function useRevealOnScroll(root: RefObject<HTMLElement | null>) {
       (entries) => {
         for (const e of entries) {
           if (!e.isIntersecting) continue;
-          e.target.classList.add("is-in");
+          e.target.setAttribute("data-shown", "");
           io.unobserve(e.target);
         }
       },

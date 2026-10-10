@@ -915,9 +915,9 @@ button:focus-visible,a:focus-visible {outline:2px solid var(--color-accent)!impo
 .route-stop-n {font-size:10.5px;font-weight:700;fill:#0c161d;font-family:var(--font-sans,inherit)}
 .reveal-armed .route-card .route-hop {stroke-dashoffset:1}
 .reveal-armed .route-card .route-stop {opacity:0}
-.reveal-armed .route-card.is-in .route-hop {animation:route-hop var(--hop) cubic-bezier(.45,0,.25,1) forwards;animation-delay:calc(var(--i) * var(--hop) + var(--hop) + 350ms)}
-.reveal-armed .route-card.is-in .route-stop {animation:route-stop .45s cubic-bezier(.34,1.56,.64,1) forwards;animation-delay:calc(var(--i) * var(--hop) + 350ms)}
-.reveal-armed .route-card.is-in .route-stop-ring {animation:route-ring .9s var(--ease-out) forwards;animation-delay:calc(var(--i) * var(--hop) + 400ms)}
+.reveal-armed .route-card[data-shown] .route-hop {animation:route-hop var(--hop) cubic-bezier(.45,0,.25,1) forwards;animation-delay:calc(var(--i) * var(--hop) + var(--hop) + 350ms)}
+.reveal-armed .route-card[data-shown] .route-stop {animation:route-stop .45s cubic-bezier(.34,1.56,.64,1) forwards;animation-delay:calc(var(--i) * var(--hop) + 350ms)}
+.reveal-armed .route-card[data-shown] .route-stop-ring {animation:route-ring .9s var(--ease-out) forwards;animation-delay:calc(var(--i) * var(--hop) + 400ms)}
 @keyframes route-hop {to{stroke-dashoffset:0}}
 @keyframes route-stop {from{opacity:0;transform:scale(.2)}to{opacity:1;transform:none}}
 @keyframes route-ring {0%{opacity:.9;transform:scale(1)}100%{opacity:0;transform:scale(2.8)}}
@@ -929,10 +929,10 @@ button:focus-visible,a:focus-visible {outline:2px solid var(--color-accent)!impo
 .passport-name {font-size:9px;font-weight:600;letter-spacing:.16em;text-transform:uppercase;max-width:120px;text-align:center}
 .passport-date {font-size:8px;letter-spacing:.14em;opacity:.75}
 .reveal-armed .passport .passport-stamp {opacity:0}
-.reveal-armed .passport.is-in .passport-stamp {animation:stamp-in .5s cubic-bezier(.2,1.4,.4,1) forwards;animation-delay:calc(var(--i) * 140ms + 250ms)}
+.reveal-armed .passport[data-shown] .passport-stamp {animation:stamp-in .5s cubic-bezier(.2,1.4,.4,1) forwards;animation-delay:calc(var(--i) * 140ms + 250ms)}
 @keyframes stamp-in {0%{opacity:0;transform:rotate(var(--tilt)) scale(1.9)}60%{opacity:.95;transform:rotate(var(--tilt)) scale(.94)}100%{opacity:.92;transform:rotate(var(--tilt)) scale(1)}}
 .reveal-armed [data-reveal] {opacity:0;transform:translateY(18px);transition:opacity .6s var(--ease-smooth-out),transform .7s var(--ease-smooth-out);transition-delay:calc(var(--i,0) * 90ms)}
-.reveal-armed [data-reveal].is-in {opacity:1;transform:none}
+.reveal-armed [data-reveal][data-shown] {opacity:1;transform:none}
 
 /* ───────────────────────── Home hero ───────────────────────── */
 .journey-image {opacity:0;transition:opacity .9s var(--ease-out);animation:none}
@@ -955,7 +955,7 @@ button:focus-visible,a:focus-visible {outline:2px solid var(--color-accent)!impo
   .pack-card::after {content:"";position:absolute;inset:0;z-index:3;pointer-events:none;background:radial-gradient(circle at calc(50% + var(--mx,0) * 50%) calc(50% + var(--my,0) * 50%),#ffffff22,transparent 58%);opacity:0;transition:opacity .35s}
   .pack-card:hover::after {opacity:1}
   /* The scroll-in rule's transform outranked the hover lift. */
-  .reveal-armed .pack-card[data-reveal].is-in:hover {transform:translateY(-4px);transition-delay:0s}
+  .reveal-armed .pack-card[data-reveal][data-shown]:hover {transform:translateY(-4px);transition-delay:0s}
 }
 /* Phones: map card photos drift as they scroll past (where supported). */
 @supports (animation-timeline: view()) {
@@ -1527,3 +1527,27 @@ html.reduce-motion .streak-badge,html.reduce-motion .streak-badge svg {animation
 @media (prefers-reduced-motion: reduce) {.win-fx{display:none}.best-stamp,.best-stamp svg{animation:none}}
 html.reduce-motion .win-fx {display:none}
 html.reduce-motion .best-stamp,html.reduce-motion .best-stamp svg {animation:none}
+
+/* Home and menus. The main button catches the light now and then; a picked
+   map or option pops its tick; settings tabs slide one highlight between
+   them and each section eases in. */
+.cta-shine {position:relative;overflow:hidden;isolation:isolate}
+.cta-shine::after {content:"";position:absolute;top:-2px;bottom:-2px;left:-40%;width:34%;background:linear-gradient(100deg,transparent,#ffffff8c,transparent);transform:skewX(-18deg);pointer-events:none;animation:cta-shine 5s 1.8s ease-in-out infinite}
+@keyframes cta-shine {0%{transform:skewX(-18deg) translateX(0)}24%,100%{transform:skewX(-18deg) translateX(480%)}}
+.pack-card.is-selected {animation:pack-pick .8s ease-out}
+@keyframes pack-pick {0%{box-shadow:0 0 0 0 color-mix(in oklab,var(--color-accent) 75%,transparent)}100%{box-shadow:0 0 0 16px transparent}}
+.pack-card.is-selected .pack-check,.settings-choice.selected svg {animation:tick-pop .5s cubic-bezier(.34,1.56,.64,1)}
+@keyframes tick-pop {0%{transform:scale(.2) rotate(-35deg)}100%{transform:none}}
+.settings-choice.selected {animation:choice-press .3s ease-out}
+@keyframes choice-press {40%{transform:scale(.96)}}
+.settings-tabs {position:relative}
+.settings-tabs::before {content:"";position:absolute;left:5px;top:5px;bottom:5px;width:calc((100% - 25px) / 4);border-radius:9px;background:#d8f36a;box-shadow:0 2px 10px #0002;transform:translateX(calc(var(--tab-i,0) * (100% + 5px)));transition:transform .4s cubic-bezier(.34,1.3,.64,1)}
+.settings-tabs button {position:relative;z-index:1}
+.settings-tabs button[aria-selected=true] {background:transparent;box-shadow:none}
+.settings-content {animation:pane-in .32s var(--ease-out)}
+@keyframes pane-in {from{opacity:0;transform:translateY(8px)}}
+/* Narrow phones: the selected tab's label no longer touches its edge. */
+@media (max-width:380px) {.settings-tabs {gap:3px;padding:4px}.settings-tabs::before {left:4px;top:4px;bottom:4px;width:calc((100% - 17px) / 4);transform:translateX(calc(var(--tab-i,0) * (100% + 3px)))}.settings-tabs button {gap:4px;font-size:11.5px}.settings-tabs button svg {width:14px;height:14px}}
+/* 320 px (the reflow width): the header fits, Settings stays on screen. */
+@media (max-width:359px) {.brand-lockup {font-size:16px;gap:7px}.brand-lockup>svg {width:22px}.expedition-nav nav {gap:4px}.nav-link {padding:12px 4px}}
+@media (max-width:340px) {.settings-tabs button svg {display:none}}

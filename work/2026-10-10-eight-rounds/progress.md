@@ -2,8 +2,8 @@
 
 ## Graph
 
-- **Done:** 1 Winner moment, 2 Live round motion, 3 Reveal motion, 4 Match finale
-- **Running:** 5 Home and menus
+- **Done:** 1 Winner moment, 2 Live round motion, 3 Reveal motion, 4 Match finale, 5 Home and menus
+- **Running:** 6 Duel lobby
 - **Blocked:** none
 
 ## Outputs
@@ -17,9 +17,11 @@
 
 - Personal bests compare like with like: one record per match length. The
   old overall `personalBest` stays for the home footer.
+- Scroll reveals mark elements with `data-shown`, not a class: React
+  rewrites `className` and wiped the class.
 
 ## Open issues
 
 ## Next action
 
-Round 5: home and menus motion.
+Round 6: duel lobby and online motion.
