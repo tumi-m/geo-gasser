@@ -1480,3 +1480,19 @@ html.reduce-motion .street-view-hint {animation:sv-hint-out .01s linear 7s forwa
 .splash-crown {position:absolute;left:50%;top:-25px;width:40px;height:25px;margin-left:-20px;fill:#ffd166;filter:drop-shadow(0 4px 8px #0008);animation:crown-drop .7s cubic-bezier(.34,1.56,.64,1) backwards}
 @keyframes crown-drop {0%{opacity:0;transform:translateY(-70px) rotate(-25deg)}60%{opacity:1;transform:translateY(4px) rotate(6deg)}100%{transform:none}}
 .round-splash.is-reduced.has-win .splash-inner {animation:none!important}
+
+/* Live round. Locking in: two rings burst from your pin. */
+.atlas-pin-shock {position:absolute;left:50%;top:50%;width:16px;height:16px;margin:-8px 0 0 -8px;border-radius:999px;border:3px solid var(--color-accent);box-shadow:0 0 12px color-mix(in oklab,var(--color-accent) 60%,transparent);pointer-events:none;animation:pin-shock .8s cubic-bezier(.15,.85,.25,1) backwards}
+@keyframes pin-shock {from{opacity:1;transform:scale(.6)}to{opacity:0;transform:scale(6)}}
+/* The last five seconds: one big number a beat, over the scene. */
+.final-count {position:absolute;left:50%;top:46%;z-index:6;font-family:var(--font-display);font-weight:800;font-size:clamp(96px,30vw,190px);line-height:1;color:#fff;-webkit-text-stroke:2px color-mix(in oklab,var(--color-danger) 80%,#fff);text-shadow:0 0 40px color-mix(in oklab,var(--color-danger) 75%,transparent),0 8px 0 #0007;pointer-events:none;transform:translate(-50%,-50%);animation:final-count 1s cubic-bezier(.2,.9,.3,1) forwards}
+@keyframes final-count {0%{opacity:0;transform:translate(-50%,-50%) scale(1.9)}18%{opacity:.95;transform:translate(-50%,-50%) scale(1)}70%{opacity:.85}100%{opacity:0;transform:translate(-50%,-50%) scale(.82)}}
+@media (prefers-reduced-motion: reduce) {.final-count{animation:final-count-calm 1s linear forwards}}
+html.reduce-motion .final-count {animation:final-count-calm 1s linear forwards}
+@keyframes final-count-calm {0%,70%{opacity:.8}100%{opacity:0}}
+/* Your rival locks in while you are still thinking. */
+.rival-locked {position:absolute;right:16px;top:calc(var(--atlas-hud-h,72px) + 8px);z-index:22;display:flex;align-items:center;gap:8px;margin:0;padding:4px 14px 4px 4px;border-radius:999px;border:1px solid color-mix(in oklab,var(--color-nl) 60%,transparent);background:#1a120cf0;font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--color-fg);box-shadow:0 10px 24px #0008;pointer-events:none;animation:rival-in 2.4s cubic-bezier(.34,1.56,.64,1) forwards}
+.rival-locked strong {color:var(--color-nl);font-weight:700}
+@keyframes rival-in {0%{opacity:0;transform:translateX(40px) scale(.8)}12%{opacity:1;transform:none}85%{opacity:1;transform:none}100%{opacity:0;transform:translateY(-8px)}}
+@media (prefers-reduced-motion: reduce) {.rival-locked{animation:final-count-calm 2.4s linear forwards}}
+html.reduce-motion .rival-locked {animation:final-count-calm 2.4s linear forwards}

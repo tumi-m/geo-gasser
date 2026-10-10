@@ -401,6 +401,30 @@ export function MatchApp({
     settings.atlas,
   ]);
 
+  // Your rival locking in while you still think is news: a short pop says so.
+  const opponentLocked = Boolean(
+    state.players.find((p) => p.id !== selfId)?.locked,
+  );
+  const [rivalLockedAt, setRivalLockedAt] = useState(0);
+  const sawRivalLock = useRef(false);
+  useEffect(() => {
+    // When the rival locks first the phase is "waiting_for_opponent": you.
+    const live =
+      state.phase === "round_active" ||
+      state.phase === "player_locked" ||
+      state.phase === "waiting_for_opponent";
+    const mine = state.players.find((p) => p.id === selfId);
+    if (opponentLocked && !sawRivalLock.current && live && !mine?.locked && duelKind !== "hotseat") {
+      setRivalLockedAt(Date.now());
+    }
+    sawRivalLock.current = opponentLocked;
+  }, [opponentLocked, state.phase, state.players, selfId, duelKind]);
+  useEffect(() => {
+    if (!rivalLockedAt) return;
+    const id = window.setTimeout(() => setRivalLockedAt(0), 2400);
+    return () => window.clearTimeout(id);
+  }, [rivalLockedAt]);
+
   // Rematch handshake: the guest asks, the host accepts.
   const [rematchAsk, setRematchAsk] = useState<string | null>(null);
   const [rematchSent, setRematchSent] = useState(false);
@@ -1465,6 +1489,12 @@ export function MatchApp({
           <i className="scene-grain" />
           <i className="scene-tension" />
         </div>
+        {/* The last five seconds thump over the scene, one number a beat. */}
+        {clockRunning && !you?.locked && !showingReveal && remaining > 0 && remaining <= 5 && (
+          <span key={remaining} className="final-count" aria-hidden>
+            {remaining}
+          </span>
+        )}
       </div>
 
       {streetAvailable && streetReady && !streetOnly && !showingReveal && (
@@ -1584,6 +1614,17 @@ export function MatchApp({
           </Button>
         </div>
       </header>
+
+      {rivalLockedAt > 0 && !you?.locked && !showingReveal && opponent && (
+        <p key={rivalLockedAt} className="rival-locked" role="status">
+          <span aria-hidden className="flex">
+            <PlayerAvatar id={opponent.avatarId} size={26} mood="happy" gaze={false} />
+          </span>
+          <span>
+            <strong>{opponent.name}</strong> locked in!
+          </span>
+        </p>
+      )}
 
       {you?.locked && !showingReveal && (
         <LockStamp key={`lock:${state.questionIndex}:${state.roundStartedAtMs ?? 0}`} />

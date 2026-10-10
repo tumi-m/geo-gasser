@@ -9,3 +9,7 @@
 | 1 | Reduced motion: words only, no confetti or rays | pass | sum-reduced: banner shown, 0 confetti |
 | 1 | star thresholds | pass | roundStars test (243 pass) |
 | 1 | gates | pass | verify --build and smoke green |
+| 2 | Rival locks first: "GROK LOCKED IN!" pop, also in the rival-first phase | pass | live-rival-390; bug found and fixed: phase "waiting_for_opponent" was not counted as live |
+| 2 | Final five seconds: one number a beat over the scene | pass | live-count-390 shows "5" with the red edge |
+| 2 | Lock shockwave in duel and solo; rings removed after | pass | shock.mjs: 2 rings on lock, 0 after 1.2 s, both modes |
+| 2 | gates | pass | verify --build and smoke green |

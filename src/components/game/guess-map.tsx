@@ -70,6 +70,19 @@ function makePin(kind: PinKind, label?: string) {
   return el;
 }
 
+/** Two rings burst from your pin the moment you lock it in. */
+function shockwave(marker: import("leaflet").Marker | undefined) {
+  const host = marker?.getElement()?.querySelector(".atlas-pin");
+  if (!host || document.documentElement.classList.contains("reduce-motion")) return;
+  for (const delay of [0, 140]) {
+    const ring = document.createElement("span");
+    ring.className = "atlas-pin-shock";
+    ring.style.animationDelay = `${delay}ms`;
+    ring.addEventListener("animationend", () => ring.remove());
+    host.appendChild(ring);
+  }
+}
+
 /** A ring that spreads from your pin each time it lands somewhere new. */
 function ripple(marker: import("leaflet").Marker | undefined) {
   const host = marker?.getElement()?.querySelector(".atlas-pin");
@@ -444,6 +457,14 @@ export function GuessMap({
     if (!guess) return;
     placePin("you", guess, "you", reveal ? selfName || "You" : disabled ? "LOCKED" : undefined);
   }, [guess, reveal, disabled, selfName]);
+
+  // Locking in sends a shockwave out from your pin.
+  const wasDisabled = useRef(disabled);
+  useEffect(() => {
+    // Solo locks go straight to the reveal, so this fires there too.
+    if (disabled && !wasDisabled.current && guess) shockwave(pins.current.you);
+    wasDisabled.current = disabled;
+  }, [disabled, guess]);
 
   // Round reset: clear reveal layers, drop stale pins, frame both countries.
   useEffect(() => {

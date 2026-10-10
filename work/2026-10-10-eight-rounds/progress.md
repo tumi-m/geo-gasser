@@ -2,8 +2,8 @@
 
 ## Graph
 
-- **Done:** 1 Winner moment
-- **Running:** 2 Live round motion
+- **Done:** 1 Winner moment, 2 Live round motion
+- **Running:** 3 Reveal motion
 - **Blocked:** none
 
 ## Outputs
@@ -17,4 +17,4 @@
 
 ## Next action
 
-Round 2: live round motion (pin drop, lock, final seconds).
+Round 3: reveal motion (points fly into the score, streaks).
