@@ -139,3 +139,17 @@ Rules this repo has already paid for:
   photo, and show the switch when the panorama is found.
 - **Temporary test hooks never reach a commit.** Remove them, and grep the
   diff before committing.
+- **State set outside React goes in an attribute, not a class.** The scroll
+  reveal added `is-in` with `classList`; React rewrote `className` when a
+  map card was picked and the card faded out for good. React leaves
+  attributes it does not render alone (`data-shown`).
+- **When a role or element changes, grep the CSS for the old selector.**
+  The phone tally's tighter rows targeted `[role=row]` long after the rows
+  became `listitem`, and nothing failed.
+- **Test landscape as a phone.** A desktop browser at 844×390 hovers and
+  expands the map; a phone does not. Emulate touch (`isMobile`,
+  `hasTouch`), and measure what sits over what. The final-seconds number
+  and the duel card's second row were both hidden behind the map.
+- **A celebration can depend on data that arrives one render late.** The
+  results mount before the match's stats are recorded, so the confetti
+  starts when its condition turns true, not from the first render's state.

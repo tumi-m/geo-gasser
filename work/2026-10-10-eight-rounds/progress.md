@@ -2,8 +2,8 @@
 
 ## Graph
 
-- **Done:** 1 Winner moment, 2 Live round motion, 3 Reveal motion, 4 Match finale, 5 Home and menus, 6 Duel room, 7 Sweep
-- **Running:** 8 Ship
+- **Done:** 1 Winner moment, 2 Live round motion, 3 Reveal motion, 4 Match finale, 5 Home and menus, 6 Duel room, 7 Sweep, 8 Ship
+- **Running:** none
 - **Blocked:** none
 
 ## Outputs
@@ -12,6 +12,8 @@
 - `roundStars` in `src/lib/game/round-summary.ts`
 - `previousBest`, `isNewBest` and per-length `bests` in `src/lib/game/stats.ts`
 - `MATCH_LENGTH_NAME` in `src/lib/game/timer.ts`
+- Release note: `docs/release-2026-10-10.md` ("Eight rounds: a game that celebrates")
+- Lessons: `AGENTS.md`
 
 ## Decisions
 
@@ -27,4 +29,5 @@
 
 ## Next action
 
-Round 8: release note, lessons, gates, deploy check.
+None: all eight rounds are done. Possible follow-up: the 740×360 map framing
+(see Open issues).

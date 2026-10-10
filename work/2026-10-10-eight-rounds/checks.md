@@ -46,3 +46,4 @@
 | 7 | 740×360 landscape: the map stops below the header (288 px instead of 300) | pass | hudmap.mjs: map top 60, header 56 |
 | 7 | 740×360 landscape: the "SOUTH AFRICA" label is clipped at the map's lower edge; the country itself is in view | unresolved | hudmap-740 frame; the framing was left alone this round |
 | 7 | Finale, room and live round in landscape and at 360 px | pass | fin.mjs 844×390 and 360×740, lobby6.mjs 844×390, match7.mjs 844×390 |
+| 8 | Release note, lessons, gates, deploy | pass | docs/release-2026-10-10.md, AGENTS.md (4 lessons); verify --build and smoke green; Vercel green for rounds 4–7 |
