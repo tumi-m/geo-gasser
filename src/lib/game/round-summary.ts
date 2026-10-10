@@ -1,4 +1,5 @@
 import { QUESTIONS_PER_ROUND } from "./selection.ts";
+import { ROUND_MAX } from "./scoring.ts";
 import type { MatchState, PlayerState, RoundRecord } from "./types.ts";
 
 export interface SummaryRow {
@@ -34,10 +35,14 @@ export function endsRound(
 }
 
 /**
- * Good guesses in a row (12,000+ points, of 20,000), counting back from the
+ * Good guesses in a row (3,000+ points, of 5,000), counting back from the
  * latest question. The reveal shows a flame from two in a row.
  */
-export function scoreStreak(history: readonly RoundRecord[], playerId: string, threshold = 12000): number {
+export function scoreStreak(
+  history: readonly RoundRecord[],
+  playerId: string,
+  threshold = ROUND_MAX * 0.6,
+): number {
   let streak = 0;
   for (let i = history.length - 1; i >= 0; i--) {
     const score = history[i].guesses[playerId]?.score.roundScore ?? 0;
@@ -47,11 +52,14 @@ export function scoreStreak(history: readonly RoundRecord[], playerId: string, t
   return streak;
 }
 
-/** Stars a round earns from its average points per question (max 20,000). */
+/**
+ * Stars a round earns from its average points per question (max 5,000):
+ * three from 3,750, two from 2,500, one from 1,500.
+ */
 export function roundStars(averagePoints: number): number {
-  if (averagePoints >= 15000) return 3;
-  if (averagePoints >= 10000) return 2;
-  if (averagePoints >= 6000) return 1;
+  if (averagePoints >= ROUND_MAX * 0.75) return 3;
+  if (averagePoints >= ROUND_MAX * 0.5) return 2;
+  if (averagePoints >= ROUND_MAX * 0.3) return 1;
   return 0;
 }
 

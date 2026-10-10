@@ -359,7 +359,7 @@ export function HomeScreen() {
           <Compass size={16} />
           {playableLocations(streetView).length} places. Endless perspective.
         </span>
-        {stats.matchesPlayed > 0 ? (
+        {stats.personalBest > 0 ? (
           <span>
             <Trophy size={15} className="text-accent" /> Personal best{" "}
             {stats.personalBest.toLocaleString()}

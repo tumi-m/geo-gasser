@@ -73,13 +73,14 @@ import { RollingScore } from "./rolling-score";
 import { useMusic } from "@/lib/music/use-music";
 import { LockStamp } from "./lock-stamp";
 import { PointsFly } from "./points-fly";
+import { PointsPot } from "./points-pot";
 import { RoundIntro } from "./round-intro";
 import { RoundSplash } from "./round-splash";
 import { RoundSummarySplash } from "./round-summary-splash";
 import { SceneExplorer } from "./scene-explorer";
 import { StreetViewScene } from "./street-view-scene";
 import { SettingsPanel } from "./settings-panel";
-import { QuestionMark, RoundPips, TimerRing } from "./timer-ring";
+import { MatchMeta, TimerRing } from "./timer-ring";
 import { ScoreTally } from "./score-tally";
 import { FinalResults } from "./final-results";
 import { cn, copyText } from "@/lib/utils";
@@ -1606,8 +1607,25 @@ export function MatchApp({
               locked={Boolean(you?.locked && !showingReveal)}
             />
           )}
-          <RoundPips index={state.roundIndex} total={state.totalRounds || 4} />
-          {state.matchLength !== "escape" && <QuestionMark current={qNum} />}
+          {/* What a perfect guess still earns: steps down with the clock. */}
+          {!showingReveal && (
+            <PointsPot
+              remaining={remaining}
+              duration={state.durationSec || ROUND_DURATION_SEC}
+              running={clockRunning && state.phase !== "round_intro"}
+              lockedAt={
+                you?.locked && you.responseMs != null
+                  ? Math.max(0, (state.durationSec || ROUND_DURATION_SEC) - you.responseMs / 1000)
+                  : undefined
+              }
+            />
+          )}
+          <MatchMeta
+            round={state.roundIndex + 1}
+            rounds={state.totalRounds || 4}
+            question={qNum}
+            escape={state.matchLength === "escape"}
+          />
           {reconstructionRound ? (
             <div className="w-fit rounded-full border border-border bg-bg/75 px-2.5 py-1 text-[10px] uppercase tracking-wider text-muted">
               {ROUND4_3D_LIVE ? "3D reconstruction" : "Reconstruction plates"}

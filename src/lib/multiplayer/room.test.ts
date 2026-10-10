@@ -60,7 +60,8 @@ describe("server-authoritative room", () => {
     assert.equal(s.phase, "waiting_for_opponent");
     s = applyRoomCommand(s, cmd({ t: "lock", playerId: "guest", guess: truth, now: now + 2_000 }));
     assert.equal(s.phase, "round_reveal");
-    assert.ok((s.players.find((p) => p.id === "host")?.roundScore?.roundScore ?? 0) > 9_000);
+    // A perfect pin in the first clock tier: GeoGuessr's full 5,000.
+    assert.equal(s.players.find((p) => p.id === "host")?.roundScore?.roundScore, 5_000);
   });
 
   it("force-reveals on the alarm deadline and clears it afterwards", () => {

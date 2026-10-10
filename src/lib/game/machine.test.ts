@@ -57,10 +57,11 @@ describe("match state machine", () => {
     // A plan shorter than the real wait cannot buy speed it did not have.
     const late = reduce(s, { type: "LOCK", playerId: "p1", now: t0 + 9_000, responseMs: 1_000 });
     assert.equal(late.players[0].responseMs, 9_000);
+    // The planned 14 s falls in a later clock tier than the real 2 s.
     assert.ok(
-      (planned.players[0].roundScore?.timePoints ?? 0) <
+      (planned.players[0].roundScore?.roundScore ?? 0) <
         (reduce(s, { type: "LOCK", playerId: "p1", now: t0 + 2_000 }).players[0].roundScore
-          ?.timePoints ?? 0),
+          ?.roundScore ?? 0),
     );
   });
 

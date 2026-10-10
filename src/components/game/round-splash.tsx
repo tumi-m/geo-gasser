@@ -1,6 +1,7 @@
 import { Fragment } from "react";
 import { Trophy } from "lucide-react";
 import {
+  ACCURACY_MAX,
   audio,
   formatMiss,
   roundStars,
@@ -57,7 +58,7 @@ export function RoundSplash({
   const verdict = roundVerdict(players, selfId);
   const duel = verdict.rows.length > 1;
   const winner = verdict.rows.find((r) => r.id === verdict.winnerId);
-  const youWon = duel ? verdict.winnerId === selfId : score.accuracyPoints >= 7000;
+  const youWon = duel ? verdict.winnerId === selfId : score.accuracyPoints >= ACCURACY_MAX * 0.7;
   const roundEnd = roundNumber !== undefined;
   const stage = useSplashTimeline(
     T_CROWN,

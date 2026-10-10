@@ -1,20 +1,43 @@
 import { AU_KM, cosmosZone } from "./cosmos.ts";
-import { detectCountry, haversineKm, isInsideNation } from "./geo.ts";
-import { timePoints } from "./timer.ts";
+import { COUNTRY_BOUNDS, detectCountry, haversineKm, isInsideNation } from "./geo.ts";
+import { clockFactor } from "./timer.ts";
 import type { BadgeId, CountryCode, EarthCountry, FeedbackId, LatLng, RoundScore } from "./types.ts";
 
-export const ACCURACY_MAX = 10_000;
-export const ROUND_MAX = 20_000;
-export const ROUND4_MULTIPLIER = 1.25;
+/**
+ * Scoring follows GeoGuessr: a round pays at most 5,000, falling off
+ * exponentially with distance relative to the size of the map. The clock
+ * then keeps a tiered share of it (timer.ts: 100% down to 60%).
+ */
+export const ROUND_MAX = 5_000;
+/** The distance score's ceiling, before the clock takes its share. */
+export const ACCURACY_MAX = ROUND_MAX;
+/** GeoGuessr counts a guess within 25 m as perfect. */
+export const PERFECT_KM = 0.025;
+/** The size GeoGuessr gives its world map (km). */
+export const WORLD_MAP_KM = 14_916.862;
 /** Half WGS84 circumference. A missed pin must lose distance tie-breaks to any real guess. */
 export const NO_GUESS_KM = 20_015.0868;
 
-/** Country-aware exponential decay scales (km). Calibrated by simulation. */
-export const COUNTRY_SCALE_KM: Record<EarthCountry, number> = {
-  ZA: 220,
-  NL: 45,
-  WORLD: 850,
+const diagonalKm = (b: { south: number; north: number; west: number; east: number }) =>
+  haversineKm({ latitude: b.south, longitude: b.west }, { latitude: b.north, longitude: b.east });
+
+/**
+ * Each place is scored on its own country's map, sized the way GeoGuessr
+ * sizes a map: the diagonal of its bounding box. South Africa comes to about
+ * 2,135 km and the Netherlands 411 km, so a mixed map stays fair to both.
+ */
+export const MAP_SIZE_KM: Record<EarthCountry, number> = {
+  ZA: diagonalKm(COUNTRY_BOUNDS.ZA),
+  NL: diagonalKm(COUNTRY_BOUNDS.NL),
+  WORLD: WORLD_MAP_KM,
 };
+
+/** GeoGuessr's curve: 5000 × e^(−10 × distance / map size); 5,000 within 25 m. */
+export function geoScore(distanceKm: number, mapSizeKm: number): number {
+  if (!Number.isFinite(distanceKm)) return 0;
+  if (distanceKm <= PERFECT_KM) return ROUND_MAX;
+  return Math.round(ROUND_MAX * Math.exp((-10 * distanceKm) / mapSizeKm));
+}
 
 export const REGION_KM: Record<EarthCountry, number> = {
   ZA: 150,
@@ -34,17 +57,7 @@ export function cosmosAccuracy(decades: number): number {
 }
 
 export function accuracyPoints(distanceKm: number, country: EarthCountry): number {
-  const scale = COUNTRY_SCALE_KM[country];
-  return Math.round(ACCURACY_MAX * Math.exp(-distanceKm / scale));
-}
-
-/**
- * Speed only pays in proportion to accuracy. Without this a pin dropped
- * anywhere in the first second earned ~10,000 of 20,000 points, so racing a
- * wild guess scored like a careful, close one.
- */
-export function speedBonus(accuracy: number, clock: number): number {
-  return Math.round((clock * Math.max(0, Math.min(ACCURACY_MAX, accuracy))) / ACCURACY_MAX);
+  return geoScore(distanceKm, MAP_SIZE_KM[country]);
 }
 
 export function cosmosBadges(decades: number, zoneCorrect: boolean): BadgeId[] {
@@ -121,10 +134,10 @@ export function scoreGuess(opts: {
   nation?: string;
   remainingSec: number;
   responseMs: number;
-  isRound4?: boolean;
   durationSec?: number;
 }): RoundScore {
-  const multiplier = opts.isRound4 ? ROUND4_MULTIPLIER : 1;
+  // GeoGuessr pays no round more than 5,000: no multipliers.
+  const multiplier = 1;
   if (!opts.guess) {
     return {
       distanceKm: Number.POSITIVE_INFINITY,
@@ -146,12 +159,13 @@ export function scoreGuess(opts: {
       ? isInsideNation(opts.guess, opts.nation)
       : detectCountry(opts.guess) === opts.country;
   const acc = accuracyPoints(distanceKm, opts.country);
-  const time = speedBonus(acc, timePoints(opts.remainingSec, opts.durationSec));
-  const roundScore = Math.round((acc + time) * multiplier);
+  const factor = clockFactor(opts.remainingSec, opts.durationSec);
+  const roundScore = Math.round(acc * factor);
   return {
     distanceKm,
     accuracyPoints: acc,
-    timePoints: time,
+    timePoints: acc - roundScore,
+    clockFactor: factor,
     multiplier,
     roundScore,
     remainingSec: opts.remainingSec,
@@ -174,13 +188,15 @@ function scoreCosmic(
   const decades = Math.abs(guess.latitude - truth.latitude);
   const zoneCorrect = cosmosZone(guess.latitude) === cosmosZone(truth.latitude);
   const acc = cosmosAccuracy(decades);
-  const time = speedBonus(acc, timePoints(remainingSec, durationSec));
+  const factor = clockFactor(remainingSec, durationSec);
+  const roundScore = Math.round(acc * factor);
   return {
     distanceKm: Math.abs(10 ** guess.latitude - 10 ** truth.latitude) * AU_KM,
     accuracyPoints: acc,
-    timePoints: time,
+    timePoints: acc - roundScore,
+    clockFactor: factor,
     multiplier,
-    roundScore: Math.round((acc + time) * multiplier),
+    roundScore,
     remainingSec,
     responseMs,
     badges: cosmosBadges(decades, zoneCorrect),

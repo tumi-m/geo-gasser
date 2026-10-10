@@ -2,70 +2,67 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import {
   accuracyPoints,
-  COUNTRY_SCALE_KM,
+  geoScore,
+  MAP_SIZE_KM,
   NO_GUESS_KM,
+  PERFECT_KM,
   rankPlayers,
+  ROUND_MAX,
   scoreGuess,
-  speedBonus,
+  WORLD_MAP_KM,
 } from "./scoring.ts";
 
-describe("accuracyPoints", () => {
-  it("is 10000 on a perfect pin", () => {
-    assert.equal(accuracyPoints(0, "ZA"), 10_000);
-    assert.equal(accuracyPoints(0, "NL"), 10_000);
+describe("geoScore (GeoGuessr's curve)", () => {
+  it("pays 5,000 within 25 m", () => {
+    assert.equal(ROUND_MAX, 5_000);
+    assert.equal(geoScore(0, MAP_SIZE_KM.NL), 5_000);
+    assert.equal(geoScore(PERFECT_KM, MAP_SIZE_KM.NL), 5_000);
+    // Just outside, a small map already shows the miss.
+    assert.ok(geoScore(0.2, MAP_SIZE_KM.NL) < 5_000);
   });
-  it("decays to ~3679 at one country scale", () => {
-    assert.equal(accuracyPoints(COUNTRY_SCALE_KM.NL, "NL"), Math.round(10000 * Math.exp(-1)));
-    assert.equal(accuracyPoints(COUNTRY_SCALE_KM.ZA, "ZA"), Math.round(10000 * Math.exp(-1)));
+  it("is 5000 × e^(−10 × d / size)", () => {
+    assert.equal(geoScore(1000, WORLD_MAP_KM), Math.round(5000 * Math.exp((-10 * 1000) / 14_916.862)));
+    // A tenth of the map's size keeps 1/e of the points.
+    assert.equal(geoScore(MAP_SIZE_KM.ZA / 10, MAP_SIZE_KM.ZA), Math.round(5000 / Math.E));
+    assert.equal(geoScore(Number.POSITIVE_INFINITY, WORLD_MAP_KM), 0);
   });
-  it("does not systematically reward Dutch distances on the ZA curve", () => {
-    const nlAt30 = accuracyPoints(30, "NL");
-    const zaAt30 = accuracyPoints(30, "ZA");
-    assert.ok(zaAt30 > nlAt30, "ZA scale must be more generous at the same km");
+  it("sizes each map by its bounding-box diagonal, and the world as GeoGuessr does", () => {
+    assert.equal(MAP_SIZE_KM.WORLD, 14_916.862);
+    assert.ok(Math.abs(MAP_SIZE_KM.ZA - 2_135) < 2, String(MAP_SIZE_KM.ZA));
+    assert.ok(Math.abs(MAP_SIZE_KM.NL - 411) < 2, String(MAP_SIZE_KM.NL));
+  });
+  it("is kinder in a big country at the same distance", () => {
+    assert.ok(accuracyPoints(30, "ZA") > accuracyPoints(30, "NL"));
+    assert.ok(accuracyPoints(300, "WORLD") > accuracyPoints(300, "ZA"));
   });
 });
 
 describe("scoreGuess", () => {
   const truth = { latitude: 52.3731, longitude: 4.8928 };
-  it("combines accuracy and time, and applies the round 4 multiplier", () => {
-    const base = scoreGuess({
-      truth,
-      guess: truth,
-      country: "NL",
-      remainingSec: 45,
-      responseMs: 200,
-    });
-    assert.equal(base.accuracyPoints, 10_000);
-    assert.equal(base.timePoints, 10_000);
-    assert.equal(base.roundScore, 20_000);
-    assert.ok(base.badges.includes("bullseye"));
-    const r4 = scoreGuess({
-      truth,
-      guess: truth,
-      country: "NL",
-      remainingSec: 45,
-      responseMs: 200,
-      isRound4: true,
-    });
-    assert.equal(r4.roundScore, 25_000);
-    assert.equal(r4.multiplier, 1.25);
+  const at = (remainingSec: number, guess = truth) =>
+    scoreGuess({ truth, guess, country: "NL", remainingSec, responseMs: (45 - remainingSec) * 1000, durationSec: 45 });
+  it("pays a perfect guess 5,000 in the first tier, stepping down to 3,000", () => {
+    const first = at(44);
+    assert.equal(first.accuracyPoints, 5_000);
+    assert.equal(first.clockFactor, 1);
+    assert.equal(first.timePoints, 0);
+    assert.equal(first.roundScore, 5_000);
+    assert.ok(first.badges.includes("bullseye"));
+    assert.deepEqual([at(30), at(20), at(12), at(3), at(0)].map((s) => s.roundScore), [4_500, 4_000, 3_500, 3_000, 3_000]);
   });
-  it("pays the speed bonus only in proportion to accuracy", () => {
-    // Amsterdam truth, an instant pin in Cape Town: fast, but nowhere near.
-    const wild = scoreGuess({
-      truth,
-      guess: { latitude: -33.92, longitude: 18.42 },
-      country: "NL",
-      remainingSec: 45,
-      responseMs: 400,
-    });
-    assert.equal(wild.accuracyPoints, 0);
-    assert.equal(wild.timePoints, 0);
+  it("scales every guess by the clock, not just close ones", () => {
+    const near = { latitude: 52.1, longitude: 4.5 };
+    const early = at(40, near);
+    const late = at(15, near);
+    assert.equal(early.accuracyPoints, late.accuracyPoints);
+    assert.equal(late.clockFactor, 0.7);
+    assert.equal(late.roundScore, Math.round(early.accuracyPoints * 0.7));
+    assert.equal(late.timePoints, late.accuracyPoints - late.roundScore);
+  });
+  it("never pays more than 5,000, and a wild guess nothing", () => {
+    const wild = at(44, { latitude: -33.92, longitude: 18.42 });
     assert.equal(wild.roundScore, 0);
-    // One country scale away keeps ~37% of the clock.
-    assert.equal(speedBonus(3679, 10_000), 3679);
-    assert.equal(speedBonus(10_000, 4_000), 4_000);
-    assert.equal(speedBonus(-5, 4_000), 0);
+    assert.equal(wild.multiplier, 1);
   });
   it("scores an unsubmitted guess as zero", () => {
     const s = scoreGuess({

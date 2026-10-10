@@ -16,7 +16,7 @@ const WORLD = (worldJson as unknown as { features: Parameters<typeof landPath>[0
 export interface RouteStop {
   latitude: number;
   longitude: number;
-  /** Your points there (0–20,000); colours the stop. */
+  /** Your points there (0–5,000); colours the stop. */
   score?: number;
 }
 

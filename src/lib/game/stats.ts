@@ -1,5 +1,11 @@
 const KEY = "atlas-duel-stats-v1";
 
+/**
+ * Version 2: rounds score GeoGuessr's 5,000, not 20,000. Points records set
+ * before can't be compared and are set aside; everything else carries over.
+ */
+export const SCORING_VERSION = 2;
+
 export interface PlayerStats {
   matchesPlayed: number;
   matchesWon: number;
@@ -18,6 +24,8 @@ export interface PlayerStats {
   worldCountryHits: number;
   fastestAccurateMs: number | null;
   closestKm: number | null;
+  /** Which scoring the points records were set under (SCORING_VERSION). */
+  scoring?: number;
 }
 
 export const EMPTY_STATS: PlayerStats = {
@@ -36,13 +44,21 @@ export const EMPTY_STATS: PlayerStats = {
   worldCountryHits: 0,
   fastestAccurateMs: null,
   closestKm: null,
+  scoring: SCORING_VERSION,
 };
+
+/** Stats as saved, brought up to the current scoring. */
+export function migrateStats(saved: Partial<PlayerStats>): PlayerStats {
+  const stats = { ...EMPTY_STATS, ...saved };
+  if (saved.scoring === SCORING_VERSION) return stats;
+  return { ...stats, personalBest: 0, bests: undefined, scoring: SCORING_VERSION };
+}
 
 export function loadStats(): PlayerStats {
   if (typeof window === "undefined") return EMPTY_STATS;
   try {
     const raw = localStorage.getItem(KEY);
-    return raw ? { ...EMPTY_STATS, ...JSON.parse(raw) } : EMPTY_STATS;
+    return raw ? migrateStats(JSON.parse(raw)) : EMPTY_STATS;
   } catch {
     return EMPTY_STATS;
   }

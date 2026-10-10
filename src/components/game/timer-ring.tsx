@@ -73,40 +73,34 @@ export function TimerRing({
   );
 }
 
-export function RoundPips({ index, total = 4 }: { index: number; total?: number }) {
-  return (
-    // Pips share a capped width: ten rounds no longer push the HUD buttons
-    // off a phone screen.
-    <div
-      className="flex gap-1"
-      style={{ width: `min(${total * 1.5}rem, 9rem)` }}
-      role="img"
-      aria-label={`Round ${index + 1} of ${total}`}
-    >
-      {Array.from({ length: total }, (_, i) => (
-        <span
-          key={i}
-          className={cn(
-            "h-1.5 min-w-1 flex-1 rounded-full",
-            i < index ? "bg-accent" : i === index ? "bg-fg" : "bg-border",
-          )}
-        />
-      ))}
-    </div>
-  );
-}
-
-export function QuestionMark({ current, total = 10 }: { current: number; total?: number }) {
+/**
+ * Where the match stands, as one line of caps metadata: "R 2/4 · Q 3/10", or
+ * "STOP 2/5" in an Escape. It replaces a row of round pips and a separate
+ * question line, which together cost the photo a row of height on phones.
+ */
+export function MatchMeta({
+  round,
+  rounds,
+  question,
+  questions = 10,
+  escape = false,
+}: {
+  round: number;
+  rounds: number;
+  question: number;
+  questions?: number;
+  escape?: boolean;
+}) {
+  const shown = escape ? `STOP ${round}/${rounds}` : `R ${round}/${rounds} · Q ${question}/${questions}`;
+  const spoken = escape
+    ? `Stop ${round} of ${rounds}`
+    : `Round ${round} of ${rounds}, question ${question} of ${questions}`;
   return (
     // aria-label is not read on a paragraph; the spoken form sits beside the
     // visible shorthand instead.
-    <p className="text-[10px] uppercase tracking-[0.18em] text-muted">
-      <span aria-hidden>
-        Q {current} / {total}
-      </span>
-      <span className="sr-only">
-        Question {current} of {total}
-      </span>
+    <p className="hud-meta">
+      <span aria-hidden>{shown}</span>
+      <span className="sr-only">{spoken}</span>
     </p>
   );
 }

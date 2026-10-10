@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Trophy } from "lucide-react";
-import { roundVerdict, type PlayerState, type VerdictRow } from "@/lib/game";
+import { ROUND_MAX, roundVerdict, type PlayerState, type VerdictRow } from "@/lib/game";
 import { PlayerAvatar, type AvatarMood } from "./player-avatar";
 import { useCountUp } from "./use-count-up";
 import { cn } from "@/lib/utils";
@@ -87,11 +87,11 @@ export function RoundVerdictCard({
                       ? "happy"
                       : "sad"
                     : "neutral"
-                  : row.round >= 12000
+                  : row.round >= ROUND_MAX * 0.6
                     ? "happy"
                     : row.round === 0
                       ? "sad"
-                      : row.round < 4000
+                      : row.round < ROUND_MAX * 0.2
                         ? "surprised"
                         : "wink"
             }

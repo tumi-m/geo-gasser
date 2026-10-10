@@ -52,6 +52,10 @@ export function RevealOverlay({
       : feedbackHeadline(score);
   const shownKm = useCountUp(hasPin ? score.distanceKm : 0, 900, Boolean(reducedMotion));
   const shownRound = useCountUp(score.roundScore, 900, Boolean(reducedMotion));
+  // Scores from before the clock tiers carry no factor: read it off the totals.
+  const clock =
+    score.clockFactor ?? (score.accuracyPoints > 0 ? score.roundScore / score.accuracyPoints : 1);
+  const tierPot = Math.round(ACCURACY_MAX * clock);
   return (
     <div
       className={cn(
@@ -98,20 +102,18 @@ export function RevealOverlay({
           <p className="font-display whitespace-nowrap text-3xl tabular tracking-tight max-[380px]:text-[26px] sm:text-4xl">
             {hasPin ? formatMiss(score, shownKm) : "No pin"}
           </p>
-          <div className="flex gap-4 text-right text-[11px] uppercase tracking-wider text-muted">
-            <Stat label="Accuracy" value={score.accuracyPoints.toLocaleString()} />
-            <Stat label="Speed" value={score.timePoints.toLocaleString()} />
-            <Stat label="Round" value={Math.round(shownRound).toLocaleString()} highlight points />
+          {/* A ledger: distance score × the clock's tier = the round. */}
+          <div className="ledger">
+            <Stat label="Distance" value={score.accuracyPoints.toLocaleString("en-US")} />
+            <Stat label="Clock" value={`×${clock.toFixed(1)}`} />
+            <Stat label="Round" value={Math.round(shownRound).toLocaleString("en-US")} highlight points />
           </div>
         </div>
-        {timedOut && hasPin ? (
-          <p className="mt-2 text-left text-xs text-muted">
-            {formatMiss(score)} off · the clock hit zero, so the speed bonus is 0.
-          </p>
-        ) : hasPin && score.accuracyPoints < ACCURACY_MAX / 2 ? (
+        {hasPin && clock < 1 ? (
           // In a duel on a phone the rows below say enough; room goes to them.
-          <p className={cn("mt-2 text-left text-xs text-muted", opponent && "max-sm:hidden")}>
-            The speed bonus grows with accuracy. Land closer to earn all of it.
+          <p className={cn("ledger-note", opponent && "max-sm:hidden")}>
+            Locked in the &quot;{tierPot.toLocaleString("en-US")}&quot; tier: the clock kept{" "}
+            {Math.round(clock * 100)}% of your {score.accuracyPoints.toLocaleString("en-US")}.
           </p>
         ) : null}
         {score.multiplier > 1 && (
@@ -157,9 +159,9 @@ function Stat({
   points?: boolean;
 }) {
   return (
-    <div className={cn(highlight && "text-fg")} data-round-points={points || undefined}>
-      <div className="text-subtle">{label}</div>
-      <div className="mt-0.5 font-display text-base text-fg tabular sm:text-lg">{value}</div>
+    <div className={cn("ledger-cell", highlight && "is-total")} data-round-points={points || undefined}>
+      <div className="ledger-label">{label}</div>
+      <div className="ledger-value">{value}</div>
     </div>
   );
 }

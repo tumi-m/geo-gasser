@@ -77,8 +77,12 @@ export interface GeoLocation {
 
 export interface RoundScore {
   distanceKm: number;
+  /** The distance score, GeoGuessr's 0–5,000, before the clock's share. */
   accuracyPoints: number;
+  /** Points the clock took: the distance score minus the round score. */
   timePoints: number;
+  /** The clock tier's multiplier (1, 0.9, 0.8, 0.7 or 0.6). */
+  clockFactor?: number;
   multiplier: number;
   roundScore: number;
   remainingSec: number;

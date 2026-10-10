@@ -19,13 +19,13 @@ const STEPS = [
   },
   {
     n: "04",
-    title: "Accuracy plus speed",
-    body: "Up to 10,000 for accuracy and 10,000 for speed, but speed only pays when you are close: the bonus shrinks with your accuracy. South Africa uses a wider distance scale than the Netherlands, and world sites a wider one still.",
+    title: "5,000 a round",
+    body: "Scored the GeoGuessr way: up to 5,000 points, falling off with distance, and a pin within 25 m is perfect. Each place is scored on its own country's map, so a 25 km miss costs more in the Netherlands than in South Africa, and less again on the world map.",
   },
   {
     n: "05",
-    title: "Timer difficulty",
-    body: "Easy gives 60 seconds, Medium 45, Hard 30. Speed points scale to the timer you picked.",
+    title: "The clock takes its share",
+    body: "The points on offer step down as the clock runs: 5,000, 4,500, 4,000, 3,500, then 3,000 in the last fifth. Your distance score keeps that share. Easy gives 60 seconds, Medium 45, Hard 30, and the steps scale to your timer.",
   },
   {
     n: "06",

@@ -153,3 +153,8 @@ Rules this repo has already paid for:
 - **A celebration can depend on data that arrives one render late.** The
   results mount before the match's stats are recorded, so the confetti
   starts when its condition turns true, not from the first render's state.
+- **Thresholds are shares of the maximum, and saved records carry a
+  version.** Moving from 20,000 to 5,000 a round touched stars, streaks,
+  share squares, map colours, moods and a solo win test, each written as a
+  raw number. They now read `ROUND_MAX`. Saved bests from the old scale are
+  set aside by `SCORING_VERSION`, not compared.

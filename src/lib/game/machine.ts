@@ -5,7 +5,7 @@ import { getLocation, needsStreetView, playableLocations } from "./locations.ts"
 import { mulberry32 } from "./rng.ts";
 import { sceneCandidates } from "./scene.ts";
 import { NO_GUESS_KM, rankPlayers, scoreGuess } from "./scoring.ts";
-import { currentEnvId, currentLocationId, isRound4Question, planMatch, PHOTO_QUESTIONS, QUESTIONS_PER_ROUND, ROUND4_3D_LIVE, roundOf, TOTAL_QUESTIONS } from "./selection.ts";
+import { currentEnvId, currentLocationId, isRound4Question, planMatch, PHOTO_QUESTIONS, QUESTIONS_PER_ROUND, roundOf, TOTAL_QUESTIONS } from "./selection.ts";
 import { DIFFICULTY_SECONDS, MATCH_LENGTH, remainingSeconds, ROUND_DURATION_SEC, type MatchLengthId, type TimeDifficulty } from "./timer.ts";
 import type { LatLng, MatchPhase, MatchState, PlayerState, PublicSnapshot, RoundRecord, SceneInfo } from "./types.ts";
 
@@ -109,7 +109,6 @@ function applyScores(state: MatchState, now: number): MatchState {
       nation: loc.nation,
       remainingSec: remaining,
       responseMs,
-      isRound4: ROUND4_3D_LIVE && slotIsRound4,
       durationSec,
     });
     // A cosmic miss is counted in decades for the tie-break: its real gap in

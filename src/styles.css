@@ -1582,3 +1582,37 @@ html.reduce-motion .best-stamp,html.reduce-motion .best-stamp svg {animation:non
 @media (orientation: landscape) and (max-height: 520px) {
   :root {--atlas-map-h: min(300px, calc(100dvh - 4.5rem))}
 }
+
+/* Points on offer and the reveal ledger. Built to the "system is the
+   content" brief: the structure is the ornament (1 px hairline joints, no
+   shadows, no radius), caps Helvetica labels, monospaced tabular figures,
+   one accent reserved for the live tier, and mechanical 120–150 ms steps
+   with no spring. */
+.pot,.ledger {--hair:#333;--ink:#fff;--mute:#8c8c8c;--grot:"Helvetica Neue",Helvetica,Arial,sans-serif;--mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace}
+.pot {display:inline-flex;align-items:stretch;width:fit-content;height:22px;border:1px solid var(--hair);background:#000;color:var(--ink);font-family:var(--grot);font-weight:700;line-height:1}
+.pot-figure {display:flex;align-items:center;gap:4px;padding:0 6px;border-right:1px solid var(--hair);overflow:hidden}
+.pot-value {display:block;min-width:4.6ch;font-family:var(--mono);font-size:12px;font-variant-numeric:tabular-nums;letter-spacing:-.02em;text-align:right;animation:pot-step .15s cubic-bezier(.2,0,0,1)}
+@keyframes pot-step {from{transform:translateY(-70%);opacity:0}}
+.pot-unit,.pot-next {font-size:8px;letter-spacing:.14em;color:var(--mute)}
+.pot-tiers {display:flex}
+.pot-tiers i {position:relative;width:8px;border-right:1px solid var(--hair);background:#000;overflow:hidden;transition:background-color .12s linear}
+.pot-tiers i.is-next {background:#3a3a3a}
+.pot-tiers i.is-live::after {content:"";position:absolute;inset:0;background:var(--color-accent);transform-origin:bottom;transform:scaleY(var(--drain,1));transition:transform .12s linear}
+.pot-next {display:flex;align-items:center;padding:0 6px;font-family:var(--mono);white-space:nowrap}
+.pot.is-locked .pot-value {color:var(--mute)}
+.pot.is-locked .pot-tiers i.is-live::after {background:var(--mute)}
+.hc .pot,.hc .pot-figure,.hc .pot-tiers i {border-color:var(--color-fg)}
+/* Narrow phones: the pot and its cells say it; the next-step readout waits
+   for a wider screen. */
+@media (max-width: 400px) {.pot-next {display:none}.pot-tiers i:last-child {border-right:0}}
+
+.ledger {display:grid;grid-template-columns:repeat(3,auto);border:1px solid var(--hair);background:#000}
+.ledger-cell {padding:6px 10px;text-align:right}
+.ledger-cell + .ledger-cell {border-left:1px solid var(--hair)}
+.ledger-label {font-family:var(--grot);font-size:9px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--mute)}
+.ledger-value {margin-top:3px;font-family:var(--mono);font-size:15px;font-weight:700;font-variant-numeric:tabular-nums;color:var(--ink)}
+.ledger-cell.is-total .ledger-value {color:var(--color-accent)}
+.ledger-note {margin-top:8px;font-family:"Helvetica Neue",Helvetica,Arial,sans-serif;font-size:11px;letter-spacing:.02em;color:var(--color-muted);text-align:left}
+.hc .ledger,.hc .ledger-cell + .ledger-cell {border-color:var(--color-fg)}
+@media (max-width: 380px) {.ledger-cell {padding:5px 7px}.ledger-value {font-size:13px}}
+.hud-meta {font-family:"Helvetica Neue",Helvetica,Arial,sans-serif;font-size:10px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;white-space:nowrap;color:var(--color-muted)}

@@ -5,6 +5,7 @@ import {
   roundSummary,
   type PlayerState,
   type RoundRecord,
+  ROUND_MAX,
 } from "@/lib/game";
 import { PlayerAvatar } from "./player-avatar";
 import { Sparks } from "./round-splash";
@@ -167,7 +168,7 @@ export function RoundSummarySplash({
                 className={cn(best && best.question === i + 1 && "is-best")}
                 style={
                   {
-                    "--h": Math.max(0.06, Math.min(1, score / 20000)),
+                    "--h": Math.max(0.06, Math.min(1, score / ROUND_MAX)),
                     "--at": `${T_PIPS + i * PIP_STEP}ms`,
                   } as React.CSSProperties
                 }
@@ -208,12 +209,12 @@ function Total({ value, ms, className }: { value: number; ms: number; className:
   return <p className={cn(className, "tabular")}>{Math.round(shown).toLocaleString()}</p>;
 }
 
-/** A word for a solo round, from the average per question (max 20,000). */
+/** A word for a solo round, from the average per question (max 5,000). */
 function soloRating(total: number, questions: number): string {
   const avg = total / Math.max(1, questions);
-  if (avg >= 15000) return "Outstanding round";
-  if (avg >= 11000) return "Great round";
-  if (avg >= 8000) return "Solid round";
+  if (avg >= ROUND_MAX * 0.75) return "Outstanding round";
+  if (avg >= ROUND_MAX * 0.55) return "Great round";
+  if (avg >= ROUND_MAX * 0.4) return "Solid round";
   return "Round in the books";
 }
 

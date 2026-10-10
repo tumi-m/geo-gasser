@@ -66,11 +66,11 @@ describe("cosmic scoring", () => {
       responseMs: 1000,
     });
   it("pays in proportion to the miss in decades", () => {
-    assert.equal(score(9.58).accuracyPoints, 10_000);
+    assert.equal(score(9.58).accuracyPoints, 5_000);
     assert.equal(score(9.58).feedback, "perfect");
     const jupiter = score(5.2);
-    assert.ok(jupiter.accuracyPoints > 3_500 && jupiter.accuracyPoints < 4_500, String(jupiter.accuracyPoints));
-    assert.ok(score(950).accuracyPoints < 20);
+    assert.ok(jupiter.accuracyPoints > 1_750 && jupiter.accuracyPoints < 2_250, String(jupiter.accuracyPoints));
+    assert.ok(score(950).accuracyPoints < 10);
     assert.ok(score(9).accuracyPoints > score(5.2).accuracyPoints);
   });
   it("reports the real gap and the zone", () => {
