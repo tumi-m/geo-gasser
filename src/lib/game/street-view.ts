@@ -50,7 +50,10 @@ export interface StreetViewPanoramaLike {
   setPano(id: string): void;
   setPov(pov: { heading: number; pitch: number }): void;
   setZoom(zoom: number): void;
+  setOptions(options: Record<string, unknown>): void;
   getPano(): string;
+  getPov(): { heading: number; pitch: number };
+  getZoom(): number;
   addListener(event: string, fn: () => void): { remove(): void };
 }
 export interface GoogleMapsLike {

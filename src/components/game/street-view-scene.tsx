@@ -21,6 +21,7 @@ export function StreetViewScene({
   wide = false,
   interactive = true,
   hidden = false,
+  still = false,
   showHints = true,
   onReady,
   onUnavailable,
@@ -35,6 +36,11 @@ export function StreetViewScene({
    * left it, so switching back is instant.
    */
   hidden?: boolean;
+  /**
+   * The Photo side for a place with no photo of its own: the starting view,
+   * frozen. Leaving it puts the player back where they had walked to.
+   */
+  still?: boolean;
   /** A first-look hint on how to move, until the player moves or looks around. */
   showHints?: boolean;
   /** The panorama is on screen. */
@@ -45,6 +51,12 @@ export function StreetViewScene({
   const hostRef = useRef<HTMLDivElement>(null);
   const panoRef = useRef<StreetViewPanoramaLike | null>(null);
   const startRef = useRef<{ pano: string; heading: number } | null>(null);
+  const stillRef = useRef(still);
+  stillRef.current = still;
+  // Where the player was when the still view took over.
+  const walkedRef = useRef<{ pano: string; pov: { heading: number; pitch: number }; zoom: number } | null>(
+    null,
+  );
   const [status, setStatus] = useState<"loading" | "ready">("loading");
   const [moved, setMoved] = useState(false);
   const [looked, setLooked] = useState(false);
@@ -112,10 +124,7 @@ export function StreetViewScene({
         motionTracking: false,
         motionTrackingControl: false,
         imageDateControl: false,
-        linksControl: true,
-        clickToGo: true,
-        panControl: true,
-        zoomControl: true,
+        ...moveControls(!stillRef.current),
         // Google puts these bottom-right, under the map panel; the left
         // edge of the scene is clear.
         ...(maps.ControlPosition
@@ -124,7 +133,6 @@ export function StreetViewScene({
               zoomControlOptions: { position: maps.ControlPosition.LEFT_CENTER },
             }
           : {}),
-        scrollwheel: true,
       });
       panoRef.current = panorama;
       panorama.addListener("pano_changed", () => {
@@ -148,6 +156,30 @@ export function StreetViewScene({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [target.latitude, target.longitude]);
 
+  // The still view: the start, with every way of moving switched off.
+  useEffect(() => {
+    const pano = panoRef.current;
+    const start = startRef.current;
+    if (status !== "ready" || !pano || !start) return;
+    if (still) {
+      if (!walkedRef.current)
+        walkedRef.current = { pano: pano.getPano(), pov: pano.getPov(), zoom: pano.getZoom() };
+      pano.setOptions(moveControls(false));
+      if (pano.getPano() !== start.pano) pano.setPano(start.pano);
+      pano.setPov({ heading: start.heading, pitch: 0 });
+      pano.setZoom(0);
+    } else {
+      pano.setOptions(moveControls(true));
+      const walked = walkedRef.current;
+      walkedRef.current = null;
+      if (walked) {
+        if (walked.pano !== pano.getPano()) pano.setPano(walked.pano);
+        pano.setPov(walked.pov);
+        pano.setZoom(walked.zoom);
+      }
+    }
+  }, [still, status]);
+
   const backToStart = () => {
     const start = startRef.current;
     const pano = panoRef.current;
@@ -166,7 +198,11 @@ export function StreetViewScene({
         ref={hostRef}
         className={cn("street-view-pano absolute inset-0", status === "ready" && "is-ready")}
         role="application"
-        aria-label="Street View. Drag to look around; click the arrows or the road to walk."
+        aria-label={
+          still
+            ? "A still view of the place."
+            : "Street View. Drag to look around; click the arrows or the road to walk."
+        }
       />
       {!interactive && <div className="absolute inset-0 z-[2]" aria-hidden />}
       {status === "loading" && !hidden && (
@@ -188,4 +224,9 @@ export function StreetViewScene({
       )}
     </div>
   );
+}
+
+/** Google's movement controls, all on (Street View) or all off (the still). */
+function moveControls(on: boolean) {
+  return { linksControl: on, clickToGo: on, panControl: on, zoomControl: on, scrollwheel: on };
 }

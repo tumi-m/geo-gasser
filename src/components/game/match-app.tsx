@@ -27,6 +27,7 @@ import {
   GROK_BOT_NAME,
   isRound4,
   streetViewTarget,
+  streetViewStatus,
   streetViewUsable,
   canSwapPlace,
   locationAt,
@@ -165,7 +166,8 @@ export function MatchApp({
   // The scene whose Street View failed. Keyed to the scene, not a flag, so a
   // failure on one place never carries over to the next before it has tried.
   const [streetFailedSrc, setStreetFailedSrc] = useState<string | null>(null);
-  const [viewSource, setViewSource] = useState<"street" | "photo">("street");
+  // Every place opens on its photo; Street View is one press away.
+  const [viewSource, setViewSource] = useState<"street" | "photo">("photo");
   const [scene3dFailed, setScene3dFailed] = useState(false);
   const [pendingLock, setPendingLock] = useState<{
     roundStartedAtMs?: number;
@@ -690,7 +692,8 @@ export function MatchApp({
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [scene?.src, loc?.id],
   );
-  // A place with no usable photo is Street View only: no Photo switch.
+  // A place with no usable photo of its own is Street View only: its Photo
+  // side is the panorama's starting view, frozen.
   const streetOnly = scene?.kind === "street";
   const streetFailed = streetFailedSrc !== null && streetFailedSrc === scene?.src;
   // The scene whose panorama has been found. The Street View / Photo switch
@@ -701,6 +704,20 @@ export function MatchApp({
   const streetReady = streetReadySrc !== null && streetReadySrc === scene?.src;
   const streetAvailable = Boolean(streetTarget) && !streetFailed;
   const showStreet = streetAvailable && (streetOnly || viewSource === "street");
+  const streetStill = streetOnly && viewSource === "photo";
+  useEffect(() => {
+    setViewSource("photo");
+  }, [scene?.src]);
+  // Why the Street View side can't be pressed yet, if it can't.
+  const streetWhy = streetReady
+    ? null
+    : !streetTarget
+      ? streetViewStatus().state === "on"
+        ? "No Street View for this place"
+        : "Street View is off (see Settings, Picture)"
+      : streetFailed
+        ? "No Street View near this place"
+        : "Looking for Street View…";
 
   // A Street View-only place that cannot load would be a blind round. Where
   // this screen runs the match, a photo place from the same country takes its
@@ -1476,7 +1493,8 @@ export function MatchApp({
               target={streetTarget}
               wide={streetOnly}
               hidden={!showStreet}
-              interactive={canGuess && !showSettings && !showingReveal && showStreet}
+              still={streetStill}
+              interactive={canGuess && !showSettings && !showingReveal && showStreet && !streetStill}
               showHints={settings.showHints}
               onReady={() => {
                 setStreetReadySrc(scene?.src ?? null);
@@ -1574,15 +1592,12 @@ export function MatchApp({
         )}
       </div>
 
-      {streetAvailable && streetReady && !streetOnly && !showingReveal && (
-        <div className="view-source" role="group" aria-label="Scene">
-          <button
-            type="button"
-            aria-pressed={viewSource === "street"}
-            onClick={() => setViewSource("street")}
-          >
-            Street View
-          </button>
+      {/* The switch is on every photo and Street View round, from the
+          first second: Photo first, Street View once a panorama is found.
+          It used to appear only after the search, and never on places with
+          no photo of their own, so whole rounds went by without it. */}
+      {!cosmic && scene && (
+        <div className={cn("view-source", showingReveal && "is-reveal")} role="group" aria-label="Scene">
           <button
             type="button"
             aria-pressed={viewSource === "photo"}
@@ -1590,6 +1605,24 @@ export function MatchApp({
           >
             Photo
           </button>
+          <button
+            type="button"
+            aria-pressed={viewSource === "street"}
+            aria-disabled={streetWhy ? true : undefined}
+            aria-describedby={streetWhy ? "street-why" : undefined}
+            title={streetWhy ?? undefined}
+            className={cn(streetWhy && "is-waiting")}
+            onClick={() => {
+              if (!streetWhy) setViewSource("street");
+            }}
+          >
+            Street View
+          </button>
+          {streetWhy && (
+            <span id="street-why" className="sr-only">
+              {streetWhy}
+            </span>
+          )}
         </div>
       )}
 

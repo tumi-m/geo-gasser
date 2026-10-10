@@ -132,11 +132,14 @@ Rules this repo has already paid for:
   duel, whose two-row score card makes the header taller. A solo test and a
   role-based click both missed it; `elementFromPoint` at the button's centre
   catches it.
-- **Offer a control only once what it switches to exists.** The Street View
-  / Photo switch showed while the panorama search was still running. Using
-  it cancelled the search, and the retry could find nothing and take the
-  switch away. Search once per place, keep the result alive behind the
-  photo, and show the switch when the panorama is found.
+- **A control that switches the scene never disappears; its unready side
+  says why.** The Street View / Photo switch once cancelled the panorama
+  search, so it was held back until a panorama was found. That left whole
+  rounds without it: during the search, where there was no panorama, and on
+  places with no photo. The search now runs once per place behind the
+  photo, so the switch shows from the first second, Photo first, with
+  Street View greyed and explained until it exists. A place with no photo
+  shows its starting Street View frame, frozen, as its photo.
 - **Temporary test hooks never reach a commit.** Remove them, and grep the
   diff before committing.
 - **State set outside React goes in an attribute, not a class.** The scroll
