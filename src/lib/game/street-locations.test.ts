@@ -4,7 +4,7 @@ import { isInsideCountry, isInsideNation } from "./geo.ts";
 import { enabledLocations, getLocation, needsStreetView } from "./locations.ts";
 import { UNFIT_PHOTOS } from "./photo-review.ts";
 import { STREET_LOCATIONS } from "./street-locations.ts";
-import { streetViewTarget } from "./street-view.ts";
+import { explainMapsError, streetViewStatus, streetViewTarget, streetViewUsable } from "./street-view.ts";
 
 describe("Street View places", () => {
   it("are thirty unique places: ten in SA, ten in NL, ten abroad", () => {
@@ -37,5 +37,20 @@ describe("Street View places", () => {
     const l = STREET_LOCATIONS[20];
     const target = streetViewTarget({ kind: "street", src: `street:${l.id}`, fallbacks: [] });
     assert.deepEqual(target, { latitude: l.latitude, longitude: l.longitude });
+  });
+});
+
+describe("Street View status", () => {
+  it("is off with no key, and never deals Street View places then", () => {
+    assert.deepEqual(streetViewStatus(), { state: "no-key" });
+    assert.equal(streetViewUsable(), false);
+  });
+  it("explains Google's refusal codes with the fix", () => {
+    assert.match(explainMapsError("RefererNotAllowedMapError", "geo-gasser.vercel.app"), /https:\/\/geo-gasser\.vercel\.app\/\*/);
+    assert.match(explainMapsError("BillingNotEnabledMapError", "x"), /Billing/);
+    assert.match(explainMapsError("ApiNotActivatedMapError", "x"), /Maps JavaScript API/);
+    assert.match(explainMapsError("InvalidKeyMapError", "x"), /VITE_GOOGLE_MAPS_KEY/);
+    assert.match(explainMapsError("", "x"), /without saying why/);
+    assert.match(explainMapsError("SomethingNewMapError", "x"), /SomethingNewMapError/);
   });
 });

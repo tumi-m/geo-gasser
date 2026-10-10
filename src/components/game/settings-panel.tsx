@@ -13,9 +13,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
   atlasLabel,
+  explainMapsError,
   planCounts,
   planMatch,
   sanitizeAvatar,
+  retryStreetView,
+  streetViewStatus,
   streetViewUsable,
   type GameSettings,
   type MatchLengthId,
@@ -222,6 +225,7 @@ export function SettingsPanel({
                 />
               </div>
             </Section>
+            <StreetViewSection />
             <div className="settings-switches">
               <Toggle
                 label="Show control hints"
@@ -337,6 +341,40 @@ export function SettingsPanel({
     </ModalShell>
   );
 }
+/**
+ * Whether Street View is on in this tab, and if Google refused the key, why
+ * and what to change. A refusal used to be silent: the game quietly fell back
+ * to photos, and a reload wiped Google's reason from the console.
+ */
+function StreetViewSection() {
+  const status = streetViewStatus();
+  return (
+    <Section title="Street View">
+      {status.state === "on" ? (
+        <p className="settings-footnote mt-0">
+          On. Rounds open in Street View where Google has coverage; the Photo switch shows the
+          still.
+        </p>
+      ) : status.state === "no-key" ? (
+        <p className="settings-footnote mt-0">
+          Off. This build has no Maps key (VITE_GOOGLE_MAPS_KEY), so rounds use photographs.
+        </p>
+      ) : (
+        <div className="street-view-refused" role="status">
+          <p>
+            <strong>Off in this tab: Google refused the key.</strong>{" "}
+            {explainMapsError(status.reason, window.location.host)}
+          </p>
+          {status.reason ? <code>{status.reason}</code> : null}
+          <button type="button" onClick={retryStreetView}>
+            Reload and try again
+          </button>
+        </div>
+      )}
+    </Section>
+  );
+}
+
 function Section({
   title,
   hint,

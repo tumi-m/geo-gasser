@@ -103,11 +103,12 @@ export function loadGoogleMaps(key: string): Promise<GoogleMapsLike> {
         .catch((error: unknown) => fail(`street view library failed: ${String(error)}`));
     };
     // Google calls this when the key is invalid or not allowed for this site.
+    listenForMapsErrors();
     w.gm_authFailure = () => {
       console.warn(
         "Google refused the Maps key; the photos take over for this session. Google's own error above names the cause (RefererNotAllowedMapError: add this site to the key; BillingNotEnabledMapError: attach billing; ApiNotActivatedMapError: enable the Maps JavaScript API).",
       );
-      markStreetViewBroken();
+      markStreetViewBroken(lastMapsError);
       window.dispatchEvent(new Event("atlas-maps-auth-failure"));
       fail("key refused");
     };
@@ -122,24 +123,96 @@ export function loadGoogleMaps(key: string): Promise<GoogleMapsLike> {
 
 const BROKEN_KEY = "atlas-street-view-broken";
 
+// Google names why it refused a key only in a console message
+// ("Google Maps JavaScript API error: RefererNotAllowedMapError …"), and a
+// reload wipes the console. Keep the code so Settings can say it.
+let lastMapsError = "";
+let listening = false;
+function listenForMapsErrors(): void {
+  if (listening || typeof console === "undefined") return;
+  listening = true;
+  for (const level of ["error", "warn"] as const) {
+    const original = console[level].bind(console);
+    console[level] = (...args: unknown[]) => {
+      const code = String(args[0] ?? "").match(/Google Maps JavaScript API (?:error|warning): (\w+)/)?.[1];
+      if (code && level === "error") {
+        lastMapsError = code;
+        // The refusal may already be recorded; give it its reason.
+        if (readBroken() !== null) markStreetViewBroken(code);
+      }
+      original(...args);
+    };
+  }
+}
+
+function readBroken(): string | null {
+  try {
+    return sessionStorage.getItem(BROKEN_KEY);
+  } catch {
+    return null;
+  }
+}
+
 /**
  * May new matches include Street View-only places? Yes when a key is set and
  * Google has not refused it this session (a refused key would leave those
  * rounds with nothing to show).
  */
 export function streetViewUsable(): boolean {
-  if (!streetViewKey()) return false;
+  return Boolean(streetViewKey()) && readBroken() === null;
+}
+
+/** Google refused the key: Street View stays off for this tab. */
+export function markStreetViewBroken(reason = ""): void {
   try {
-    return sessionStorage.getItem(BROKEN_KEY) !== "1";
+    sessionStorage.setItem(BROKEN_KEY, reason || "refused");
   } catch {
-    return true;
+    /* private mode: the next refusal says so again */
   }
 }
 
-export function markStreetViewBroken(): void {
+export type StreetViewStatus =
+  | { state: "on" }
+  | { state: "no-key" }
+  | { state: "refused"; reason: string };
+
+/** Where Street View stands in this tab, for Settings to show. */
+export function streetViewStatus(): StreetViewStatus {
+  if (!streetViewKey()) return { state: "no-key" };
+  const broken = readBroken();
+  if (broken === null) return { state: "on" };
+  return { state: "refused", reason: broken === "refused" || broken === "1" ? "" : broken };
+}
+
+/** Forget a refusal and reload, so Google checks the key afresh. */
+export function retryStreetView(): void {
   try {
-    sessionStorage.setItem(BROKEN_KEY, "1");
+    sessionStorage.removeItem(BROKEN_KEY);
   } catch {
-    /* private mode: the next refusal says so again */
+    /* nothing stored */
+  }
+  window.location.reload();
+}
+
+/** Google's error code, in words, with what to change. */
+export function explainMapsError(code: string, host: string): string {
+  switch (code) {
+    case "RefererNotAllowedMapError":
+      return `The key is not allowed on this site. In Google Cloud, open the key and add https://${host}/* under Website restrictions.`;
+    case "BillingNotEnabledMapError":
+      return "Billing is not attached to the key's Google Cloud project.";
+    case "ApiNotActivatedMapError":
+      return "The Maps JavaScript API is not enabled on the key's project.";
+    case "ApiTargetBlockedMapError":
+      return "The key's API restrictions leave out the Maps JavaScript API.";
+    case "InvalidKeyMapError":
+      return "Google does not recognise the key. Check VITE_GOOGLE_MAPS_KEY in Vercel, then redeploy.";
+    case "ExpiredKeyMapError":
+    case "DeletedApiProjectMapError":
+      return "The key or its project no longer exists. Create a new key and update VITE_GOOGLE_MAPS_KEY.";
+    case "":
+      return "Google refused the key without saying why. Check the key's website and API restrictions and billing.";
+    default:
+      return `Google refused the key (${code}).`;
   }
 }
