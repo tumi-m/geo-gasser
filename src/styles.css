@@ -1365,7 +1365,13 @@ button.duel-mode:hover .duel-mode-go {transform:translateX(4px);color:var(--colo
 .street-view-status {position:absolute;left:50%;top:50%;z-index:3;transform:translate(-50%,-50%);padding:8px 14px;border-radius:999px;background:#0b1620d9;font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--color-muted)}
 .street-view-home {position:absolute;left:12px;bottom:1.25rem;z-index:5;display:inline-flex;align-items:center;gap:6px;height:40px;padding:0 14px;border-radius:999px;border:1px solid var(--color-border);background:#0b1620e6;font-size:13px;font-weight:600;color:var(--color-fg)}
 @media (max-width: 640px) {.street-view-home {bottom:12px}}
-.view-source {position:absolute;right:12px;bottom:calc(var(--atlas-map-h) + 1.25rem);z-index:15;display:inline-flex;border:1px solid var(--color-border);border-radius:999px;background:#0b1620e6;padding:3px}
+/* The header is a full-width strip with a fade below its content. That
+   strip used to catch clicks: in a duel the two-row score card makes it tall
+   enough to cover this switch, and it blocked dragging the scene along the
+   top. Only the header's own controls take the pointer now. */
+.match-hud {pointer-events:none}
+.match-hud > * {pointer-events:auto}
+.view-source {position:absolute;right:12px;bottom:calc(var(--atlas-map-h) + 1.25rem);z-index:21;display:inline-flex;border:1px solid var(--color-border);border-radius:999px;background:#0b1620e6;padding:3px}
 @media (min-width: 641px) {.view-source {top:5.5rem;bottom:auto;left:50%;right:auto;transform:translateX(-50%)}}
 @media (max-width: 640px) {.view-source {top:calc(var(--atlas-hud-h,72px) + 10px);bottom:auto}.street-view-home {bottom:12px}}
 .view-source button {height:34px;padding:0 13px;border-radius:999px;font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--color-muted)}

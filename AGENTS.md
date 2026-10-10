@@ -127,5 +127,10 @@ Rules this repo has already paid for:
 - **Report why Street View gave up.** A silent fallback looked like a broken
   game. The console now names the cause, and Google's own error names a
   refused key.
+- **Test clicks where a person clicks, in the tallest layout.** A
+  transparent header strip covered the Street View / Photo switch only in a
+  duel, whose two-row score card makes the header taller. A solo test and a
+  role-based click both missed it; `elementFromPoint` at the button's centre
+  catches it.
 - **Temporary test hooks never reach a commit.** Remove them, and grep the
   diff before committing.
