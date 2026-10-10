@@ -2,7 +2,7 @@
 
 Quick Escape, longer expeditions, and private duels across South Africa, the Netherlands, and the world. Choose countries or cities, inspect a scene, and lock your pin.
 
-See [release notes and verification](docs/release-2026-09-23.md) for the latest changes and known limitations. Run `npm run test:game` for the gameplay and multiplayer regression suite.
+See the [latest release note](docs/release-2026-10-10.md) for recent changes. Before changing anything, read [AGENTS.md](AGENTS.md): how work is split, checked and handed over in this repo.
 
 
 A geo-guessing duel. Pick an atlas, study a scene, drop a pin, lock in. Accuracy and speed both score.
@@ -14,7 +14,7 @@ A geo-guessing duel. Pick an atlas, study a scene, drop a pin, lock in. Accuracy
 
 Timer: Easy 60s, Medium 45s, Hard 30s.
 
-Round 4 is reserved for 3D reconstructions. OpenCode / GPT-6 Astra own that work — the files stay in the repo (`docs/round4-later.md`). Until they land, those ten sites play as labelled stills.
+The final round is real places, in the same country mix as the rest of the match. The 3D reconstruction round is parked behind `ROUND4_3D_LIVE`; its files stay in the repo (`docs/round4-later.md`) and its plates are never dealt.
 
 ## Play
 
@@ -31,12 +31,14 @@ Drag the scene to look around, WASD to inspect, scroll to zoom. Unsubmitted pins
 
 ```
 npm install
-npm run dev
-npm test
-npm run locations:validate
-npm run typecheck
+npm run dev          # http://localhost:8080
+npm run verify       # tests, type checks, lint (add -- --build for the build)
 npm run build
+npm run smoke        # plays a whole match on the production build
 ```
+
+`npm run smoke` needs a Chromium. Install Playwright's with
+`npx playwright install chromium`, or point `CHROMIUM_PATH` at one.
 
 ## Architecture
 
@@ -44,16 +46,17 @@ See `docs/architecture.md`. Game rules live in `src/lib/game` so they can be tes
 
 ## Providers
 
-See `docs/providers.md`. Map: bundled Natural Earth countries (no live tile API). Location plates: Wikimedia Commons (CC BY-SA) or labelled reconstructions.
+See `docs/providers.md`. Map: bundled Natural Earth countries (no live tile API). Location plates: Wikimedia Commons (CC BY-SA), checked by eye; optional Google Street View with `VITE_GOOGLE_MAPS_KEY`.
 
 ## Testing
 
 ```
-npm test
+npm run verify
 npm run locations:validate
+npm run build && npm run smoke
 ```
 
-Unit tests cover the timer contract, haversine pairs, country-aware scoring, the 149-site pool, shuffled match deals, and the match state machine (including hidden answers before reveal).
+Unit tests cover the timer contract, haversine pairs, country-aware scoring, the playable pool and what the menus count, shuffled match deals with no repeats, the Street View swap, and the match state machine (including hidden answers before reveal). The smoke test plays a solo Escape from the home page to the results and a rematch, and fails on any page error.
 
 ## Deployment
 
