@@ -23,7 +23,11 @@ VITE_GOOGLE_MAPS_KEY=
    add `https://geo-gasser.vercel.app/*` (and any preview domain you use);
    under *API restrictions* allow only the Maps JavaScript API.
 3. In Vercel → the project → Settings → Environment Variables, add
-   `VITE_GOOGLE_MAPS_KEY` with the key, then redeploy.
+   `VITE_GOOGLE_MAPS_KEY` with the key, then redeploy. Choose the **Config**
+   type: Vercel refuses **Secret** for `VITE_` variables, because Vite builds
+   them into the site's JavaScript where every visitor can read them. That
+   is normal for a browser Maps key; the website and API restrictions in
+   step 2 are what keep it from being used elsewhere.
 
 Each photo round then opens on the nearest Street View panorama of Google's
 own imagery (never visitors' uploaded photospheres), within ~1.5 km of the
