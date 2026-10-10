@@ -20,8 +20,8 @@ import {
   retryStreetView,
   streetViewStatus,
   streetViewUsable,
+  MATCH_LENGTH_NAME,
   type GameSettings,
-  type MatchLengthId,
 } from "@/lib/game";
 import { useMusic } from "@/lib/music/use-music";
 import { AtlasPicker } from "./atlas-picker";
@@ -38,13 +38,7 @@ const tabs = [
 ] as const;
 type TabId = (typeof tabs)[number]["id"];
 
-const LENGTH_NAME: Record<MatchLengthId, string> = {
-  escape: "Escape",
-  quick: "Quick",
-  standard: "Classic",
-  extended: "Voyage",
-  full: "Odyssey",
-};
+const LENGTH_NAME = MATCH_LENGTH_NAME;
 
 export function SettingsPanel({
   settings,

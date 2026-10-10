@@ -1510,3 +1510,20 @@ html.reduce-motion .rival-locked {animation:final-count-calm 2.4s linear forward
 @keyframes flame-flicker {0%,100%{transform:scale(1) rotate(-3deg)}35%{transform:scale(1.15,1.05) rotate(4deg)}70%{transform:scale(.95,1.1) rotate(-1deg)}}
 @media (prefers-reduced-motion: reduce) {.streak-badge,.streak-badge svg{animation:none}}
 html.reduce-motion .streak-badge,html.reduce-motion .streak-badge svg {animation:none}
+
+/* Match finale. A duel's winner gets the crown; winning, or beating your
+   record for the match length, sets off the confetti behind the results. */
+.result-fx {position:fixed;inset:0;z-index:0;pointer-events:none;animation:result-fx-out .6s 3.6s forwards}
+.result-fx .win-rays,.result-fx .win-flash {top:22%}
+@keyframes result-fx-out {to{opacity:0}}
+.result-crowned {margin-top:34px}
+.result-crowned .splash-crown {top:-30px;width:46px;height:29px;margin-left:-23px;animation-delay:.45s}
+.best-stamp {align-self:flex-start;display:inline-flex;align-items:center;gap:10px;margin-top:14px;padding:8px 16px 8px 12px;border-radius:14px;background:linear-gradient(100deg,#ffd166,#ffb21a);color:#2a1a00;box-shadow:0 0 0 3px #ffd16633,0 12px 28px #0007;rotate:-2deg;transform-origin:20% 50%;animation:best-stamp .55s 1.6s cubic-bezier(.2,1.6,.4,1) backwards}
+.best-stamp strong {display:block;font-family:var(--font-display);font-size:17px;line-height:1.1;letter-spacing:.02em;text-transform:uppercase}
+.best-stamp .best-stamp-was {display:block;font-size:12px;opacity:.8}
+.best-stamp svg {flex:none;animation:best-trophy 1.2s 2.1s ease-in-out 2}
+@keyframes best-stamp {0%{opacity:0;transform:scale(2.2) rotate(-10deg)}60%{opacity:1;transform:scale(.95) rotate(4deg)}100%{transform:none}}
+@keyframes best-trophy {0%,100%{transform:none}30%{transform:rotate(-14deg) scale(1.2)}60%{transform:rotate(10deg) scale(1.1)}}
+@media (prefers-reduced-motion: reduce) {.win-fx{display:none}.best-stamp,.best-stamp svg{animation:none}}
+html.reduce-motion .win-fx {display:none}
+html.reduce-motion .best-stamp,html.reduce-motion .best-stamp svg {animation:none}

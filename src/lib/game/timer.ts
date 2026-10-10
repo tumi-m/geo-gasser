@@ -11,6 +11,15 @@ export const DIFFICULTY_SECONDS: Record<TimeDifficulty, number> = {
   hard: 30,
 };
 
+/** What each match length is called on screen. */
+export const MATCH_LENGTH_NAME: Record<MatchLengthId, string> = {
+  escape: "Escape",
+  quick: "Quick",
+  standard: "Classic",
+  extended: "Voyage",
+  full: "Odyssey",
+};
+
 export const MATCH_LENGTH: Record<
   MatchLengthId,
   { photoRounds: number; totalRounds: number; photoQuestions: number; totalQuestions: number }

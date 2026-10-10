@@ -39,6 +39,8 @@ import {
   TOTAL_QUESTIONS,
   loadSettings,
   loadStats,
+  isNewBest,
+  previousBest,
   randomSeed,
   loadRecentIds,
   recordMatch,
@@ -172,6 +174,9 @@ export function MatchApp({
   } | null>(null);
   const clockOffset = useRef(0);
   const statsRecorded = useRef(false);
+  // A record beaten by the match that just ended, keyed by its seed so a
+  // rematch's results never show the last match's news.
+  const [beatBest, setBeatBest] = useState<{ seed: number; previous: number } | null>(null);
   const lastUrgentRef = useRef<number | null>(null);
   const name = sanitizeName(settings.displayName);
   const avatarId = sanitizeAvatar(settings.avatarId);
@@ -948,7 +953,12 @@ export function MatchApp({
   }, [state.questionIndex, state.roundStartedAtMs]);
 
   useEffect(() => {
-    if (state.phase !== "match_complete" && state.phase !== "final_reveal") return;
+    if (state.phase !== "match_complete" && state.phase !== "final_reveal") {
+      // Any way out of the results re-arms the record: an online guest's
+      // rematch is started by the host, never by this screen's button.
+      statsRecorded.current = false;
+      return;
+    }
     if (statsRecorded.current) return;
     statsRecorded.current = true;
     // Hotseat switches the active seat; record the seat that just finished so
@@ -974,8 +984,16 @@ export function MatchApp({
       .map((r) => r.guesses[statsId]?.score)
       .filter((s) => s && s.distanceKm <= 5)
       .map((s) => s!.responseMs);
-    recordMatch(loadStats(), {
-      score: you?.totalScore ?? 0,
+    const before = loadStats();
+    const score = you?.totalScore ?? 0;
+    // Pass-and-play shares one device's stats between two people: its scores
+    // neither set nor beat a record, which would credit whoever finished last.
+    const hotseat = mode === "duel" && duelKind === "hotseat";
+    if (!hotseat && isNewBest(before, state.matchLength, score))
+      setBeatBest({ seed: state.seed, previous: previousBest(before, state.matchLength)! });
+    recordMatch(before, {
+      score,
+      length: hotseat ? undefined : state.matchLength,
       won: state.mode === "duel" && state.winnerIds.includes(statsId),
       distances,
       countryHits: { ZA: za, NL: nl, WORLD: world },
@@ -987,6 +1005,10 @@ export function MatchApp({
     state.roundHistory,
     state.winnerIds,
     state.mode,
+    state.matchLength,
+    state.seed,
+    mode,
+    duelKind,
     selfId,
     you,
   ]);
@@ -1276,6 +1298,7 @@ export function MatchApp({
         state={state}
         selfId={selfId}
         reducedMotion={settings.reducedMotion}
+        beatBest={beatBest?.seed === state.seed ? beatBest.previous : undefined}
         onRematch={() => {
           statsRecorded.current = false;
           const seed = randomSeed();

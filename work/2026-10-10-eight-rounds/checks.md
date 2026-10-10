@@ -17,3 +17,10 @@
 | 3 | Streak badge from two good guesses in a row | pass | "2 IN A ROW" on the second; scoreStreak tests |
 | 3 | Close guesses no longer stack the distance label on the answer | pass | sheet-dist: close guess shows no label, far guess keeps "2,422 km" |
 | 3 | gates | pass | verify --build and smoke green |
+| 4 | Duel win: confetti and rays behind the results, crown on your avatar; gone after 4.2 s | pass | fin-duelbot-you: fx on, crown on, fx removed after; 390 and 1280 px |
+| 4 | Duel loss: crown on the winner, no confetti | pass | fin-duelbot-bot: crown on Grok, fx off |
+| 4 | Solo new best for the match length: stamp "New personal best · Quick record was 20,000" plus confetti | pass | fin-play-you-20000; no stamp and no confetti without an earlier record |
+| 4 | Bests are kept per match length; equal is not a new best; old saves still load | pass | stats tests (4 new) |
+| 4 | Pass-and-play neither sets nor beats a record | pass | rearm.mjs: bests unchanged, no stamp |
+| 4 | Bug: an online guest whose host started the rematch never had the next match recorded | pass | fixed by re-arming when the results close; rearm.mjs: matchesPlayed 3 → 4 → 5 without pressing Rematch |
+| 4 | Reduced motion: stamp shown still, no confetti | pass | fin-play-you-20000-rm |

@@ -1,12 +1,13 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "@/lib/navigation";
 import { Button } from "@/components/ui/button";
-import { Check, Share2 } from "lucide-react";
+import { Check, Share2, Trophy } from "lucide-react";
 import {
   formatDistance,
   formatMiss,
   getLocation,
   locationCountryLabel,
+  MATCH_LENGTH_NAME,
   placeCity,
   shareCard,
   type MatchState,
@@ -20,6 +21,7 @@ import { ExpeditionRoute } from "./expedition-route";
 import { PassportStamps } from "./passport-stamps";
 import { PlayerAvatar } from "./player-avatar";
 import { ScoreTally } from "./score-tally";
+import { CrownDrop, WinFx } from "./winner-moment";
 import { cn, copyText } from "@/lib/utils";
 
 export function FinalResults({
@@ -31,6 +33,7 @@ export function FinalResults({
   rematchNote,
   rematchLabel,
   rematchPending,
+  beatBest,
 }: {
   state: MatchState;
   selfId: string;
@@ -42,6 +45,8 @@ export function FinalResults({
   rematchLabel?: string;
   /** Asked and waiting on the host: the button rests. */
   rematchPending?: boolean;
+  /** The record this match beat for its length, when it set a new one. */
+  beatBest?: number;
 }) {
   const navigate = useNavigate();
   const you = state.players.find((p) => p.id === selfId);
@@ -66,6 +71,27 @@ export function FinalResults({
   // winner's name when you lost, as if they had come second).
   const kicker = shared ? "Shared victory" : state.mode === "solo" ? "Match complete" : "Champion";
   const winnerName = youWin ? you?.name : other?.name;
+  // A duel's winner wears the crown, whoever it is.
+  const crowned = duel && !shared;
+  // Confetti when this screen has news worth it: you won the duel (or, in
+  // pass-and-play, someone at this device did), or you set a new best.
+  const fanfare =
+    !reducedMotion &&
+    ((crowned && (youWin || state.duelKind === "hotseat")) || beatBest != null);
+  const winColour =
+    crowned && state.winnerIds[0] === state.players[1]?.id
+      ? "var(--color-nl)"
+      : "var(--color-accent)";
+  // A new best is known a moment after this screen mounts (the stats are
+  // recorded then), so the burst starts whenever `fanfare` turns true.
+  const [fxSpent, setFxSpent] = useState(false);
+  const showFx = fanfare && !fxSpent;
+  useEffect(() => {
+    if (!fanfare) return;
+    // The burst is spent by then; the spinning rays should not run forever.
+    const t = window.setTimeout(() => setFxSpent(true), 4200);
+    return () => window.clearTimeout(t);
+  }, [fanfare]);
 
   // Cards and stat tiles come in as they scroll into view (styles.css).
   const shellRef = useRef<HTMLElement>(null);
@@ -83,14 +109,24 @@ export function FinalResults({
       tabIndex={-1}
       className="result-shell min-h-dvh px-5 py-10 pt-[max(2.5rem,env(safe-area-inset-top))] pb-[max(2.5rem,env(safe-area-inset-bottom))]"
     >
-      <div className="mx-auto flex min-h-[calc(100dvh-5rem)] max-w-lg flex-col justify-center">
+      {showFx && (
+        <div className="result-fx">
+          <WinFx color={winColour} confetti />
+        </div>
+      )}
+      <div className="relative mx-auto flex min-h-[calc(100dvh-5rem)] max-w-lg flex-col justify-center">
         <div className="atlas-rise flex items-center justify-between gap-3">
           <p className="text-xs uppercase tracking-[0.28em] text-muted">{kicker}</p>
           <div className="-my-2">
             <MusicHudButton />
           </div>
         </div>
-        <div className="atlas-rise atlas-rise-1 mt-3 flex items-center gap-3">
+        <div
+          className={cn(
+            "atlas-rise atlas-rise-1 mt-3 flex items-center gap-3",
+            crowned && "result-crowned",
+          )}
+        >
           <span className="result-burst result-avatar-pop">
             <PlayerAvatar
               id={(youWin || state.mode === "solo" ? you : other)?.avatarId}
@@ -99,6 +135,7 @@ export function FinalResults({
               mood={shared ? "neutral" : "happy"}
             />
             {!reducedMotion && !shared && <Sparks count={20} spread={130} />}
+            {crowned && <CrownDrop />}
           </span>
           <h1 className="font-display text-5xl leading-none tracking-tight sm:text-6xl">
             <WordRise text={headline ?? ""} delay={180} />
@@ -116,6 +153,17 @@ export function FinalResults({
         ) : (
           <p className="atlas-rise atlas-rise-2 mt-6 result-score tabular">
             <FinalScore value={you?.totalScore ?? 0} reduced={Boolean(reducedMotion)} />
+          </p>
+        )}
+        {beatBest != null && (
+          <p className="best-stamp" role="status">
+            <Trophy size={16} aria-hidden />
+            <span>
+              <strong>New personal best</strong>
+              <span className="best-stamp-was">
+                {MATCH_LENGTH_NAME[state.matchLength]} record was {beatBest.toLocaleString()}
+              </span>
+            </span>
           </p>
         )}
         <ExpeditionRoute
