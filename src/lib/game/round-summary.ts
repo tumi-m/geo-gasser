@@ -33,6 +33,14 @@ export function endsRound(
   return last || (state.questionIndex + 1) % QUESTIONS_PER_ROUND === 0;
 }
 
+/** Stars a round earns from its average points per question (max 20,000). */
+export function roundStars(averagePoints: number): number {
+  if (averagePoints >= 15000) return 3;
+  if (averagePoints >= 10000) return 2;
+  if (averagePoints >= 6000) return 1;
+  return 0;
+}
+
 /** Everything the end-of-round summary shows, from the match history. */
 export function roundSummary(
   history: readonly RoundRecord[],

@@ -1435,3 +1435,48 @@ html.reduce-motion .street-view-hint {animation:sv-hint-out .01s linear 7s forwa
 .street-view-refused strong {color:var(--color-fg);font-weight:600}
 .street-view-refused code {justify-self:start;padding:2px 8px;border-radius:6px;background:#0b1620;font-size:11px;color:var(--color-fg)}
 .street-view-refused button {justify-self:start;min-height:40px;padding:0 16px;border-radius:999px;border:1px solid var(--color-border);background:#0b1620;font-size:12px;font-weight:600;color:var(--color-fg)}
+
+/* Winner moment: the end of every round (winner-moment.tsx). Rays turn and a
+   flash goes off behind the splash, confetti fires from both lower corners,
+   the winner's name slams in with a shake, a crown drops onto their avatar;
+   solo rounds stamp in stars. Transforms and opacity only. */
+.round-splash > .splash-inner {position:relative;z-index:1}
+.win-fx {position:absolute;inset:0;z-index:0;overflow:hidden;pointer-events:none}
+.win-rays {position:absolute;left:50%;top:46%;width:180vmax;height:180vmax;margin:-90vmax 0 0 -90vmax;background:repeating-conic-gradient(from 0deg,color-mix(in oklab,var(--win) 15%,transparent) 0deg 5deg,transparent 5deg 15deg);-webkit-mask:radial-gradient(circle,#000 0,#000 4%,transparent 26%);mask:radial-gradient(circle,#000 0,#000 4%,transparent 26%);opacity:0;animation:win-rays-in .7s var(--ease-out) forwards,win-spin 24s linear infinite}
+@keyframes win-rays-in {to{opacity:1}}
+@keyframes win-spin {to{transform:rotate(360deg)}}
+.win-flash {position:absolute;left:50%;top:46%;width:70vmax;height:70vmax;margin:-35vmax 0 0 -35vmax;border-radius:50%;background:radial-gradient(circle,color-mix(in oklab,var(--win) 65%,#fff) 0%,transparent 62%);opacity:0;animation:win-flash .75s ease-out forwards}
+@keyframes win-flash {0%{opacity:.8;transform:scale(.15)}100%{opacity:0;transform:scale(1.5)}}
+.win-confetti {position:absolute;inset:0}
+.win-confetti i {position:absolute;bottom:-14px;width:8px;height:13px;border-radius:2px;opacity:0;animation:win-confetti var(--dur) var(--delay) both}
+.win-confetti i.from-left {left:7%}
+.win-confetti i.from-right {right:7%}
+.win-confetti i.is-dot {width:9px;height:9px;border-radius:50%}
+.win-confetti i.is-ribbon {width:4px;height:18px}
+@keyframes win-confetti {
+  0% {opacity:1;transform:translate(0,0) rotate(0);animation-timing-function:cubic-bezier(.12,.7,.3,1)}
+  42% {opacity:1;transform:translate(calc(var(--dx) * .75),var(--up)) rotate(calc(var(--rot) * .5));animation-timing-function:cubic-bezier(.5,0,.9,.5)}
+  100% {opacity:0;transform:translate(var(--dx),var(--down)) rotate(var(--rot))}
+}
+.win-banner {display:flex;flex-direction:column;align-items:center;gap:10px}
+.win-banner .win-big {display:block;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding:0 .06em;font-family:var(--font-display);font-weight:800;font-size:clamp(44px,13vw,88px);line-height:.95;letter-spacing:-.03em;text-transform:uppercase;color:var(--win);text-shadow:0 0 28px color-mix(in oklab,var(--win) 45%,transparent),0 5px 0 #0006;animation:win-slam .6s cubic-bezier(.2,1.5,.35,1) backwards}
+.win-banner.is-draw .win-big {color:var(--color-fg);text-shadow:0 5px 0 #0006}
+.win-banner.is-mid .win-big {font-size:clamp(38px,11vw,76px)}
+.win-banner.is-long .win-big {font-size:clamp(28px,8.2vw,58px)}
+/* Room above the players for the crown that drops onto the winner. */
+.round-splash .splash-duel {margin-top:28px}
+.win-banner .win-label {display:inline-block;padding:6px 14px;border-radius:999px;background:var(--win);color:#0d1a12;font-size:12px;font-weight:700;letter-spacing:.22em;text-transform:uppercase;animation:win-label .5s .28s cubic-bezier(.34,1.56,.64,1) backwards}
+.win-banner.is-draw .win-label {background:#ffffff1f;color:var(--color-fg)}
+@keyframes win-slam {0%{opacity:0;transform:scale(2.6);filter:blur(10px)}55%{opacity:1;transform:scale(.94);filter:blur(0)}75%{transform:scale(1.04)}100%{transform:scale(1)}}
+@keyframes win-label {from{opacity:0;transform:translateY(12px) scale(.8)}}
+.round-splash.has-win.is-crown .splash-inner {animation:win-shake .42s .2s}
+@keyframes win-shake {0%,100%{transform:none}20%{transform:translate(-5px,2px)}40%{transform:translate(5px,-2px)}60%{transform:translate(-3px,1px)}80%{transform:translate(2px,0)}}
+/* Scoped under the banner: the older ".splash-headline span" word rule would
+   otherwise make the row inline-block and stack the stars. */
+.win-banner .win-stars {display:flex;gap:10px;animation:none}
+.win-stars svg {width:34px;height:34px;fill:#ffffff1a;stroke:#ffffff40;stroke-width:1;animation:win-star .5s cubic-bezier(.34,1.56,.64,1) backwards;animation-delay:calc(450ms + var(--i) * 170ms)}
+.win-stars svg.is-on {fill:#ffd166;stroke:none;filter:drop-shadow(0 0 10px #ffd16699)}
+@keyframes win-star {from{opacity:0;transform:scale(2.4) rotate(-40deg)}}
+.splash-crown {position:absolute;left:50%;top:-25px;width:40px;height:25px;margin-left:-20px;fill:#ffd166;filter:drop-shadow(0 4px 8px #0008);animation:crown-drop .7s cubic-bezier(.34,1.56,.64,1) backwards}
+@keyframes crown-drop {0%{opacity:0;transform:translateY(-70px) rotate(-25deg)}60%{opacity:1;transform:translateY(4px) rotate(6deg)}100%{transform:none}}
+.round-splash.is-reduced.has-win .splash-inner {animation:none!important}

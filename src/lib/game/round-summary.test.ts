@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { endsRound, roundSummary } from "./round-summary.ts";
+import { endsRound, roundStars, roundSummary } from "./round-summary.ts";
 import type { PlayerState, RoundRecord, RoundScore } from "./types.ts";
 
 const player = (id: string, name: string): PlayerState => ({
@@ -85,5 +85,17 @@ describe("roundSummary", () => {
     assert.deepEqual(s.pips, [null, null]);
     assert.equal(s.winnerId, null);
     assert.equal(s.best?.question, 2);
+  });
+});
+
+describe("roundStars", () => {
+  it("earns up to three stars from the average per question", () => {
+    assert.equal(roundStars(19000), 3);
+    assert.equal(roundStars(15000), 3);
+    assert.equal(roundStars(14999), 2);
+    assert.equal(roundStars(10000), 2);
+    assert.equal(roundStars(6000), 1);
+    assert.equal(roundStars(5999), 0);
+    assert.equal(roundStars(0), 0);
   });
 });

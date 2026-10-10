@@ -1,21 +1,29 @@
-import { Fragment } from "react";
-import { Trophy } from "lucide-react";
-import { audio, getLocation, roundSummary, type PlayerState, type RoundRecord } from "@/lib/game";
+import {
+  audio,
+  getLocation,
+  roundStars,
+  roundSummary,
+  type PlayerState,
+  type RoundRecord,
+} from "@/lib/game";
 import { PlayerAvatar } from "./player-avatar";
 import { Sparks } from "./round-splash";
 import { useSplashTimeline } from "./use-splash-timeline";
 import { useCountUp } from "./use-count-up";
+import { CrownDrop, WinBanner, WinFx } from "./winner-moment";
 import { cn } from "@/lib/utils";
 
 /**
  * The end of a multi-question round (Quick is one round of ten). Every
  * question lights up in turn — who took it, or how you scored — while the
- * round totals roll up; then the round's winner is crowned.
+ * round totals roll up; then the winner moment: their name slams in, a crown
+ * drops onto their avatar and confetti fires (winner-moment.tsx). Solo
+ * rounds earn up to three stars.
  */
 
 const T_PIPS = 300;
 const PIP_STEP = 110;
-const HOLD = 2000;
+const HOLD = 2600;
 
 export function RoundSummarySplash({
   history,
@@ -60,6 +68,11 @@ export function RoundSummarySplash({
   const loser = s.rows.find((r) => r.id !== s.winnerId);
   const best = s.best;
   const bestPlace = best ? getLocation(best.locationId)?.title : undefined;
+  const winnerIndex = s.rows.findIndex((r) => r.id === s.winnerId);
+  const winColour = winnerIndex === 1 ? "var(--color-nl)" : "var(--color-accent)";
+  const youWin = duel && markSelf && s.winnerId === selfId;
+  const stars = duel ? undefined : roundStars((s.rows[0]?.total ?? 0) / Math.max(1, count));
+  const confetti = duel ? Boolean(s.winnerId) : (stars ?? 0) >= 2;
   const title = duel
     ? winner
       ? `${winner.name} wins ${which}`
@@ -75,12 +88,20 @@ export function RoundSummarySplash({
 
   return (
     <div
-      className={cn("round-splash is-summary", `is-${stage}`, reduced && "is-reduced")}
+      className={cn(
+        "round-splash is-summary",
+        `is-${stage}`,
+        reduced && "is-reduced",
+        crowned && confetti && "has-win",
+      )}
       role="status"
       aria-live="polite"
       aria-label={`${kicker}. ${title}. ${sub}.`}
       onClick={onDone}
     >
+      {crowned && !reduced && (
+        <WinFx color={duel && !s.winnerId ? "var(--color-muted)" : winColour} confetti={confetti} />
+      )}
       <div className="splash-inner">
         <p className="splash-kicker">{kicker}</p>
         {duel ? (
@@ -102,15 +123,9 @@ export function RoundSummarySplash({
                       id={row.avatarId}
                       size={64}
                       live
-                      mood={
-                        isWinner ? "happy" : crowned && s.winnerId ? "sad" : "focus"
-                      }
+                      mood={isWinner ? "happy" : crowned && s.winnerId ? "sad" : "focus"}
                     />
-                    {isWinner && (
-                      <span className="splash-trophy" aria-hidden>
-                        <Trophy size={20} />
-                      </span>
-                    )}
+                    {isWinner && <CrownDrop />}
                     {isWinner && !reduced && <Sparks count={20} spread={130} />}
                   </div>
                   <p className="splash-name">
@@ -161,16 +176,21 @@ export function RoundSummarySplash({
           </ol>
         )}
 
-        <h2 className="splash-headline" aria-hidden>
-          {crowned
-            ? title.split(" ").map((word, i) => (
-                <Fragment key={`${word}-${i}`}>
-                  {i > 0 && " "}
-                  <span style={{ "--i": i } as React.CSSProperties}>{word}</span>
-                </Fragment>
-              ))
-            : " "}
-        </h2>
+        <div className="splash-headline" aria-hidden>
+          {!crowned ? (
+            " "
+          ) : duel && winner ? (
+            <WinBanner
+              big={youWin ? "You" : winner.name}
+              label={`${youWin ? "win" : "wins"} ${which}`}
+              color={winColour}
+            />
+          ) : duel ? (
+            <WinBanner big="Dead heat" label={which} color="var(--color-fg)" draw />
+          ) : (
+            <WinBanner big={STAR_WORD[stars ?? 0]} label={which} color={winColour} stars={stars} />
+          )}
+        </div>
         <p className="splash-sub" aria-hidden>
           {crowned ? sub : " "}
         </p>
@@ -196,5 +216,8 @@ function soloRating(total: number, questions: number): string {
   if (avg >= 8000) return "Solid round";
   return "Round in the books";
 }
+
+/** One word for a solo round's banner, by stars earned (the kicker says "complete"). */
+const STAR_WORD = ["Done", "Solid", "Great", "Outstanding"];
 
 const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);

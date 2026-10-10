@@ -1713,6 +1713,7 @@ export function MatchApp({
               ? "the round"
               : `question ${questionInRound(state.questionIndex) + 1}`
           }
+          roundNumber={state.matchLength === "escape" ? state.roundIndex + 1 : undefined}
           markSelf={duelKind !== "hotseat"}
           reducedMotion={settings.reducedMotion}
           onDone={() => setSplashSeen(revealKey)}

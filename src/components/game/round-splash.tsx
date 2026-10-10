@@ -1,9 +1,17 @@
 import { Fragment } from "react";
 import { Trophy } from "lucide-react";
-import { audio, formatMiss, roundVerdict, type PlayerState, type RoundScore } from "@/lib/game";
+import {
+  audio,
+  formatMiss,
+  roundStars,
+  roundVerdict,
+  type PlayerState,
+  type RoundScore,
+} from "@/lib/game";
 import { PlayerAvatar } from "./player-avatar";
 import { useCountUp } from "./use-count-up";
 import { useSplashTimeline } from "./use-splash-timeline";
+import { CrownDrop, WinBanner, WinFx } from "./winner-moment";
 import { cn } from "@/lib/utils";
 
 /**
@@ -17,6 +25,8 @@ const T_IN = 150;
 const T_COUNT = 900;
 const T_CROWN = T_IN + T_COUNT + 100;
 const T_LEAVE = T_CROWN + 1350;
+/** A question that is a whole round (Escape) gets the full winner moment. */
+const T_LEAVE_ROUND = T_CROWN + 2500;
 export function RoundSplash({
   players,
   selfId,
@@ -24,6 +34,7 @@ export function RoundSplash({
   headline,
   roundLabel,
   winUnit = "the round",
+  roundNumber,
   markSelf = true,
   reducedMotion,
   onDone,
@@ -36,6 +47,8 @@ export function RoundSplash({
   roundLabel: string;
   /** What the winner takes: "the round" when a round is one question. */
   winUnit?: string;
+  /** Set when this question ends a round: it gets the full winner moment. */
+  roundNumber?: number;
   markSelf?: boolean;
   reducedMotion?: boolean;
   onDone: () => void;
@@ -45,9 +58,10 @@ export function RoundSplash({
   const duel = verdict.rows.length > 1;
   const winner = verdict.rows.find((r) => r.id === verdict.winnerId);
   const youWon = duel ? verdict.winnerId === selfId : score.accuracyPoints >= 7000;
+  const roundEnd = roundNumber !== undefined;
   const stage = useSplashTimeline(
     T_CROWN,
-    T_LEAVE,
+    roundEnd ? T_LEAVE_ROUND : T_LEAVE,
     () => {
       if (duel && !verdict.winnerId) return;
       audio.play(youWon ? "roundWin" : "roundLose");
@@ -57,6 +71,12 @@ export function RoundSplash({
   const skip = () => onDone();
 
   const crowned = stage === "crown" || stage === "leave";
+  const winnerIndex = verdict.rows.findIndex((r) => r.id === verdict.winnerId);
+  const winColour = winnerIndex === 1 ? "var(--color-nl)" : "var(--color-accent)";
+  const youWin = duel && markSelf && verdict.winnerId === selfId;
+  const stars = duel ? undefined : roundStars(score.roundScore);
+  const celebrate = roundEnd && crowned;
+  const confetti = duel ? Boolean(verdict.winnerId) : (stars ?? 0) >= 2;
   const title = duel
     ? winner
       ? `${winner.name} takes ${winUnit}`
@@ -73,12 +93,23 @@ export function RoundSplash({
 
   return (
     <div
-      className={cn("round-splash", `is-${stage}`, reduced && "is-reduced")}
+      className={cn(
+        "round-splash",
+        `is-${stage}`,
+        reduced && "is-reduced",
+        celebrate && confetti && "has-win",
+      )}
       role="status"
       aria-live="polite"
       aria-label={`${roundLabel}. ${title}. ${sub}.`}
       onClick={skip}
     >
+      {celebrate && !reduced && (
+        <WinFx
+          color={duel && !verdict.winnerId ? "var(--color-muted)" : winColour}
+          confetti={confetti}
+        />
+      )}
       <div className="splash-inner">
         <p className="splash-kicker">{roundLabel}</p>
         {duel ? (
@@ -96,6 +127,7 @@ export function RoundSplash({
                   you={markSelf && row.id === selfId}
                   winner={isWinner}
                   loser={isLoser}
+                  crown={roundEnd}
                   reduced={reduced}
                 />
               );
@@ -107,16 +139,42 @@ export function RoundSplash({
         ) : (
           <SoloPoints points={score.roundScore} burst={crowned && youWon && !reduced} />
         )}
-        <h2 className="splash-headline" aria-hidden>
-          {crowned
-            ? title.split(" ").map((word, i) => (
-                <Fragment key={`${word}-${i}`}>
-                  {i > 0 && " "}
-                  <span style={{ "--i": i } as React.CSSProperties}>{word}</span>
-                </Fragment>
-              ))
-            : " "}
-        </h2>
+        {celebrate ? (
+          <div className="splash-headline" aria-hidden>
+            {duel && winner ? (
+              <WinBanner
+                big={youWin ? "You" : winner.name}
+                label={`${youWin ? "win" : "wins"} round ${roundNumber}`}
+                color={winColour}
+              />
+            ) : duel ? (
+              <WinBanner
+                big="Dead heat"
+                label={`round ${roundNumber}`}
+                color="var(--color-fg)"
+                draw
+              />
+            ) : (
+              <WinBanner
+                big={title}
+                label={`round ${roundNumber} complete`}
+                color={winColour}
+                stars={stars}
+              />
+            )}
+          </div>
+        ) : (
+          <h2 className="splash-headline" aria-hidden>
+            {crowned
+              ? title.split(" ").map((word, i) => (
+                  <Fragment key={`${word}-${i}`}>
+                    {i > 0 && " "}
+                    <span style={{ "--i": i } as React.CSSProperties}>{word}</span>
+                  </Fragment>
+                ))
+              : " "}
+          </h2>
+        )}
         <p className="splash-sub" aria-hidden>
           {crowned ? sub : " "}
         </p>
@@ -136,6 +194,7 @@ function SplashPlayer({
   you,
   winner,
   loser,
+  crown,
   reduced,
 }: {
   side: "left" | "right";
@@ -145,6 +204,8 @@ function SplashPlayer({
   you: boolean;
   winner: boolean;
   loser: boolean;
+  /** This question ends a round: the winner gets a crown, not a trophy. */
+  crown: boolean;
   reduced: boolean;
 }) {
   const shown = useCountUp(points, T_COUNT, false, 0, T_IN);
@@ -157,7 +218,8 @@ function SplashPlayer({
           live
           mood={winner ? "happy" : loser ? "sad" : "focus"}
         />
-        {winner && (
+        {winner && crown && <CrownDrop />}
+        {winner && !crown && (
           <span className="splash-trophy" aria-hidden>
             <Trophy size={22} />
           </span>
