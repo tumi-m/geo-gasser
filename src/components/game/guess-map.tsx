@@ -622,6 +622,10 @@ export function GuessMap({
     const frame = (animate: boolean) => {
       const m = mapRef.current;
       if (!m) return;
+      // A fly still in progress would win over an instant re-frame and leave
+      // the map stuck at its halfway, world-wide zoom (desktop, where the
+      // dock widens mid-flight). Stop it first.
+      m.stop();
       m.invalidateSize({ animate: false, pan: false });
       const pad = framePad();
       if (framePts.length === 1) {
@@ -647,7 +651,10 @@ export function GuessMap({
       const size = m.getSize();
       m.invalidateSize({ animate: false, pan: false });
       const now = m.getSize();
-      if (now.x !== size.x || now.y !== size.y || !m.getBounds().contains(b)) frame(!reduced);
+      // "In view" is not enough: at world zoom everything is in view.
+      const want = framePts.length === 1 ? 4.5 : Math.min(6, m.getBoundsZoom(b, false));
+      const framed = m.getBounds().contains(b) && m.getZoom() >= want - 1;
+      if (now.x !== size.x || now.y !== size.y || !framed) frame(!reduced);
     }, 360);
     return () => {
       window.clearTimeout(settle);
@@ -674,7 +681,7 @@ export function GuessMap({
     <div
       ref={wrapRef}
       className={cn(
-        "map-dock overflow-hidden border border-border bg-[#243044] shadow-[var(--shadow-panel)] transition-[width,height,inset,border-radius,box-shadow,opacity] duration-300",
+        "map-dock overflow-hidden border border-rule bg-[#f4f4f4] transition-[width,height,inset,opacity] duration-[180ms]",
         urgent && !reveal && "atlas-map-urgent",
         reveal && "is-reveal",
         expanded
@@ -701,7 +708,7 @@ export function GuessMap({
                 enterKeyHint="go"
                 aria-label="Search a city to drop a pin"
                 aria-autocomplete="list"
-                className="h-10 w-full rounded-full border border-border bg-bg pl-9 pr-3 text-sm text-fg outline-none placeholder:text-subtle focus:border-accent/60"
+                className="h-10 w-full border border-border bg-bg pl-9 pr-3 text-sm text-fg outline-none placeholder:text-subtle focus:border-accent/60"
                 onChange={(e) => {
                   setQuery(e.target.value);
                   setActiveHit(0);
@@ -754,7 +761,7 @@ export function GuessMap({
                         </span>
                         <span
                           className={cn(
-                            "shrink-0 rounded-full px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider",
+                            "shrink-0 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider",
                             place.country === "ZA"
                               ? "bg-za text-fg"
                               : place.country === "NL"
@@ -887,7 +894,7 @@ export function GuessMap({
           <div className="absolute right-3 top-3 z-[800]">
             <button
               type="button"
-              className="map-tool hit-44 border border-border bg-bg/85 backdrop-blur-sm"
+              className="map-tool hit-44 border border-border bg-bg"
               onClick={onToggleExpand}
               aria-label={expanded ? "Shrink map" : "Expand map"}
               title={expanded ? "Shrink map" : "Expand map"}
@@ -906,7 +913,7 @@ export function GuessMap({
               <>
                 <span
                   className={cn(
-                    "map-readout-dot size-2 shrink-0 rounded-full",
+                    "map-readout-dot size-2 shrink-0",
                     readout.country === "ZA" ? "bg-za" : readout.country === "NL" ? "bg-nl" : "bg-subtle",
                   )}
                   key={guessKey}
@@ -934,8 +941,10 @@ export function GuessMap({
                 onLock();
               }}
               className={cn(
-                "inline-flex h-11 shrink-0 items-center gap-2 rounded-[var(--radius-md)] bg-accent px-4 text-sm font-semibold text-accent-fg transition-[opacity,transform] active:scale-[.97] disabled:opacity-35",
-                canLock && "atlas-lock-ready",
+                // The round's one action: a block in the ink colour, framed in
+                // quotes; it turns to the accent once a pin is down.
+                "quoted inline-flex h-11 shrink-0 items-center gap-2 border border-fg bg-fg px-4 text-xs font-bold uppercase tracking-[0.1em] text-bg [--quote-pull:0.5rem] transition-[background-color,color,border-color] duration-[120ms] disabled:opacity-35",
+                canLock && "atlas-lock-ready border-accent bg-accent text-accent-fg",
               )}
             >
               <Lock className="size-4" />

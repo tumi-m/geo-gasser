@@ -1,63 +1,34 @@
 import { cn } from "@/lib/utils";
 
 /**
- * The end of a round, celebrated. Behind the splash: rays turn, a flash
- * goes off and confetti fires from both lower corners in the winner's
- * colour (`WinFx`). In front: the winner's name slams in over "wins round 2"
- * (`WinBanner`), and solo rounds stamp in up to three stars. Reduced motion
- * keeps the words and stars and drops the rays, flash, shake and confetti.
+ * The end of a round, marked like a camera shutter. Behind the splash: one
+ * white frame, then a hairline grid draws itself across the scene in the
+ * winner's colour (`WinFx`; orange for you, white for your rival). In front:
+ * the winner's name lands in a hard type slam over "wins round 2"
+ * (`WinBanner`), and solo rounds stamp up to three stars. Reduced motion keeps
+ * the words and stars and drops the shutter and the grid.
  */
 
-const CONFETTI = 46;
+const LINES = 7;
 
-export function WinFx({ color, confetti }: { color: string; confetti: boolean }) {
+export function WinFx({ color, grid }: { color: string; grid: boolean }) {
+  const at = (i: number) => `${((i + 1) * 100) / (LINES + 1)}%`;
   return (
     <div className="win-fx" aria-hidden style={{ "--win": color } as React.CSSProperties}>
-      <i className="win-rays" />
-      <i className="win-flash" />
-      {confetti && (
-        <span className="win-confetti">
-          {Array.from({ length: CONFETTI }, (_, i) => {
-            // Deterministic scatter: the same burst every time, no randomness
-            // in render. Even pieces fire from the left, odd from the right.
-            const left = i % 2 === 0;
-            const spread = 70 + ((i * 53) % 230);
-            const up = 220 + ((i * 97) % 300);
-            const fall = 300 + ((i * 61) % 280);
-            const shape = i % 5 === 0 ? "is-dot" : i % 3 === 0 ? "is-ribbon" : "";
-            return (
-              <i
-                key={i}
-                className={cn(left ? "from-left" : "from-right", shape)}
-                style={
-                  {
-                    "--dx": `${(left ? 1 : -1) * spread}px`,
-                    "--up": `${-up}px`,
-                    "--down": `${fall - up}px`,
-                    "--rot": `${((i * 137) % 720) - 360}deg`,
-                    "--delay": `${(i % 6) * 35}ms`,
-                    "--dur": `${1700 + ((i * 89) % 900)}ms`,
-                    background:
-                      i % 3 === 1 ? "var(--win)" : CONFETTI_COLOURS[i % CONFETTI_COLOURS.length],
-                  } as React.CSSProperties
-                }
-              />
-            );
-          })}
+      <i className="win-shutter" />
+      {grid && (
+        <span className="win-grid">
+          {Array.from({ length: LINES }, (_, i) => (
+            <i key={`h${i}`} className="is-h" style={{ "--i": i, "--at": at(i) } as React.CSSProperties} />
+          ))}
+          {Array.from({ length: LINES }, (_, i) => (
+            <i key={`v${i}`} className="is-v" style={{ "--i": i, "--at": at(i) } as React.CSSProperties} />
+          ))}
         </span>
       )}
     </div>
   );
 }
-
-const CONFETTI_COLOURS = [
-  "var(--color-accent)",
-  "#ffffff",
-  "var(--color-nl)",
-  "var(--color-za)",
-  "#8fb4ff",
-  "#ffd166",
-];
 
 export function WinBanner({
   big,

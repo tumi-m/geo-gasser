@@ -65,7 +65,7 @@ export function RevealOverlay({
           : "bottom-[calc(var(--atlas-map-reveal-h)+1.5rem)]",
       )}
     >
-      <div className="reveal-card atlas-rise pointer-events-auto max-h-[calc(100dvh-var(--atlas-map-reveal-h)-2rem)] w-full max-w-lg overflow-y-auto overscroll-contain rounded-[var(--radius-lg)] border border-border bg-bg/92 p-3 shadow-[var(--shadow-panel)] sm:p-4">
+      <div className="reveal-card atlas-rise pointer-events-auto max-h-[calc(100dvh-var(--atlas-map-reveal-h)-2rem)] w-full max-w-lg overflow-y-auto overscroll-contain rounded-[var(--radius-lg)] border border-border bg-bg p-3 shadow-[var(--shadow-panel)] sm:p-4">
         {/* Very short screens (iPhone SE): Continue sits beside the title, not under it. */}
         <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between [@media(max-height:700px)]:flex-row [@media(max-height:700px)]:items-start [@media(max-height:700px)]:justify-between">
           <div className="min-w-0 text-left">
@@ -126,7 +126,7 @@ export function RevealOverlay({
             {score.badges.map((b) => (
               <span
                 key={b}
-                className="rounded-full border border-border px-2 py-0.5 text-[10px] uppercase tracking-wider"
+                className="border border-border px-2 py-0.5 text-[10px] uppercase tracking-wider"
               >
                 {BADGE_COPY[b]}
               </span>

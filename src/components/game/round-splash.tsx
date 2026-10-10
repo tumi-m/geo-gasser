@@ -108,7 +108,7 @@ export function RoundSplash({
       {celebrate && !reduced && (
         <WinFx
           color={duel && !verdict.winnerId ? "var(--color-muted)" : winColour}
-          confetti={confetti}
+          grid={confetti}
         />
       )}
       <div className="splash-inner">
@@ -129,7 +129,6 @@ export function RoundSplash({
                   winner={isWinner}
                   loser={isLoser}
                   crown={roundEnd}
-                  reduced={reduced}
                 />
               );
             })}
@@ -138,7 +137,7 @@ export function RoundSplash({
             </span>
           </div>
         ) : (
-          <SoloPoints points={score.roundScore} burst={crowned && youWon && !reduced} />
+          <SoloPoints points={score.roundScore} />
         )}
         {celebrate ? (
           <div className="splash-headline" aria-hidden>
@@ -196,7 +195,6 @@ function SplashPlayer({
   winner,
   loser,
   crown,
-  reduced,
 }: {
   side: "left" | "right";
   name: string;
@@ -207,7 +205,6 @@ function SplashPlayer({
   loser: boolean;
   /** This question ends a round: the winner gets a crown, not a trophy. */
   crown: boolean;
-  reduced: boolean;
 }) {
   const shown = useCountUp(points, T_COUNT, false, 0, T_IN);
   return (
@@ -225,7 +222,6 @@ function SplashPlayer({
             <Trophy size={22} />
           </span>
         )}
-        {winner && !reduced && <Sparks />}
       </div>
       <p className="splash-name">
         {name}
@@ -236,46 +232,12 @@ function SplashPlayer({
   );
 }
 
-function SoloPoints({ points, burst }: { points: number; burst: boolean }) {
+function SoloPoints({ points }: { points: number }) {
   // Numbers still roll with reduced motion: counting is not movement.
   const shown = useCountUp(points, T_COUNT, false, 0, T_IN);
   return (
     <div className="splash-solo">
       <p className="splash-big tabular">+{Math.round(shown).toLocaleString()}</p>
-      {burst && <Sparks count={22} spread={150} />}
     </div>
-  );
-}
-
-const SPARK_COLOURS = [
-  "var(--color-accent)",
-  "var(--color-fg)",
-  "var(--color-nl)",
-  "var(--color-za)",
-];
-
-/** A one-shot burst: small chips fly out from the centre and fade. */
-export function Sparks({ count = 16, spread = 110 }: { count?: number; spread?: number }) {
-  return (
-    <span className="sparks" aria-hidden>
-      {Array.from({ length: count }, (_, i) => {
-        const angle = (i / count) * Math.PI * 2 + (i % 3) * 0.21;
-        const dist = spread * (0.55 + ((i * 37) % 45) / 100);
-        return (
-          <i
-            key={i}
-            style={
-              {
-                "--dx": `${Math.round(Math.cos(angle) * dist)}px`,
-                "--dy": `${Math.round(Math.sin(angle) * dist)}px`,
-                "--r": `${(i * 47) % 360}deg`,
-                "--delay": `${(i % 4) * 30}ms`,
-                background: SPARK_COLOURS[i % SPARK_COLOURS.length],
-              } as React.CSSProperties
-            }
-          />
-        );
-      })}
-    </span>
   );
 }

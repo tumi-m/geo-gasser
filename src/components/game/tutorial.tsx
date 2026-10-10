@@ -42,15 +42,15 @@ const STEPS = [
 export function Tutorial({ onClose }: { onClose: () => void }) {
   return (
     <ModalShell titleId="how-title" onClose={onClose} wide>
-      <h2 id="how-title" className="font-display text-2xl">
+      <h2 id="how-title" className="quoted font-display text-2xl">
         How to play
       </h2>
-      <ol className="mt-5 list-none space-y-4">
+      <ol className="mt-5 list-none border-b border-border">
         {STEPS.map((step) => (
-          <li key={step.n} className="flex gap-4">
-            <span className="font-display tabular w-8 shrink-0 text-subtle">{step.n}</span>
+          <li key={step.n} className="flex gap-4 border-t border-border py-3.5">
+            <span className="w-8 shrink-0 pt-px font-mono text-xs tabular text-subtle">{step.n}</span>
             <div>
-              <p className="text-sm font-medium text-fg">{step.title}</p>
+              <p className="text-xs font-bold uppercase tracking-[0.1em] text-fg">{step.title}</p>
               <p className="mt-1 text-sm leading-relaxed text-muted">{step.body}</p>
             </div>
           </li>

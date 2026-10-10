@@ -1224,13 +1224,15 @@ export function MatchApp({
         />
         <div className="relative mx-auto max-w-md">
           <div className="flex items-center justify-between gap-3">
-            <p className="text-xs uppercase tracking-[0.28em] text-muted">Private room</p>
+            <p className="eyebrow">
+              <span className="index-no" aria-hidden>01</span> Private room
+            </p>
             <div className="-my-2">
               <MusicHudButton />
             </div>
           </div>
           {/* The code flips in a letter at a time, like a departures board. */}
-          <h1 className="room-code font-display mt-2 text-5xl tracking-tight">
+          <h1 className="room-code mt-4 font-mono text-5xl font-semibold tracking-[0.04em]">
             {[...(roomCode ?? "")].map((ch, i) => (
               <span key={i} style={{ "--i": i } as React.CSSProperties}>
                 {ch}
@@ -1478,7 +1480,6 @@ export function MatchApp({
           waiting={!sceneReady}
           reducedMotion={settings.reducedMotion}
           onStart={finishIntro}
-          atlas={state.atlas}
         />
       )}
 
@@ -1660,15 +1661,15 @@ export function MatchApp({
             escape={state.matchLength === "escape"}
           />
           {reconstructionRound ? (
-            <div className="w-fit rounded-full border border-border bg-bg/75 px-2.5 py-1 text-[10px] uppercase tracking-wider text-muted">
+            <div className="w-fit border border-border bg-bg px-2.5 py-1 text-[10px] uppercase tracking-wider text-muted">
               {ROUND4_3D_LIVE ? "3D reconstruction" : "Reconstruction plates"}
             </div>
           ) : cosmic ? (
-            <div className="w-fit rounded-full border border-accent/40 bg-bg/75 px-2.5 py-1 text-[10px] uppercase tracking-wider text-accent">
+            <div className="w-fit border border-accent/40 bg-bg px-2.5 py-1 text-[10px] uppercase tracking-wider text-accent">
               Cosmos round
             </div>
           ) : finalRound ? (
-            <div className="w-fit rounded-full border border-accent/40 bg-bg/75 px-2.5 py-1 text-[10px] uppercase tracking-wider text-accent">
+            <div className="w-fit border border-accent/40 bg-bg px-2.5 py-1 text-[10px] uppercase tracking-wider text-accent">
               Final round
             </div>
           ) : null}
@@ -1705,7 +1706,7 @@ export function MatchApp({
               urgent={urgent}
             />
           ) : mode === "duel" && showingReveal ? null : (
-            <div className="hud-score flex items-center gap-2 rounded-[var(--radius-md)] border border-border bg-bg/70 py-1.5 pl-1.5 pr-3">
+            <div className="hud-score flex items-center gap-2 rounded-[var(--radius-md)] border border-border bg-bg py-1.5 pl-1.5 pr-3">
               <PlayerAvatar
                 id={you?.avatarId}
                 size={32}
@@ -1758,7 +1759,7 @@ export function MatchApp({
       )}
 
       {(you?.locked || (pendingLock && matchesQuestion(state, pendingLock))) && !showingReveal && (
-        <p className="waiting-chip relative z-20 mx-4 mt-1 flex w-fit items-center gap-2 rounded-full border border-border bg-bg/80 py-1 pl-1 pr-3 text-xs uppercase tracking-wider">
+        <p className="waiting-chip relative z-20 mx-4 mt-1 flex w-fit items-center gap-2 border border-border bg-bg py-1 pl-1 pr-3 text-xs uppercase tracking-wider">
           {/* Whoever we wait on types three dots with their eyes. */}
           <PlayerAvatar
             id={(you?.locked ? opponent : you)?.avatarId}
@@ -1776,7 +1777,7 @@ export function MatchApp({
       )}
 
       {duelKind === "hotseat" && state.phase === "waiting_for_opponent" && (
-        <div className="absolute inset-0 z-40 flex flex-col items-center justify-center bg-bg/92 px-6 text-center">
+        <div className="absolute inset-0 z-40 flex flex-col items-center justify-center bg-bg px-6 text-center">
           <PlayerAvatar id={you?.avatarId} size={72} live track />
           <p className="mt-5 text-xs uppercase tracking-[0.28em] text-muted">Pass the phone</p>
           <h2 className="font-display mt-2 text-4xl">{you?.name}</h2>
@@ -1925,7 +1926,7 @@ export function MatchApp({
       {connectionNotice && (
         <p
           role="status"
-          className="absolute top-32 left-4 z-30 rounded-xl bg-bg/95 border border-border px-4 py-2 text-xs"
+          className="absolute top-32 left-4 z-30 bg-bg border border-border px-4 py-2 text-xs"
         >
           {connectionNotice}
         </p>

@@ -161,3 +161,21 @@ Rules this repo has already paid for:
   share squares, map colours, moods and a solo win test, each written as a
   raw number. They now read `ROUND_MAX`. Saved bests from the old scale are
   set aside by `SCORING_VERSION`, not compared.
+- **Edit CSS with a parser that round-trips, never with a regex.** A regex
+  that deleted rules met a comment containing a semicolon and left
+  comments open, which silently ate the rules after them. Parse, change,
+  then check the file round-trips, the comment count balances and the
+  list of selectors differs only where you meant.
+- **Unlayered CSS beats Tailwind utilities, whatever the specificity.**
+  Tailwind v4 puts utilities in `@layer utilities`, so a plain
+  `.eyebrow {margin:0}` overrode `mt-8` in the template. Leave spacing to
+  the template, or put the rule in a layer.
+- **A scope that redefines colour tokens must also set `color` and
+  `background-color`.** The black playing screen redefined `--color-fg`,
+  but text inherited from `body` had already resolved to black.
+- **`none` cannot join a shadow list.** `box-shadow: 0 0 0 1px x,
+  var(--shadow-panel)` is invalid when the token is `none`, and the whole
+  declaration is dropped.
+- **A reduced-motion rule that swaps animation names must also set the
+  iteration count.** Turning every animation into a fade kept infinite
+  loops infinite, so idle avatars blinked forever.

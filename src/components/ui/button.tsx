@@ -3,22 +3,26 @@ import { cva, type VariantProps } from "class-variance-authority";
 import * as React from "react";
 import { cn } from "@/lib/utils";
 
+// Buttons look like actions: a black block (white in the black match
+// screen) for the primary one, framed in quotes; a hairline box for the rest.
+// Caps, Helvetica Bold, square corners; the accent is the hover and pressed
+// state, never decoration. Steps take 120 ms, with no spring.
 const buttonVariants = cva(
-  "inline-flex items-center justify-center gap-2 whitespace-nowrap font-medium transition-[transform,opacity,background-color,color] duration-150 ease-out focus-visible:outline-none disabled:pointer-events-none disabled:opacity-40 active:scale-[0.96] select-none",
+  "inline-flex items-center justify-center gap-2 [--quote-pull:0.4rem] whitespace-nowrap border font-bold uppercase tracking-[0.1em] transition-[background-color,color,border-color] duration-[120ms] ease-linear disabled:pointer-events-none disabled:opacity-40 active:translate-y-px select-none",
   {
     variants: {
       variant: {
-        primary: "bg-accent text-accent-fg hover:opacity-90",
-        secondary: "border border-border bg-bg-elevated text-fg hover:bg-bg-subtle",
-        ghost: "text-fg hover:bg-bg-subtle",
-        za: "bg-za text-fg hover:opacity-90",
-        nl: "bg-nl text-fg hover:opacity-90",
+        primary: "quoted border-fg bg-fg text-bg hover:border-accent hover:bg-accent hover:text-accent-fg",
+        secondary: "border-fg bg-bg text-fg hover:bg-bg-subtle",
+        ghost: "border-transparent bg-transparent text-fg hover:bg-bg-subtle",
+        za: "quoted border-fg bg-fg text-bg hover:border-accent hover:bg-accent hover:text-accent-fg",
+        nl: "border-fg bg-bg text-fg hover:bg-bg-subtle",
       },
       size: {
-        sm: "h-10 rounded-[var(--radius-sm)] px-3 text-sm",
-        md: "h-12 rounded-[var(--radius-md)] px-5 text-base",
-        lg: "h-14 rounded-[var(--radius-lg)] px-6 text-lg",
-        icon: "size-11 rounded-[var(--radius-md)]",
+        sm: "h-10 px-3 text-[11px]",
+        md: "h-12 px-5 text-xs",
+        lg: "h-14 px-6 text-[13px]",
+        icon: "size-11",
       },
     },
     defaultVariants: { variant: "primary", size: "md" },

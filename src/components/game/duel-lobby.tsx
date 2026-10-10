@@ -58,16 +58,16 @@ export function DuelLobby() {
 
   return (
     <main className="duel-lobby relative min-h-dvh overflow-hidden">
-      <div className="duel-orbit" aria-hidden />
-      <div className="duel-orbit is-b" aria-hidden />
       <div className="relative z-10 mx-auto flex min-h-dvh max-w-md flex-col justify-center px-5 py-8 pt-[max(2rem,env(safe-area-inset-top))] pb-[max(2rem,env(safe-area-inset-bottom))]">
         <div className="atlas-rise flex items-center justify-between gap-3">
-          <p className="text-xs uppercase tracking-[0.28em] text-muted">Two player</p>
+          <p className="eyebrow">
+            <span className="index-no" aria-hidden>01</span> Two player
+          </p>
           <div className="-my-2">
             <MusicHudButton />
           </div>
         </div>
-        <h1 className="atlas-rise font-display mt-1 text-5xl tracking-tight">Duel</h1>
+        <h1 className="atlas-rise quoted font-display mt-4 text-6xl leading-none tracking-tight">Duel</h1>
         <p className="atlas-rise atlas-rise-1 mt-2 text-muted">Good friends. Better rivals.</p>
 
         {/* You: name and bot in one row; the builder waits behind "Edit". */}
@@ -104,8 +104,8 @@ export function DuelLobby() {
           </Collapse>
         </section>
 
-        <p className="atlas-rise atlas-rise-2 mt-6 text-xs uppercase tracking-[0.2em] text-subtle">
-          Choose your rival
+        <p className="atlas-rise atlas-rise-2 eyebrow mt-8">
+          <span className="index-no" aria-hidden>02</span> Choose your rival
         </p>
 
         <button
@@ -201,7 +201,7 @@ export function DuelLobby() {
         <section className="duel-mode atlas-rise atlas-rise-4 mt-2" aria-label="Play online">
           <div className="duel-mode-head is-static">
             <span className="duel-mode-art">
-              <Link2 className="size-5 text-accent" aria-hidden />
+              <Link2 className="size-5" aria-hidden />
             </span>
             <span className="min-w-0 flex-1">
               <span className="block font-medium">Play online</span>

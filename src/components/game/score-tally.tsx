@@ -35,7 +35,7 @@ export function ScoreTally({
 
   return (
     <div
-      className="score-tally min-w-[10.5rem] rounded-[var(--radius-md)] border border-border bg-bg/75 px-2.5 py-2"
+      className="score-tally min-w-[10.5rem] rounded-[var(--radius-md)] border border-border bg-bg px-2.5 py-2"
       role="list"
       aria-label="Score tally"
     >

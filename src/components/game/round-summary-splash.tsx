@@ -8,7 +8,6 @@ import {
   ROUND_MAX,
 } from "@/lib/game";
 import { PlayerAvatar } from "./player-avatar";
-import { Sparks } from "./round-splash";
 import { useSplashTimeline } from "./use-splash-timeline";
 import { useCountUp } from "./use-count-up";
 import { CrownDrop, WinBanner, WinFx } from "./winner-moment";
@@ -18,7 +17,7 @@ import { cn } from "@/lib/utils";
  * The end of a multi-question round (Quick is one round of ten). Every
  * question lights up in turn — who took it, or how you scored — while the
  * round totals roll up; then the winner moment: their name slams in, a crown
- * drops onto their avatar and confetti fires (winner-moment.tsx). Solo
+ * drops onto their avatar and a hairline grid draws in (winner-moment.tsx). Solo
  * rounds earn up to three stars.
  */
 
@@ -101,7 +100,7 @@ export function RoundSummarySplash({
       onClick={onDone}
     >
       {crowned && !reduced && (
-        <WinFx color={duel && !s.winnerId ? "var(--color-muted)" : winColour} confetti={confetti} />
+        <WinFx color={duel && !s.winnerId ? "var(--color-muted)" : winColour} grid={confetti} />
       )}
       <div className="splash-inner">
         <p className="splash-kicker">{kicker}</p>
@@ -127,7 +126,6 @@ export function RoundSummarySplash({
                       mood={isWinner ? "happy" : crowned && s.winnerId ? "sad" : "focus"}
                     />
                     {isWinner && <CrownDrop />}
-                    {isWinner && !reduced && <Sparks count={20} spread={130} />}
                   </div>
                   <p className="splash-name">
                     {row.name}
@@ -144,7 +142,6 @@ export function RoundSummarySplash({
         ) : (
           <div className="splash-solo">
             <Total value={s.rows[0]?.total ?? 0} ms={countMs} className="splash-big" />
-            {crowned && !reduced && <Sparks count={24} spread={160} />}
           </div>
         )}
 
