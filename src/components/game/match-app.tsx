@@ -714,6 +714,18 @@ export function MatchApp({
   const reconstructionRound = isRound4(state);
   const cosmic = scene?.kind === "cosmos";
   const live3d = ROUND4_3D_LIVE && reconstructionRound && Boolean(env);
+
+  // The clock waits for the scene: the intro holds until the photo, panorama
+  // or Street View is on screen. On a slow connection the round used to start
+  // over a dark, empty scene, and after a Street View swap the stand-in photo
+  // (never warmed) took seconds to arrive.
+  const sceneKey = `${state.seed}:${state.questionIndex}:${scene?.src ?? ""}`;
+  const sceneKeyRef = useRef(sceneKey);
+  sceneKeyRef.current = sceneKey;
+  const [readyKey, setReadyKey] = useState("");
+  const markSceneReady = useCallback(() => setReadyKey(sceneKeyRef.current), []);
+  const sceneReady =
+    readyKey === sceneKey || !scene || cosmic || (streetOnly && !streetAvailable) || (live3d && !scene3dFailed);
   const you =
     duelKind === "hotseat"
       ? (state.players.find((p) => p.id === state.activeSeatId) ?? state.players[0])
@@ -790,11 +802,19 @@ export function MatchApp({
   // Long enough for the intro's title sequence (round-intro.tsx), whose ring
   // shows this hold; with reduced motion the card is still, so it is shorter.
   const introHoldMs = settings.reducedMotion ? 1200 : 2200;
+  // The usual hold, or longer while the scene loads, but never past 8 s: a
+  // stalled photo or panorama must not stop the match.
+  const introStartedAt = useRef(0);
+  useEffect(() => {
+    if (state.phase === "round_intro") introStartedAt.current = performance.now();
+  }, [state.phase, state.questionIndex]);
   useEffect(() => {
     if (state.phase !== "round_intro") return;
-    const id = setTimeout(finishIntro, introHoldMs);
+    const elapsed = performance.now() - introStartedAt.current;
+    const wait = Math.max(0, (sceneReady ? introHoldMs : 8000) - elapsed);
+    const id = setTimeout(finishIntro, wait);
     return () => clearTimeout(id);
-  }, [state.phase, introHoldMs, finishIntro]);
+  }, [state.phase, introHoldMs, finishIntro, sceneReady]);
 
   useEffect(() => {
     const ticking =
@@ -1331,6 +1351,7 @@ export function MatchApp({
                 : undefined
           }
           holdMs={introHoldMs}
+          waiting={!sceneReady}
           reducedMotion={settings.reducedMotion}
           onStart={finishIntro}
           atlas={state.atlas}
@@ -1354,6 +1375,7 @@ export function MatchApp({
               wide={streetOnly}
               interactive={canGuess && !showSettings && !showingReveal}
               showHints={settings.showHints}
+              onReady={markSceneReady}
               onUnavailable={() => setStreetFailedSrc(scene?.src ?? null)}
             />
           ) : streetOnly ? (
@@ -1379,6 +1401,7 @@ export function MatchApp({
               alt="Location to identify"
               reducedMotion={settings.reducedMotion}
               interactive={canGuess && !showSettings && !showingReveal}
+              onReady={markSceneReady}
               onError={() => setPanoFailed(true)}
             />
           ) : flatScene ? (
@@ -1401,6 +1424,7 @@ export function MatchApp({
               alt="Location to identify"
               reducedMotion={settings.reducedMotion}
               interactive={canGuess && !showSettings && !showingReveal}
+              onReady={markSceneReady}
             />
           ) : (
             <div className="absolute inset-0 bg-bg-subtle" />

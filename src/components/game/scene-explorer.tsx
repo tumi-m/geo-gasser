@@ -766,6 +766,13 @@ export function SceneExplorer({
           }}
         />
       )}
+      {!ready && !failed && (
+        // The plate stays hidden until it has decoded; on a slow connection
+        // that was a dark, empty scene with nothing to say it was coming.
+        <p className="scene-loading" role="status">
+          Loading the photo…
+        </p>
+      )}
       {failed && (
         <div className="absolute inset-0 flex items-center justify-center bg-bg-subtle">
           <p className="px-6 text-center text-sm text-muted">Photo unavailable</p>

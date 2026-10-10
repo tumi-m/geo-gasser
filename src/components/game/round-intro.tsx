@@ -21,6 +21,7 @@ export function RoundIntro({
   wildcard,
   note,
   holdMs,
+  waiting,
   reducedMotion,
   onStart,
   atlas,
@@ -41,6 +42,8 @@ export function RoundIntro({
   /** Replaces the timing line, e.g. for reconstruction rounds. */
   note?: string;
   holdMs: number;
+  /** The scene behind the card is still loading; the clock waits for it. */
+  waiting?: boolean;
   reducedMotion?: boolean;
   onStart: () => void;
 }) {
@@ -104,7 +107,9 @@ export function RoundIntro({
             </li>
           )}
         </ul>
-        <p className="round-intro-hint">Tap or press Enter to start</p>
+        <p className="round-intro-hint">
+          {waiting ? "Getting the place ready… or tap to start now" : "Tap or press Enter to start"}
+        </p>
       </div>
     </div>
   );

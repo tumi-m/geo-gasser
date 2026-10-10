@@ -56,7 +56,13 @@ export interface StreetViewPanoramaLike {
 export interface GoogleMapsLike {
   StreetViewService: new () => {
     getPanorama(
-      request: { location: { lat: number; lng: number }; radius: number; source?: string; preference?: string },
+      request: {
+        location: { lat: number; lng: number };
+        radius: number;
+        source?: string;
+        sources?: string[];
+        preference?: string;
+      },
     ): Promise<{ data: { location?: { pano?: string } } }>;
   };
   StreetViewPanorama: new (el: HTMLElement, options: Record<string, unknown>) => StreetViewPanoramaLike;
@@ -79,12 +85,28 @@ export function loadGoogleMaps(key: string): Promise<GoogleMapsLike> {
       reject(new Error(why));
     };
     w.__atlasMapsReady = () => {
-      const maps = w.google?.maps;
-      if (maps) resolve(maps);
-      else fail("maps missing");
+      const g = w.google?.maps as
+        | (GoogleMapsLike & { importLibrary?: (name: string) => Promise<Record<string, unknown>> })
+        | undefined;
+      if (!g) return fail("maps missing");
+      // Loaded with loading=async, Street View's classes come from
+      // importLibrary; google.maps alone may not carry them yet.
+      const libraries = g.importLibrary
+        ? Promise.all([g.importLibrary("streetView"), g.importLibrary("core")])
+        : Promise.resolve([{}, {}]);
+      libraries
+        .then(([streetView, core]) => {
+          const maps = { ...g, ...core, ...streetView } as GoogleMapsLike;
+          if (maps.StreetViewService && maps.StreetViewPanorama) resolve(maps);
+          else fail("street view library missing");
+        })
+        .catch((error: unknown) => fail(`street view library failed: ${String(error)}`));
     };
     // Google calls this when the key is invalid or not allowed for this site.
     w.gm_authFailure = () => {
+      console.warn(
+        "Google refused the Maps key; the photos take over for this session. Google's own error above names the cause (RefererNotAllowedMapError: add this site to the key; BillingNotEnabledMapError: attach billing; ApiNotActivatedMapError: enable the Maps JavaScript API).",
+      );
       markStreetViewBroken();
       window.dispatchEvent(new Event("atlas-maps-auth-failure"));
       fail("key refused");

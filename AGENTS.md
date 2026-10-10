@@ -120,5 +120,12 @@ Rules this repo has already paid for:
   The host accepts it.
 - **Photos are judged by eye before they are dealt.** File titles mislead:
   birds, plaques, guards and AI renders have all been filed as landmarks.
+- **The clock waits for the scene.** The intro holds until the photo,
+  panorama or Street View is on screen (8 s at most). Test slow loads by
+  delaying `/locations/**`: a stub that answers at once hides the dark,
+  empty scene a slow connection shows.
+- **Report why Street View gave up.** A silent fallback looked like a broken
+  game. The console now names the cause, and Google's own error names a
+  refused key.
 - **Temporary test hooks never reach a commit.** Remove them, and grep the
   diff before committing.

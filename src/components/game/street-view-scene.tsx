@@ -21,6 +21,7 @@ export function StreetViewScene({
   wide = false,
   interactive = true,
   showHints = true,
+  onReady,
   onUnavailable,
   className,
 }: {
@@ -30,6 +31,8 @@ export function StreetViewScene({
   interactive?: boolean;
   /** A first-look hint on how to move, until the player moves or looks around. */
   showHints?: boolean;
+  /** The panorama is on screen. */
+  onReady?: () => void;
   onUnavailable: () => void;
   className?: string;
 }) {
@@ -41,6 +44,8 @@ export function StreetViewScene({
   const [looked, setLooked] = useState(false);
   const failRef = useRef(onUnavailable);
   failRef.current = onUnavailable;
+  const readyRef = useRef(onReady);
+  readyRef.current = onReady;
 
   useEffect(() => {
     let alive = true;
@@ -52,25 +57,42 @@ export function StreetViewScene({
       const location = { lat: target.latitude, lng: target.longitude };
       // Google's own street imagery only, never visitors' uploaded
       // photospheres (those can be anything: a bird, a room, a selfie).
+      // `sources: [GOOGLE]` is the current form; if Google rejects it, fall
+      // back to outdoor imagery rather than lose Street View altogether.
+      const sv = maps.StreetViewSource;
+      const filters: Record<string, unknown>[] = [
+        ...(sv?.GOOGLE ? [{ sources: [sv.GOOGLE] }] : []),
+        sv?.OUTDOOR ? { source: sv.OUTDOOR } : {},
+      ];
+      const preference = maps.StreetViewPreference ? { preference: maps.StreetViewPreference.NEAREST } : {};
       // Closest first, widening to a short drive for street-only places.
-      const source = maps.StreetViewSource?.GOOGLE ?? maps.StreetViewSource?.OUTDOOR;
+      const radii = [120, 600, 1500, ...(wide ? [5000] : [])];
       let pano: string | undefined;
-      for (const radius of [120, 600, 1500, ...(wide ? [5000] : [])]) {
-        try {
-          const { data } = await service.getPanorama({
-            location,
-            radius,
-            ...(source ? { source } : {}),
-            ...(maps.StreetViewPreference ? { preference: maps.StreetViewPreference.NEAREST } : {}),
-          });
-          pano = data.location?.pano;
-        } catch {
-          pano = undefined;
+      let why = `no panorama within ${radii[radii.length - 1]} m`;
+      search: for (const filter of filters) {
+        for (const radius of radii) {
+          try {
+            const { data } = await service.getPanorama({ location, radius, ...filter, ...preference });
+            pano = data.location?.pano;
+          } catch (error) {
+            pano = undefined;
+            const code = String((error as { code?: string })?.code ?? (error as Error)?.message ?? error);
+            // "Nothing here" means try further out; anything else means this
+            // request shape is refused, so try the next filter.
+            if (!/ZERO_RESULTS/.test(code)) {
+              why = `request refused (${code.slice(0, 120)})`;
+              continue search;
+            }
+          }
+          if (pano || !alive) break search;
         }
-        if (pano || !alive) break;
+        break;
       }
       if (!alive) return;
-      if (!pano || !hostRef.current) return fail();
+      if (!pano || !hostRef.current) {
+        console.warn(`Street View unavailable at ${location.lat.toFixed(4)},${location.lng.toFixed(4)}: ${why}`);
+        return fail();
+      }
       const heading = startHeading(target);
       startRef.current = { pano, heading };
       const panorama = new maps.StreetViewPanorama(hostRef.current, {
@@ -106,7 +128,11 @@ export function StreetViewScene({
       });
       panorama.addListener("pov_changed", () => setLooked(true));
       setStatus("ready");
-    })().catch(fail);
+      readyRef.current?.();
+    })().catch((error: unknown) => {
+      console.warn(`Street View failed to start: ${String((error as Error)?.message ?? error)}`);
+      fail();
+    });
     return () => {
       alive = false;
       window.removeEventListener("atlas-maps-auth-failure", fail);
