@@ -2,8 +2,8 @@
 
 ## Graph
 
-- **Done:** 1 Winner moment, 2 Live round motion, 3 Reveal motion, 4 Match finale, 5 Home and menus
-- **Running:** 6 Duel lobby
+- **Done:** 1 Winner moment, 2 Live round motion, 3 Reveal motion, 4 Match finale, 5 Home and menus, 6 Duel room
+- **Running:** 7 Sweep
 - **Blocked:** none
 
 ## Outputs
@@ -24,4 +24,4 @@
 
 ## Next action
 
-Round 6: duel lobby and online motion.
+Round 7: sweep (axe, keyboard, reduced motion, phones and landscape).

@@ -952,6 +952,17 @@ export function MatchApp({
     setExploring(false);
   }, [state.questionIndex, state.roundStartedAtMs]);
 
+  // An opponent sitting down in the room is an event: a whoosh as their row
+  // slides in (the motion is in styles.css).
+  const lobbyCount = useRef(state.players.length);
+  useEffect(() => {
+    const before = lobbyCount.current;
+    lobbyCount.current = state.players.length;
+    if (mode !== "duel" || duelKind !== "online") return;
+    if (state.phase !== "lobby" && state.phase !== "waiting_for_players") return;
+    if (before === 1 && state.players.length === 2) audio.play("whoosh");
+  }, [state.players.length, state.phase, mode, duelKind]);
+
   useEffect(() => {
     if (state.phase !== "match_complete" && state.phase !== "final_reveal") {
       // Any way out of the results re-arms the record: an online guest's
@@ -1170,6 +1181,8 @@ export function MatchApp({
       state.phase === "rematch_pending")
   ) {
     const failed = p2pPeers.some((peer) => peer.connectionState === "failed");
+    const lobbyRival =
+      state.players.length === 2 ? state.players.find((p) => p.id !== selfId) : undefined;
     return (
       <main className="relative min-h-dvh overflow-hidden bg-bg px-5 py-10 pt-[max(2.5rem,env(safe-area-inset-top))] pb-[max(2.5rem,env(safe-area-inset-bottom))]">
         {/* The world waits with you: a dotted Earth turns behind the room. */}
@@ -1185,7 +1198,14 @@ export function MatchApp({
               <MusicHudButton />
             </div>
           </div>
-          <h1 className="font-display mt-2 text-5xl tracking-tight">{roomCode}</h1>
+          {/* The code flips in a letter at a time, like a departures board. */}
+          <h1 className="room-code font-display mt-2 text-5xl tracking-tight">
+            {[...(roomCode ?? "")].map((ch, i) => (
+              <span key={i} style={{ "--i": i } as React.CSSProperties}>
+                {ch}
+              </span>
+            ))}
+          </h1>
           <p className="mt-3 text-muted">Share the invite. Start when you’re both ready.</p>
           <div className="mt-6 flex gap-2">
             {canShare && (
@@ -1208,7 +1228,7 @@ export function MatchApp({
             )}
             <Button
               variant="secondary"
-              className="flex-1"
+              className={cn("flex-1", copied && "is-copied")}
               onClick={async () => {
                 const ok = await copyText(shareUrl || roomCode || "");
                 setCopied(ok);
@@ -1229,43 +1249,56 @@ export function MatchApp({
             onFocus={(e) => e.target.select()}
             className="atlas-search mt-3 text-xs"
           />
-          <ul className="mt-8 space-y-2">
-            {state.players.map((p) => (
-              <li
-                key={p.id}
-                className="flex items-center gap-3 rounded-[var(--radius-md)] border border-border px-3 py-3"
-              >
-                <PlayerAvatar id={p.avatarId} size={40} sleepy />
-                <span className="min-w-0 truncate">
-                  {p.name} {p.id === state.hostId ? "· host" : ""}
-                </span>
-              </li>
-            ))}
-            {state.players.length < 2 && (
-              <li className="lobby-empty flex items-center gap-3 rounded-[var(--radius-md)] border border-dashed border-border px-3 py-3 text-muted">
-                <span className="lobby-seat" aria-hidden>
-                  {/* A ghost bot keeps the seat, typing dots until someone sits. */}
-                  <PlayerAvatar
-                    id="circle-grey"
-                    size={30}
-                    mood="waiting"
-                    gaze={false}
-                    className="lobby-ghost"
-                  />
-                </span>
-                <span className="min-w-0 flex-1">
-                  {(serverMode ? null : p2pError) ??
-                    (failed
-                      ? "Using the room relay to connect"
-                      : (serverMode ? socketJoined && socketConnected : p2pJoined)
-                        ? state.players.length === 0
-                          ? "Joining room…"
-                          : "Waiting for opponent"
-                        : "Connecting…")}
-                </span>
-              </li>
+          <div className="relative mt-8">
+            <ul className="space-y-2">
+              {state.players.map((p) => (
+                <li
+                  key={p.id}
+                  className="lobby-player flex items-center gap-3 rounded-[var(--radius-md)] border border-border px-3 py-3"
+                >
+                  <span className="lobby-player-avatar">
+                    <PlayerAvatar id={p.avatarId} size={40} sleepy />
+                  </span>
+                  <span className="min-w-0 truncate">
+                    {p.name} {p.id === state.hostId ? "· host" : ""}
+                  </span>
+                </li>
+              ))}
+              {state.players.length < 2 && (
+                <li className="lobby-empty flex items-center gap-3 rounded-[var(--radius-md)] border border-dashed border-border px-3 py-3 text-muted">
+                  <span className="lobby-seat" aria-hidden>
+                    {/* A ghost bot keeps the seat, typing dots until someone sits. */}
+                    <PlayerAvatar
+                      id="circle-grey"
+                      size={30}
+                      mood="waiting"
+                      gaze={false}
+                      className="lobby-ghost"
+                    />
+                  </span>
+                  <span className="min-w-0 flex-1">
+                    {(serverMode ? null : p2pError) ??
+                      (failed
+                        ? "Using the room relay to connect"
+                        : (serverMode ? socketJoined && socketConnected : p2pJoined)
+                          ? state.players.length === 0
+                            ? "Joining room…"
+                            : "Waiting for opponent"
+                          : "Connecting…")}
+                  </span>
+                </li>
+              )}
+            </ul>
+            {/* Both seats taken: the rivalry is stamped between them. */}
+            {state.players.length === 2 && (
+              <span className="lobby-vs" aria-hidden>
+                VS
+              </span>
             )}
-          </ul>
+          </div>
+          <p className="sr-only" role="status">
+            {lobbyRival ? `${lobbyRival.name} is here` : ""}
+          </p>
           {!hostRef.current && state.players.length === 2 && !serverMode && (
             <p role="status" className="mt-6 text-center text-sm text-muted">
               Both players are here. Waiting for the host to start.
@@ -1273,7 +1306,7 @@ export function MatchApp({
           )}
           {hostRef.current && !serverMode && (
             <Button
-              className="mt-8 w-full"
+              className={cn("mt-8 w-full", state.players.length === 2 && "start-ready")}
               disabled={state.players.length < 2}
               onClick={() => dispatch({ type: "START_MATCH", now: Date.now() })}
             >

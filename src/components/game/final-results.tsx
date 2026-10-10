@@ -76,8 +76,7 @@ export function FinalResults({
   // Confetti when this screen has news worth it: you won the duel (or, in
   // pass-and-play, someone at this device did), or you set a new best.
   const fanfare =
-    !reducedMotion &&
-    ((crowned && (youWin || state.duelKind === "hotseat")) || beatBest != null);
+    !reducedMotion && ((crowned && (youWin || state.duelKind === "hotseat")) || beatBest != null);
   const winColour =
     crowned && state.winnerIds[0] === state.players[1]?.id
       ? "var(--color-nl)"

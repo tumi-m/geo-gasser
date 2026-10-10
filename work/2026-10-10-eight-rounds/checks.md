@@ -31,3 +31,8 @@
 | 5 | Picks pop: map card ring and tick, settings option tick | pass | e5-choice-390 |
 | 5 | "Let's explore" catches the light; the bot perks up and bobs as you type its name | pass | e5-cta-390, e5-cta-1280, e5-name-390 |
 | 5 | No horizontal overflow or page errors on home, name prompt, map cards, settings tabs, help, duel | pass | menus.mjs at 320, 360, 390, 1280 |
+| 6 | Room code flips in a letter at a time; still reads as one code | pass | l6-code-390 mid-flip; h1 text "BFJ4AH" |
+| 6 | Opponent joins: row slides in with a ring, VS stamp lands between the rows, Start pulses | pass | lobby6.mjs, two browsers: l6-join150, l6-join650, l6-joined at 320, 390, 1280; `start-ready` on Start |
+| 6 | Screen readers hear who sat down | pass | host status "Guesty is here", guest status "Tumz is here" (there was no announcement before) |
+| 6 | Copy invite: the tick pops | pass | `.is-copied` while "Copied" shows |
+| 6 | No page errors in either browser | pass | lobby6.mjs at three widths |

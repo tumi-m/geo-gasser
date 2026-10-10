@@ -1551,3 +1551,17 @@ html.reduce-motion .best-stamp,html.reduce-motion .best-stamp svg {animation:non
 /* 320 px (the reflow width): the header fits, Settings stays on screen. */
 @media (max-width:359px) {.brand-lockup {font-size:16px;gap:7px}.brand-lockup>svg {width:22px}.expedition-nav nav {gap:4px}.nav-link {padding:12px 4px}}
 @media (max-width:340px) {.settings-tabs button svg {display:none}}
+
+/* Duel room. The code flips in letter by letter; the opponent's row slides
+   in with a burst when they sit down, a VS stamp lands between the two, and
+   Start pulses once both are here. */
+.room-code span {display:inline-block;animation:code-flip .5s cubic-bezier(.3,1.4,.5,1) backwards;animation-delay:calc(var(--i) * 70ms + 150ms);transform-origin:50% 60%}
+@keyframes code-flip {0%{opacity:0;transform:perspective(300px) rotateX(-90deg)}100%{opacity:1;transform:none}}
+.lobby-player {animation:lobby-seat-in .55s cubic-bezier(.34,1.4,.64,1) backwards;background:color-mix(in oklab,var(--color-bg) 70%,transparent)}
+@keyframes lobby-seat-in {from{opacity:0;transform:translateX(36px) scale(.94)}}
+.lobby-player-avatar {position:relative;display:inline-flex}
+.lobby-player + .lobby-player .lobby-player-avatar::after {content:"";position:absolute;inset:-4px;border-radius:999px;border:2px solid var(--color-accent);opacity:0;pointer-events:none;animation:splash-ring 1s var(--ease-out) .25s 2 both}
+.lobby-vs {position:absolute;right:18px;top:50%;z-index:1;display:grid;place-items:center;width:42px;height:42px;margin-top:-21px;border-radius:999px;background:var(--color-accent);color:var(--color-accent-fg);font-family:var(--font-display);font-size:15px;font-weight:800;letter-spacing:.02em;box-shadow:0 0 0 4px var(--color-bg),0 0 22px color-mix(in oklab,var(--color-accent) 55%,transparent);animation:vs-slam .6s .2s cubic-bezier(.2,1.6,.4,1) backwards}
+@keyframes vs-slam {0%{opacity:0;transform:scale(2.6) rotate(-20deg)}60%{opacity:1;transform:scale(.9) rotate(4deg)}100%{transform:none}}
+.start-ready {animation:atlas-pulse-ready 1.8s var(--ease-out) .6s 3}
+.is-copied svg {animation:tick-pop .5s cubic-bezier(.34,1.56,.64,1);color:var(--color-accent)}
