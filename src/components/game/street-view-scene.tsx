@@ -20,6 +20,7 @@ export function StreetViewScene({
   target,
   wide = false,
   interactive = true,
+  hidden = false,
   showHints = true,
   onReady,
   onUnavailable,
@@ -29,6 +30,11 @@ export function StreetViewScene({
   /** Street View is the only scene: search further before giving up. */
   wide?: boolean;
   interactive?: boolean;
+  /**
+   * Behind the photo for now. The panorama stays loaded, where the player
+   * left it, so switching back is instant.
+   */
+  hidden?: boolean;
   /** A first-look hint on how to move, until the player moves or looks around. */
   showHints?: boolean;
   /** The panorama is on screen. */
@@ -152,7 +158,10 @@ export function StreetViewScene({
   };
 
   return (
-    <div className={cn("street-view absolute inset-0 bg-[#0a1117]", className)}>
+    <div
+      className={cn("street-view absolute inset-0 bg-[#0a1117]", hidden && "is-hidden", className)}
+      aria-hidden={hidden || undefined}
+    >
       <div
         ref={hostRef}
         className={cn("street-view-pano absolute inset-0", status === "ready" && "is-ready")}
@@ -160,18 +169,18 @@ export function StreetViewScene({
         aria-label="Street View. Drag to look around; click the arrows or the road to walk."
       />
       {!interactive && <div className="absolute inset-0 z-[2]" aria-hidden />}
-      {status === "loading" && (
+      {status === "loading" && !hidden && (
         <p className="street-view-status" role="status">
           Finding the street…
         </p>
       )}
-      {status === "ready" && interactive && showHints && !looked && (
+      {status === "ready" && interactive && !hidden && showHints && !looked && (
         <p className="street-view-hint" aria-hidden>
           <Footprints className="size-4" />
           Drag to look around · use the arrows to walk
         </p>
       )}
-      {status === "ready" && interactive && moved && (
+      {status === "ready" && interactive && !hidden && moved && (
         <button type="button" className="street-view-home" onClick={backToStart}>
           <LocateFixed className="size-4" aria-hidden />
           Back to start

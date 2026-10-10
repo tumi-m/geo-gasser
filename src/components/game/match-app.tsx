@@ -661,6 +661,12 @@ export function MatchApp({
   // A place with no usable photo is Street View only: no Photo switch.
   const streetOnly = scene?.kind === "street";
   const streetFailed = streetFailedSrc !== null && streetFailedSrc === scene?.src;
+  // The scene whose panorama has been found. The Street View / Photo switch
+  // waits for it: shown while the search was still running, the switch let a
+  // player cancel it, and the retry could then find nothing and take the
+  // switch away mid-round.
+  const [streetReadySrc, setStreetReadySrc] = useState<string | null>(null);
+  const streetReady = streetReadySrc !== null && streetReadySrc === scene?.src;
   const streetAvailable = Boolean(streetTarget) && !streetFailed;
   const showStreet = streetAvailable && (streetOnly || viewSource === "street");
 
@@ -1360,6 +1366,24 @@ export function MatchApp({
 
       <div className="scene-viewport">
         <Suspense fallback={<div className="absolute inset-0 bg-bg-subtle" />}>
+          {/* Street View is searched once per place and stays loaded while the
+              photo is on screen, so switching back is instant and keeps where
+              the player walked to. */}
+          {!cosmic && streetAvailable && streetTarget && (
+            <StreetViewScene
+              key={`${streetTarget.latitude},${streetTarget.longitude}`}
+              target={streetTarget}
+              wide={streetOnly}
+              hidden={!showStreet}
+              interactive={canGuess && !showSettings && !showingReveal && showStreet}
+              showHints={settings.showHints}
+              onReady={() => {
+                setStreetReadySrc(scene?.src ?? null);
+                if (showStreet) markSceneReady();
+              }}
+              onUnavailable={() => setStreetFailedSrc(scene?.src ?? null)}
+            />
+          )}
           {cosmic && scene?.cosmos ? (
             <CosmosScene
               key={`${state.questionIndex}:${scene.cosmos.seed}`}
@@ -1368,17 +1392,7 @@ export function MatchApp({
               reducedMotion={settings.reducedMotion}
               interactive={!showSettings}
             />
-          ) : showStreet && streetTarget ? (
-            <StreetViewScene
-              key={`${streetTarget.latitude},${streetTarget.longitude}`}
-              target={streetTarget}
-              wide={streetOnly}
-              interactive={canGuess && !showSettings && !showingReveal}
-              showHints={settings.showHints}
-              onReady={markSceneReady}
-              onUnavailable={() => setStreetFailedSrc(scene?.src ?? null)}
-            />
-          ) : streetOnly ? (
+          ) : showStreet ? null : streetOnly ? (
             <div className="street-view-missing" role="status">
               <p>Street View could not load this place.</p>
               <p>Make your best guess, or wait out the clock.</p>
@@ -1453,7 +1467,7 @@ export function MatchApp({
         </div>
       </div>
 
-      {streetAvailable && !streetOnly && !showingReveal && (
+      {streetAvailable && streetReady && !streetOnly && !showingReveal && (
         <div className="view-source" role="group" aria-label="Scene">
           <button
             type="button"

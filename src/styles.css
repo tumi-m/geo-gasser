@@ -1388,6 +1388,8 @@ button.duel-mode:hover .duel-mode-go {transform:translateX(4px);color:var(--colo
 }
 /* Street View arrives softly instead of popping in tile by tile. */
 .street-view-pano {opacity:0;transition:opacity .6s var(--ease-out)}
+/* Behind the photo: still loaded, out of sight and out of reach. */
+.street-view.is-hidden {visibility:hidden;pointer-events:none}
 .street-view-pano.is-ready {opacity:1}
 .street-view-status {animation:sv-breathe 1.6s ease-in-out infinite}
 /* Shown only if the photo takes a moment: fades in after 0.6 s, so a fast

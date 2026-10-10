@@ -132,5 +132,10 @@ Rules this repo has already paid for:
   duel, whose two-row score card makes the header taller. A solo test and a
   role-based click both missed it; `elementFromPoint` at the button's centre
   catches it.
+- **Offer a control only once what it switches to exists.** The Street View
+  / Photo switch showed while the panorama search was still running. Using
+  it cancelled the search, and the retry could find nothing and take the
+  switch away. Search once per place, keep the result alive behind the
+  photo, and show the switch when the panorama is found.
 - **Temporary test hooks never reach a commit.** Remove them, and grep the
   diff before committing.
