@@ -825,3 +825,16 @@ button.duel-mode:hover .duel-mode-go {color:var(--color-accent)}
 .career-medals .career-medal-when {color:var(--color-fg)}
 .career-hero-title {color:var(--color-fg)}
 .pause-cover {background:#000}
+.tut-progress i {border-radius:0}
+.tut-art {border-radius:0;border-color:var(--color-rule);background:var(--color-bg)}
+.tut-map {background:#f4f4f4}
+.tut-land path {fill:#fff;stroke:#000}
+.tut-lock-button {border-radius:0;color:var(--color-bg);background:var(--color-fg);text-transform:uppercase;letter-spacing:.1em;font-size:12px}
+.tut-tap {background:var(--color-accent);box-shadow:0 0 0 6px #ff550033}
+.tut-stamp {border-radius:0;border-color:var(--color-fg);color:var(--color-fg)}
+.tut-line line {stroke:var(--color-fg)}
+.tut-score-flag {color:var(--color-fg)}
+.tut-score-km {border-radius:0;color:var(--color-bg);background:var(--color-fg);font-family:var(--font-mono)}
+.tut-score-points {font-family:var(--font-mono);color:#c24000}
+.tut-ways span {border-radius:0;border-color:var(--color-rule);background:var(--color-bg)}
+.tut-count {font-family:var(--font-mono)}

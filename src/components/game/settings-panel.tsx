@@ -417,7 +417,7 @@ function StreetViewSection() {
         </p>
       ) : status.state === "no-key" ? (
         <p className="settings-footnote mt-0">
-          Off. This build has no Maps key (VITE_GOOGLE_MAPS_KEY), so rounds use photographs.
+          Not available right now, so every round uses photographs.
         </p>
       ) : (
         <div className="street-view-refused" role="status">

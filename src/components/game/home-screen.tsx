@@ -6,6 +6,7 @@ import {
   ArrowRight,
   Check,
   ChevronDown,
+  CircleHelp,
   Compass,
   Flame,
   Globe2,
@@ -190,8 +191,10 @@ export function HomeScreen() {
           </span>
         </a>
         <nav className="flex items-center gap-3 sm:gap-7" aria-label="Main navigation">
-          <button className="nav-link" onClick={() => setPanel("help")}>
-            How to play
+          {/* On phones the header is icons only, so it fits beside the wordmark. */}
+          <button className="nav-link nav-help" aria-label="How to play" onClick={() => setPanel("help")}>
+            <CircleHelp className="nav-help-icon" size={20} aria-hidden />
+            <span className="nav-help-label">How to play</span>
           </button>
           {/* Your career, with your level on its badge. */}
           <button

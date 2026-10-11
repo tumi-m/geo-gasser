@@ -1705,3 +1705,76 @@ html.reduce-motion .best-stamp,html.reduce-motion .best-stamp svg {animation:non
 @keyframes pause-in {from{opacity:0}}
 .reduce-motion .pause-cover {animation:none}
 @media (prefers-reduced-motion: reduce) {.pause-cover {animation:none}}
+/* Home header on phones: icons only (labels stay for screen readers). */
+.nav-help-icon {display:none}
+@media (max-width:480px) {
+  .nav-help-icon {display:block}
+  .nav-help-label {position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+  .expedition-nav nav {gap:6px}
+  .expedition-nav .nav-link {padding:10px 6px}
+}
+/* ── How to play: steps with small looping animations ── */
+.tut-progress {display:grid;grid-template-columns:repeat(5,1fr);gap:4px}
+.tut-progress i {height:3px;border-radius:2px;background:var(--color-border);overflow:hidden;position:relative}
+.tut-progress i.is-done {background:var(--color-accent)}
+.tut-progress i.is-on::after {content:"";position:absolute;inset:0;background:var(--color-accent);transform-origin:left;animation:tut-bar .5s var(--ease-out) both}
+@keyframes tut-bar {from{transform:scaleX(0)}}
+.tut-step {animation:tut-step .4s var(--ease-out) both}
+@keyframes tut-step {from{opacity:0;transform:translateX(14px)}}
+.tut-count {font-size:11px;letter-spacing:.2em;color:var(--color-subtle)}
+.tut-art {position:relative;height:150px;border:1px solid var(--color-border);border-radius:16px;overflow:hidden;background:radial-gradient(ellipse at 50% 120%,#2f2f2f,#1a1a1a 70%)}
+/* 1 Look around: a panorama drifts under a dragging hand. */
+.tut-pano {position:absolute;inset:0;width:200%;background:linear-gradient(#3b5a7a,#e8a26a 70%,#c97a4a);animation:tut-pan 5s ease-in-out infinite alternate}
+.tut-pano svg {position:absolute;inset:auto 0 0 0;width:100%;height:70%}
+.tut-far {fill:#5b4a5f}
+.tut-near {fill:#2b2a2e}
+.tut-sign {position:absolute;left:58%;bottom:34%;padding:3px 7px;border-radius:4px;font-size:10px;font-weight:700;color:#fff;background:#0f6b3a;box-shadow:0 2px 0 #0006}
+@keyframes tut-pan {from{transform:translateX(0)}to{transform:translateX(-50%)}}
+.tut-hand {position:absolute;left:50%;top:50%;color:#fff;filter:drop-shadow(0 3px 6px #0008);animation:tut-drag 5s ease-in-out infinite alternate}
+@keyframes tut-drag {from{transform:translate(30px,-6px) rotate(-8deg)}to{transform:translate(-60px,6px) rotate(6deg)}}
+/* 2 Drop a pin: the pin falls, bounces, and the ground ripples. */
+.tut-map {background:linear-gradient(#22324a,#1b2638)}
+.tut-land {position:absolute;inset:14px 24px}
+.tut-land path {fill:#9aa3b2;stroke:#1b2638;stroke-width:1.5}
+.tut-pin {position:absolute;left:calc(50% - 15px);top:calc(52% - 30px);color:var(--color-accent);filter:drop-shadow(0 4px 4px #0007);animation:tut-drop 2.6s cubic-bezier(.3,1.5,.5,1) infinite}
+@keyframes tut-drop {0%{transform:translateY(-90px);opacity:0}12%{opacity:1}30%{transform:translateY(0)}38%{transform:translateY(-10px)}46%,85%{transform:translateY(0);opacity:1}100%{transform:translateY(0);opacity:0}}
+.tut-ripple {position:absolute;left:calc(50% - 4px);top:52%;width:8px;height:8px;border-radius:50%;border:2px solid var(--color-accent);animation:tut-ripple 2.6s ease-out infinite}
+@keyframes tut-ripple {0%,28%{transform:scale(0);opacity:0}32%{opacity:1}70%,100%{transform:scale(7);opacity:0}}
+/* 3 Lock it in: a tap, the button presses, a stamp lands. */
+.tut-lock {display:grid;place-items:center}
+.tut-lock-button {display:inline-flex;align-items:center;gap:8px;padding:12px 18px;border-radius:12px;font-size:14px;font-weight:600;color:var(--color-accent-fg);background:var(--color-accent);animation:tut-press 2.8s ease-in-out infinite}
+@keyframes tut-press {0%,30%,40%,100%{transform:none}34%{transform:scale(.93)}}
+.tut-tap {position:absolute;left:calc(50% + 24px);top:calc(50% + 6px);width:18px;height:18px;border-radius:50%;background:#fff;box-shadow:0 0 0 6px #ffffff44;animation:tut-tap 2.8s ease-in-out infinite}
+@keyframes tut-tap {0%{transform:translate(40px,40px);opacity:0}20%{opacity:1}32%{transform:none;opacity:1}40%{transform:scale(.7)}55%,100%{transform:translate(30px,30px);opacity:0}}
+.tut-stamp {position:absolute;right:16%;top:16%;padding:4px 12px;border:3px solid #ffd166;border-radius:8px;font-family:var(--font-display);font-size:18px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:#ffd166;transform:rotate(-12deg);animation:tut-stamp 2.8s ease-in-out infinite}
+@keyframes tut-stamp {0%,36%{opacity:0;transform:rotate(-12deg) scale(2)}44%{opacity:1;transform:rotate(-12deg) scale(.95)}50%,85%{opacity:1;transform:rotate(-12deg) scale(1)}100%{opacity:0;transform:rotate(-12deg) scale(1)}}
+/* 4 Score: the line draws from pin to answer, the points count up. */
+.tut-line {position:absolute;inset:0;width:100%;height:100%}
+.tut-line line {stroke:var(--color-fg);stroke-width:2;stroke-dasharray:6 5;stroke-dashoffset:130;animation:tut-line 1s .2s var(--ease-out) forwards}
+@keyframes tut-line {to{stroke-dashoffset:0}}
+.tut-score-pin {position:absolute;left:calc(20% - 11px);top:calc(69% - 22px);color:var(--color-accent)}
+.tut-score-flag {position:absolute;left:calc(80% - 4px);top:calc(31% - 20px);color:#ffd166;animation:reveal-pop .45s 1s cubic-bezier(.34,1.56,.64,1) backwards}
+.tut-score-km {position:absolute;left:46%;top:38%;padding:2px 8px;border-radius:999px;font-size:11px;color:var(--color-fg);background:#000a}
+.tut-score-points {position:absolute;right:14px;bottom:10px;font-family:var(--font-display);font-size:30px;font-weight:700;color:var(--color-accent)}
+/* 5 Three ways to win. */
+.tut-ways {display:grid;align-content:center;gap:8px;padding:0 18px}
+.tut-ways span {display:flex;align-items:center;gap:10px;padding:8px 12px;border:1px solid var(--color-border);border-radius:12px;font-size:14px;font-weight:600;background:#262626;animation:medal-in .5s cubic-bezier(.34,1.56,.64,1) backwards;animation-delay:calc(.15s + var(--i) * .18s)}
+.tut-ways svg {color:var(--color-accent)}
+.tut-rules summary {cursor:pointer;font-size:13px;color:var(--color-muted)}
+.tut-rules summary:hover {color:var(--color-fg)}
+.tut-rules dl {display:grid;gap:10px;margin-top:10px}
+.tut-rules dt {font-size:13px;font-weight:600;color:var(--color-fg)}
+.tut-rules dd {margin-top:2px;font-size:13px;line-height:1.55;color:var(--color-muted)}
+.reduce-motion .tut-art *,.reduce-motion .tut-step,.reduce-motion .tut-progress i::after {animation:none!important}
+@media (prefers-reduced-motion: reduce) {.tut-art *,.tut-step,.tut-progress i::after {animation:none!important}}
+.reduce-motion .tut-line line {stroke-dashoffset:0}
+@media (prefers-reduced-motion: reduce) {.tut-line line {stroke-dashoffset:0}}
+/* Home: the streak's flame flickers; the level badge catches the light now and then. */
+.streak-strip-icon svg {transform-origin:50% 85%;animation:flame-flicker 1.8s ease-in-out infinite}
+@keyframes flame-flicker {0%,100%{transform:none}25%{transform:scale(1.08,.94) rotate(-4deg)}50%{transform:scale(.95,1.07) rotate(3deg)}75%{transform:scale(1.04) rotate(-1deg)}}
+.nav-career .level-badge {position:relative;overflow:hidden}
+.nav-career .level-badge::after {content:"";position:absolute;inset:0;background:linear-gradient(110deg,transparent 30%,#ffffffaa 50%,transparent 70%);transform:translateX(-130%);animation:badge-glint 5s 1.2s ease-in-out infinite}
+@keyframes badge-glint {0%,72%{transform:translateX(-130%)}92%,100%{transform:translateX(130%)}}
+.reduce-motion .streak-strip-icon svg,.reduce-motion .nav-career .level-badge::after {animation:none}
+@media (prefers-reduced-motion: reduce) {.streak-strip-icon svg,.nav-career .level-badge::after {animation:none}}
+.tut-step {min-height:calc(150px + 10rem)}
