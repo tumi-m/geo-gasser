@@ -138,10 +138,14 @@ export function CareerPage() {
             </span>
           </h2>
           <ul className="career-medals">
-            {MEDALS.map((medal) => {
+            {MEDALS.map((medal, i) => {
               const when = medals[medal.id];
               return (
-                <li key={medal.id} className={cn(!when && "is-locked")}>
+                <li
+                  key={medal.id}
+                  className={cn(!when && "is-locked")}
+                  style={{ "--i": Math.min(i, 12) } as React.CSSProperties}
+                >
                   <MedalDisc medal={medal} locked={!when} size={40} />
                   <span className="min-w-0">
                     <strong>{medal.name}</strong>

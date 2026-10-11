@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "@/lib/navigation";
 import { Button } from "@/components/ui/button";
-import { Check, Share2, Trophy } from "lucide-react";
+import { Check, House, RotateCcw, Share2, Trophy } from "lucide-react";
 import {
   formatDistance,
   formatMiss,
@@ -135,6 +135,17 @@ export function FinalResults({
     shellRef.current?.focus({ preventScroll: true });
   }, []);
   let cardIndex = 0;
+  // The actions sit below the XP, medals and route: until they scroll into
+  // view, a small bar floats at the foot with Rematch and Home.
+  const actionsRef = useRef<HTMLDivElement>(null);
+  const [actionsInView, setActionsInView] = useState(true);
+  useEffect(() => {
+    const el = actionsRef.current;
+    if (!el || typeof IntersectionObserver === "undefined") return;
+    const io = new IntersectionObserver(([e]) => setActionsInView(Boolean(e?.isIntersecting)));
+    io.observe(el);
+    return () => io.disconnect();
+  }, []);
 
   return (
     <main
@@ -289,7 +300,7 @@ export function FinalResults({
             {rematchNote}
           </p>
         ) : null}
-        <div className="mt-6 flex flex-col gap-3 sm:flex-row">
+        <div ref={actionsRef} className="mt-6 flex flex-col gap-3 sm:flex-row">
           <Button className="rematch-nudge sm:flex-1" onClick={onRematch} disabled={rematchPending}>
             {rematchLabel ?? "Rematch"}
           </Button>
@@ -303,6 +314,22 @@ export function FinalResults({
             Home
           </Button>
         </div>
+        {!actionsInView && (
+          <div className="result-fab" role="group" aria-label="Next">
+            <button type="button" className="result-fab-home" aria-label="Home" onClick={onHome}>
+              <House size={18} aria-hidden />
+            </button>
+            <button
+              type="button"
+              className="result-fab-main"
+              onClick={onRematch}
+              disabled={rematchPending}
+            >
+              <RotateCcw size={16} aria-hidden />
+              {rematchLabel ?? "Rematch"}
+            </button>
+          </div>
+        )}
         {/* The breakdown comes after the actions: after a 40-question match
             Rematch used to sit under forty rows. Long matches fold each round
             into one line that opens on demand. */}

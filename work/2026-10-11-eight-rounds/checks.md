@@ -25,3 +25,6 @@
 | 4 | Reveal card at 390, 320×568, 844×390 and 1280, both looks | pass | b4.mjs: card on screen, Continue visible, the answer and your pin never under the card, nothing spills out of the card, axe clean |
 | 4 | A scrolling reveal card says there is more | pass | on 320×568 the duel rows sit below the fold; the card's foot fades while there is more to scroll (`data-more`) |
 | 4 | Motion: reveal badges | pass | badges pop in one after another; Bullseye glints gold (ink in Mono); off with reduced motion |
+| 5 | Results after full matches (duel 390, solo 1280 Mono, duel 844×390) | pass | b5.mjs: no sideways scroll, every reveal fires, axe clean, Rematch two Tabs from the top |
+| 5 | Rematch is always within reach | pass | after XP, medals, the route, passport and stats, Rematch sat ~1,500 px down on a phone; a Rematch/Home bar now floats at the foot until the buttons scroll into view (fab.mjs: shown at the top, gone with the buttons in view, Rematch from it starts a new match; both looks) |
+| 5 | Motion: Career medals | pass | medals pop in one after another; earned discs glint; off with reduced motion; cp.mjs axe clean |

@@ -1839,3 +1839,18 @@ html.reduce-motion .best-stamp,html.reduce-motion .best-stamp svg {animation:non
 .reveal-badge.is-bullseye {border-color:#ffd166;color:#ffd166;box-shadow:0 0 12px #ffd16655}
 .reduce-motion .reveal-badge {animation:none}
 @media (prefers-reduced-motion: reduce) {.reveal-badge {animation:none}}
+/* Results: Rematch and Home float at the foot until the real buttons show. */
+.result-fab {position:fixed;left:50%;bottom:max(16px,env(safe-area-inset-bottom));z-index:30;display:flex;gap:8px;padding:6px;border:1px solid var(--color-border);border-radius:999px;background:#161616ee;backdrop-filter:blur(12px);box-shadow:0 12px 30px #000a;transform:translateX(-50%);animation:fab-in .4s cubic-bezier(.2,1.3,.4,1) both}
+@keyframes fab-in {from{opacity:0;transform:translate(-50%,24px)}}
+.result-fab button {display:inline-flex;align-items:center;justify-content:center;gap:8px;height:44px;border-radius:999px;font-size:14px;font-weight:600}
+.result-fab-home {width:44px;color:var(--color-fg);background:var(--color-bg-subtle)}
+.result-fab-main {padding:0 22px;color:var(--color-accent-fg);background:var(--color-accent)}
+.result-fab-main:disabled {opacity:.5}
+.reduce-motion .result-fab {animation:none}
+@media (prefers-reduced-motion: reduce) {.result-fab {animation:none}}
+/* Career: medals pop in one after another; earned discs catch the light. */
+.career-medals li {animation:medal-in .5s cubic-bezier(.34,1.56,.64,1) backwards;animation-delay:calc(.35s + var(--i,0) * 45ms)}
+.career-medals li:not(.is-locked) .medal-disc {overflow:hidden}
+.career-medals li:not(.is-locked) .medal-disc::after {content:"";position:absolute;inset:0;border-radius:inherit;background:linear-gradient(115deg,transparent 35%,#ffffffb0 50%,transparent 65%);transform:translateX(-120%);animation:badge-glint 4.5s 1.4s ease-in-out infinite}
+.reduce-motion .career-medals li,.reduce-motion .career-medals .medal-disc::after {animation:none}
+@media (prefers-reduced-motion: reduce) {.career-medals li,.career-medals .medal-disc::after {animation:none}}

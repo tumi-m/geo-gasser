@@ -849,3 +849,7 @@ button.duel-mode:hover .duel-mode-go {color:var(--color-accent)}
 .callout.is-run,.callout.is-hot-streak {color:#000;background:var(--color-accent)}
 .round-splash.has-moment {background:#000000eb}
 .reveal-badge.is-bullseye {border-color:var(--color-fg);color:var(--color-fg);box-shadow:none;font-weight:700}
+.result-fab {border-radius:0;border-color:var(--color-fg);background:var(--color-bg);box-shadow:none}
+.result-fab button {border-radius:0;text-transform:uppercase;letter-spacing:.1em;font-size:12px;font-weight:700}
+.result-fab-home {border:1px solid var(--color-fg);background:var(--color-bg)}
+.result-fab-main {color:var(--color-bg);background:var(--color-fg)}
