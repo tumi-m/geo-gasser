@@ -1,4 +1,6 @@
 import { DEFAULT_ATLAS, sanitizeAtlas, type AtlasSpec } from "./atlas.ts";
+import { isDuelRule, isMovementRule } from "./rules.ts";
+import type { DuelRule, MovementRule } from "./types.ts";
 import {
   isMatchLengthId,
   isTimeDifficulty,
@@ -26,6 +28,10 @@ export interface GameSettings {
   cameraShake: boolean;
   highContrast: boolean;
   theme: ThemeId;
+  /** How much you may move in a scene: Moving, No move or NMPZ. */
+  movement: MovementRule;
+  /** How a duel is won: highest total, or the last one with health left. */
+  duelRule: DuelRule;
   photoFit: "cover" | "contain";
   /**
    * Set once the player picks a fit themselves. Before that the photo fills
@@ -52,6 +58,8 @@ export const DEFAULT_SETTINGS: GameSettings = {
   cameraShake: true,
   highContrast: false,
   theme: "classic",
+  movement: "moving",
+  duelRule: "points",
   photoFit: "cover",
   showHints: true,
   difficulty: "medium",
@@ -78,6 +86,8 @@ export function loadSettings(): GameSettings {
       photoFit: parsed.photoFitChosen && parsed.photoFit === "contain" ? "contain" : "cover",
       showHints: typeof parsed.showHints === "boolean" ? parsed.showHints : true,
       theme: isThemeId(parsed.theme) ? parsed.theme : DEFAULT_SETTINGS.theme,
+      movement: isMovementRule(parsed.movement) ? parsed.movement : DEFAULT_SETTINGS.movement,
+      duelRule: isDuelRule(parsed.duelRule) ? parsed.duelRule : DEFAULT_SETTINGS.duelRule,
       difficulty: isTimeDifficulty(parsed.difficulty)
         ? parsed.difficulty
         : DEFAULT_SETTINGS.difficulty,

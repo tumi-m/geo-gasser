@@ -39,7 +39,13 @@ export function RoundSplash({
   markSelf = true,
   reducedMotion,
   onDone,
+  note,
+  soloFigure,
 }: {
+  /** Replaces the line under the headline (a health duel's damage, a streak's country). */
+  note?: string;
+  /** Solo: shown instead of the round's points (a streak's count). */
+  soloFigure?: string;
   players: PlayerState[];
   selfId: string;
   score: RoundScore;
@@ -84,7 +90,9 @@ export function RoundSplash({
       : "Dead heat"
     : headline.charAt(0) + headline.slice(1).toLowerCase();
   const leader = verdict.rows.find((r) => r.id === verdict.leaderId);
-  const sub = duel
+  const sub = note
+    ? note
+    : duel
     ? leader
       ? `${leader.name} leads by ${verdict.lead.toLocaleString()}`
       : "Level on points"
@@ -138,7 +146,11 @@ export function RoundSplash({
             </span>
           </div>
         ) : (
-          <SoloPoints points={score.roundScore} burst={crowned && youWon && !reduced} />
+          <SoloPoints
+            points={score.roundScore}
+            figure={soloFigure}
+            burst={crowned && youWon && !reduced}
+          />
         )}
         {celebrate ? (
           <div className="splash-headline" aria-hidden>
@@ -236,12 +248,12 @@ function SplashPlayer({
   );
 }
 
-function SoloPoints({ points, burst }: { points: number; burst: boolean }) {
+function SoloPoints({ points, burst, figure }: { points: number; burst: boolean; figure?: string }) {
   // Numbers still roll with reduced motion: counting is not movement.
   const shown = useCountUp(points, T_COUNT, false, 0, T_IN);
   return (
     <div className="splash-solo">
-      <p className="splash-big tabular">+{Math.round(shown).toLocaleString()}</p>
+      <p className="splash-big tabular">{figure ?? `+${Math.round(shown).toLocaleString()}`}</p>
       {burst && <Sparks count={22} spread={150} />}
     </div>
   );

@@ -9,6 +9,7 @@ import { COSMOS_LOCATIONS, COSMOS_QUESTIONS } from "./cosmos.ts";
 import { environmentForLocation, ROUND4_ENVIRONMENTS } from "./environments.ts";
 import { getLocation, playableLocations, ROUND4_LOCATIONS } from "./locations.ts";
 import { mulberry32, shuffle } from "./rng.ts";
+import { HEALTH_DECK, STREAK_DECK_MAX } from "./rules.ts";
 import { MATCH_LENGTH, type MatchLengthId } from "./timer.ts";
 import type { EarthCountry, GeoLocation } from "./types.ts";
 
@@ -385,6 +386,88 @@ export function planMatch(
     locationIds,
     envIds,
   };
+}
+
+/** A plan whose every place is its own round (Escape, health duels, streaks). */
+function placeByPlacePlan(seed: number, matchLength: MatchLengthId, atlas: AtlasSpec, picked: GeoLocation[]): MatchPlan {
+  return {
+    seed,
+    matchLength,
+    atlas,
+    locationIds: picked.map((l) => l.id),
+    envIds: [],
+    photoQuestions: picked.length,
+    totalQuestions: picked.length,
+    photoRounds: picked.length,
+    totalRounds: picked.length,
+  };
+}
+
+/**
+ * A health duel's deck: up to HEALTH_DECK places from the map, unseen first,
+ * one place per round. The SA × NL map deals the two countries evenly. Most
+ * duels end long before the deck does.
+ */
+export function planHealthDuel(
+  seed: number,
+  matchLength: MatchLengthId,
+  atlas: AtlasSpec = DEFAULT_ATLAS,
+  avoidLocationIds: readonly string[] = [],
+  options: { streetView?: boolean } = {},
+): MatchPlan {
+  const spec = sanitizeAtlas(atlas);
+  const rand = mulberry32(seed);
+  const recency: Recency = new Map(avoidLocationIds.map((id, i) => [id, i] as const));
+  const base = playableLocations(options.streetView);
+  const filtered = filterByAtlas(base, spec);
+  const pool = filtered.length ? filtered : base;
+  const want = Math.min(HEALTH_DECK, pool.length);
+  const picked =
+    spec.preset === "sa-nl" && !spec.cities?.length
+      ? dealQuota(pool, { ZA: want / 2, NL: want / 2, WORLD: 0 }, rand, want, recency)
+      : byFreshness(pool, rand, recency).slice(0, want);
+  return placeByPlacePlan(seed, matchLength, spec, picked);
+}
+
+/**
+ * A Country Streak's deck: every place on Earth the game can show, dealt a
+ * country at a time. Each lap visits every country once, in a new order,
+ * unseen places first, so the two home countries cannot crowd out the rest
+ * and no country comes up twice in a row unless it is the only one left.
+ */
+export function planStreak(
+  seed: number,
+  matchLength: MatchLengthId,
+  avoidLocationIds: readonly string[] = [],
+  options: { streetView?: boolean } = {},
+): MatchPlan {
+  const rand = mulberry32(seed);
+  const recency: Recency = new Map(avoidLocationIds.map((id, i) => [id, i] as const));
+  const places = playableLocations(options.streetView).filter((l) => l.country !== "SPACE");
+  const byNation = new Map<string, GeoLocation[]>();
+  for (const l of places) {
+    const n = nationOf(l);
+    byNation.set(n, [...(byNation.get(n) ?? []), l]);
+  }
+  const queues = new Map([...byNation].map(([n, list]) => [n, byFreshness(list, rand, recency)]));
+  const picked: GeoLocation[] = [];
+  let last = "";
+  while (picked.length < STREAK_DECK_MAX) {
+    const nations = shuffle(
+      [...queues.keys()].filter((n) => queues.get(n)!.length),
+      rand,
+    );
+    if (!nations.length) break;
+    // A new lap never opens with the country that closed the last one.
+    if (nations.length > 1 && nations[0] === last) nations.push(nations.shift()!);
+    for (const n of nations) {
+      if (picked.length >= STREAK_DECK_MAX) break;
+      picked.push(queues.get(n)!.shift()!);
+      last = n;
+    }
+  }
+  // The whole world map: a streak's map is the planet, whatever map is picked.
+  return placeByPlacePlan(seed, matchLength, sanitizeAtlas({ preset: "mix" }), picked);
 }
 
 export function currentLocationId(plan: Pick<MatchPlan, "locationIds">, questionIndex: number): string {

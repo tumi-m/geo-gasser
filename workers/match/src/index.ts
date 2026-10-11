@@ -1,8 +1,9 @@
 import { DurableObject } from "cloudflare:workers";
 import { sanitizeAtlas, type AtlasSpec } from "../../../src/lib/game/atlas.ts";
 import { createLobbyState } from "../../../src/lib/game/machine.ts";
+import { isDuelRule, isMovementRule } from "../../../src/lib/game/rules.ts";
 import type { MatchLengthId, TimeDifficulty } from "../../../src/lib/game/timer.ts";
-import type { MatchState } from "../../../src/lib/game/types.ts";
+import type { DuelRule, MatchState, MovementRule } from "../../../src/lib/game/types.ts";
 import {
   applyRoomCommand,
   roomSnapshot,
@@ -49,6 +50,14 @@ const LEAVE_GRACE_MS = 5_000;
 
 function parseDifficulty(raw: string | null): TimeDifficulty | undefined {
   return raw === "easy" || raw === "medium" || raw === "hard" ? raw : undefined;
+}
+
+function parseMovement(raw: string | null): MovementRule | undefined {
+  return isMovementRule(raw) ? raw : undefined;
+}
+
+function parseDuelRule(raw: string | null): DuelRule | undefined {
+  return isDuelRule(raw) ? raw : undefined;
 }
 
 function parseMatchLength(raw: string | null): MatchLengthId | undefined {
@@ -171,6 +180,8 @@ export class MatchRoom extends DurableObject<Env> {
       matchLength: parseMatchLength(url.searchParams.get("matchLength")),
       atlas: parseAtlas(url.searchParams.get("atlas")),
       streetView: url.searchParams.get("streetView") === "1",
+      movement: parseMovement(url.searchParams.get("movement")),
+      duelRule: parseDuelRule(url.searchParams.get("duelRule")),
       now: Date.now(),
     });
     const state = await this.hydrate();

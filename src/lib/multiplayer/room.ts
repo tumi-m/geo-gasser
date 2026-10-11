@@ -2,7 +2,7 @@ import { reduce, toPublicSnapshot } from "../game/machine.ts";
 import { ROUND_DURATION_SEC } from "../game/timer.ts";
 import type { AtlasSpec } from "../game/atlas.ts";
 import type { MatchLengthId, TimeDifficulty } from "../game/timer.ts";
-import type { LatLng, MatchState, PublicSnapshot } from "../game/types.ts";
+import type { DuelRule, LatLng, MatchState, MovementRule, PublicSnapshot } from "../game/types.ts";
 
 /**
  * Server-authoritative room commands. The Durable Object (or a local test)
@@ -23,6 +23,9 @@ export type RoomCommand =
       atlas?: AtlasSpec;
       /** The creator's build can show Street View-only places. */
       streetView?: boolean;
+      /** The creator's movement rule and how the duel is won. */
+      movement?: MovementRule;
+      duelRule?: DuelRule;
       now: number;
     }
   | { t: "start"; playerId: string; now: number }
@@ -55,6 +58,8 @@ export function applyRoomCommand(state: MatchState, cmd: RoomCommand): MatchStat
           matchLength: cmd.matchLength,
           atlas: cmd.atlas,
           streetView: cmd.streetView,
+          movement: cmd.movement,
+          duelRule: cmd.duelRule,
         });
       }
       return autoStart(

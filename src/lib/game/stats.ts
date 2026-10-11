@@ -26,6 +26,10 @@ export interface PlayerStats {
   closestKm: number | null;
   /** Which scoring the points records were set under (SCORING_VERSION). */
   scoring?: number;
+  /** Country Streak: the longest run of right countries. */
+  bestCountryStreak?: number;
+  /** Country Streak: runs played. */
+  streakRuns?: number;
 }
 
 export const EMPTY_STATS: PlayerStats = {
@@ -128,6 +132,17 @@ export function recordMatch(stats: PlayerStats, input: {
         : stats.closestKm == null
           ? Math.min(...closest)
           : Math.min(stats.closestKm, ...closest),
+  };
+  saveStats(next);
+  return next;
+}
+
+/** Country Streak: a finished run of `count` right countries. */
+export function recordStreak(stats: PlayerStats, count: number): PlayerStats {
+  const next: PlayerStats = {
+    ...stats,
+    streakRuns: (stats.streakRuns ?? 0) + 1,
+    bestCountryStreak: Math.max(stats.bestCountryStreak ?? 0, count),
   };
   saveStats(next);
   return next;

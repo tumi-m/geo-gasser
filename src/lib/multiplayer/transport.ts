@@ -14,6 +14,9 @@ export interface MatchIdentity {
   atlas?: unknown;
   /** The creator can deal Street View-only places. */
   streetView?: boolean;
+  /** The creator's movement rule and duel rule (rules.ts). */
+  movement?: string;
+  duelRule?: string;
 }
 
 /**
@@ -41,6 +44,8 @@ export function matchSocketUrl(base: string, room: string, identity: MatchIdenti
   if (identity.difficulty) url.searchParams.set("difficulty", identity.difficulty);
   if (identity.matchLength) url.searchParams.set("matchLength", identity.matchLength);
   if (identity.streetView) url.searchParams.set("streetView", "1");
+  if (identity.movement && identity.movement !== "moving") url.searchParams.set("movement", identity.movement);
+  if (identity.duelRule && identity.duelRule !== "points") url.searchParams.set("duelRule", identity.duelRule);
   if (identity.atlas) {
     try {
       url.searchParams.set("atlas", JSON.stringify(identity.atlas));

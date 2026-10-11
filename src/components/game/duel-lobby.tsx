@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { ArrowRight, Check, ChevronDown, Link2, Pencil } from "lucide-react";
+import { ArrowRight, Check, ChevronDown, Heart, Link2, Pencil, Trophy } from "lucide-react";
 import { useNavigate } from "@/lib/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -15,7 +15,9 @@ import {
   MATCH_LENGTH,
   saveSettings,
   sanitizeAvatar,
+  START_HEALTH,
   type AvatarId,
+  type DuelRule,
 } from "@/lib/game";
 import { makeRoomCode, sanitizeName } from "@/lib/multiplayer";
 import { cn } from "@/lib/utils";
@@ -43,6 +45,13 @@ export function DuelLobby() {
   const [passPlay, setPassPlay] = useState(false);
   const [editMe, setEditMe] = useState(false);
   const [editGuest, setEditGuest] = useState(false);
+  // How the duel is won; saved at once, so every rival below plays it.
+  const [duelRule, setDuelRule] = useState<DuelRule>(DEFAULT_SETTINGS.duelRule);
+  useEffect(() => setDuelRule(loadSettings().duelRule), []);
+  const pickRule = (rule: DuelRule) => {
+    setDuelRule(rule);
+    saveSettings({ ...loadSettings(), duelRule: rule });
+  };
 
   const persistMe = () => {
     saveSettings({
@@ -134,6 +143,24 @@ export function DuelLobby() {
             Choose your rival
           </p>
         )}
+
+        {/* How the duel is won: a race to the highest total, or GeoGuessr-style health. */}
+        <div className="duel-rules atlas-rise atlas-rise-2 mt-2" role="group" aria-label="How the duel is won">
+          <button type="button" aria-pressed={duelRule === "points"} onClick={() => pickRule("points")}>
+            <Trophy className="size-4" aria-hidden />
+            <span>
+              <strong>Points race</strong>
+              <small>Highest total wins</small>
+            </span>
+          </button>
+          <button type="button" aria-pressed={duelRule === "health"} onClick={() => pickRule("health")}>
+            <Heart className="size-4" aria-hidden />
+            <span>
+              <strong>Health</strong>
+              <small>{START_HEALTH.toLocaleString()} each · lose the gap</small>
+            </span>
+          </button>
+        </div>
 
         <button
           type="button"
@@ -273,9 +300,11 @@ export function DuelLobby() {
 
         <p className="atlas-rise atlas-rise-4 mt-5 text-center text-[11px] uppercase tracking-wider text-subtle">
           {atlasLabel(initial.atlas)} · {DIFFICULTY_SECONDS[initial.difficulty]}s ·{" "}
-          {MATCH_LENGTH[initial.matchLength].totalRounds === 1
-            ? "quick · 10 places"
-            : `${MATCH_LENGTH[initial.matchLength].totalRounds} rounds`}
+          {duelRule === "health"
+            ? "health duel · first to zero"
+            : MATCH_LENGTH[initial.matchLength].totalRounds === 1
+              ? "quick · 10 places"
+              : `${MATCH_LENGTH[initial.matchLength].totalRounds} rounds`}
         </p>
         <Button variant="ghost" className="mt-2 w-full" onClick={() => navigate("/")}>
           Home

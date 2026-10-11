@@ -7,6 +7,7 @@ import {
   Check,
   ChevronDown,
   Compass,
+  Flame,
   Globe2,
   MapPin,
   Settings as SettingsIcon,
@@ -121,12 +122,15 @@ export function HomeScreen() {
     audio.setSettings(settings);
     saveSettings(settings);
   }, [settings, loaded]);
-  const play = (to: "/play" | "/duel") => {
+  // Where the name prompt leads once answered: a solo game or a streak.
+  const afterName = useRef<"/play" | "/streak">("/play");
+  const play = (to: "/play" | "/duel" | "/streak") => {
     audio.unlock();
     audio.play("click");
     // First solo game: ask what to call the player, so rounds and results say
     // their name rather than "Traveler". Asked once; skipping is fine.
-    if (to === "/play" && !settings.namePrompted) {
+    if (to !== "/duel" && !settings.namePrompted) {
+      afterName.current = to;
       setPanel("name");
       return;
     }
@@ -142,7 +146,7 @@ export function HomeScreen() {
     saveSettings(next);
     setSettings(next);
     setPanel(null);
-    navigate("/play");
+    navigate(afterName.current);
   };
   const choose = (preset: "sa-nl" | "world" | "custom") => {
     if (preset === "custom") {
@@ -354,6 +358,22 @@ export function HomeScreen() {
               </button>
             );
           })}
+        </div>
+        {/* Country Streak: a solo run across every country, one place each. */}
+        <div className="streak-strip" data-reveal style={{ "--i": 3 } as React.CSSProperties}>
+          <span className="streak-strip-icon" aria-hidden>
+            <Flame size={18} />
+          </span>
+          <span className="min-w-0 flex-1">
+            <strong>Country Streak</strong>
+            <small>
+              Name the country, place after place. One wrong country ends the run.
+              {stats.bestCountryStreak ? ` Best ${stats.bestCountryStreak}.` : ""}
+            </small>
+          </span>
+          <Button variant="secondary" onClick={() => play("/streak")}>
+            Start a streak <ArrowRight size={15} />
+          </Button>
         </div>
       </section>
       <footer className="expedition-footer">

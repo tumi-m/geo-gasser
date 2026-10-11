@@ -10,6 +10,7 @@ import { Router } from "@/lib/router";
 const routes: RouteDef[] = [
   { path: "/", component: HomeScreen },
   { path: "/play", component: () => <MatchApp mode="solo" />, title: "Solo" },
+  { path: "/streak", component: () => <MatchApp mode="solo" streak />, title: "Country Streak" },
   { path: "/duel", component: DuelLobby, title: "Duel" },
   { path: "/duel/bot", component: () => <MatchApp mode="duel" duelKind="bot" />, title: "Duel vs Grok" },
   {

@@ -6,8 +6,12 @@ import {
   formatDistance,
   formatMiss,
   getLocation,
+  isHealthDuel,
+  loadStats,
   locationCountryLabel,
   MATCH_LENGTH_NAME,
+  START_HEALTH,
+  streakCount,
   placeCity,
   shareCard,
   type MatchState,
@@ -55,6 +59,16 @@ export function FinalResults({
   const other = state.players.find((p) => p.id !== selfId);
   const duel = state.mode === "duel" && Boolean(other);
   const escape = state.matchLength === "escape";
+  const health = isHealthDuel(state);
+  const streak = Boolean(state.streak);
+  const run = streak ? streakCount(state) : 0;
+  // Where a streak ended: the place it missed (absent when the deck ran out).
+  const ended = streak ? state.roundHistory.find((r) => r.streak && !r.streak.correct) : undefined;
+  const endedAt = ended ? getLocation(ended.locationId) : undefined;
+  const [bestRun, setBestRun] = useState(0);
+  useEffect(() => {
+    if (streak) setBestRun(loadStats().bestCountryStreak ?? 0);
+  }, [streak]);
   const shared = state.winnerIds.length > 1;
   const youWin = state.winnerIds.includes(selfId);
   const delta = you && other ? Math.abs(you.totalScore - other.totalScore) : 0;
@@ -67,11 +81,24 @@ export function FinalResults({
     .filter((n): n is number => Number.isFinite(n));
   const avgResponse =
     you && state.roundHistory.length ? you.totalResponseMs / state.roundHistory.length / 1000 : 0;
-  const headline = shared ? "Draw" : state.mode === "solo" || youWin ? you?.name : other?.name;
+  // A streak reads like a solo game: your name, then the run as the big figure.
+  const headline = streak
+    ? you?.name
+    : shared
+      ? "Draw"
+      : state.mode === "solo" || youWin
+        ? you?.name
+        : other?.name;
   // The kicker names what the headline is: the headline shows the winner, so
   // it reads "Champion" either way (it used to say "Runner up" above the
   // winner's name when you lost, as if they had come second).
-  const kicker = shared ? "Shared victory" : state.mode === "solo" ? "Match complete" : "Champion";
+  const kicker = streak
+    ? "Country Streak"
+    : shared
+      ? "Shared victory"
+      : state.mode === "solo"
+        ? "Match complete"
+        : "Champion";
   const winnerName = youWin ? you?.name : other?.name;
   // A duel's winner wears the crown, whoever it is.
   const crowned = duel && !shared;
@@ -153,12 +180,41 @@ export function FinalResults({
         </div>
         {duel ? (
           <div className="atlas-rise atlas-rise-2 mt-6">
-            <ScoreTally players={state.players} selfId={selfId} winnerIds={state.winnerIds} />
-            {delta > 0 && !shared ? (
+            <ScoreTally players={state.players} selfId={selfId} winnerIds={state.winnerIds} health={health} />
+            {health && !shared ? (
+              <p className="mt-2 text-sm text-muted">
+                {(() => {
+                  const winner = state.players.find((p) => p.id === state.winnerIds[0]);
+                  const left = (winner?.health ?? START_HEALTH).toLocaleString();
+                  const knockedOut = state.players.some((p) => (p.health ?? START_HEALTH) <= 0);
+                  return knockedOut
+                    ? `${winnerName} won with ${left} health left, in ${state.roundHistory.length} rounds`
+                    : `${winnerName} won on health: ${left} left when the places ran out`;
+                })()}
+              </p>
+            ) : delta > 0 && !shared ? (
               <p className="mt-2 text-sm text-muted">
                 {winnerName} won by {delta.toLocaleString()} {delta === 1 ? "point" : "points"}
               </p>
             ) : null}
+          </div>
+        ) : streak ? (
+          <div className="atlas-rise atlas-rise-2 mt-6">
+            <p className="result-score tabular">
+              <FinalScore value={run} reduced={Boolean(reducedMotion)} />
+            </p>
+            <p className="mt-1 text-sm text-muted">
+              {run === 1 ? "country" : "countries"} in a row
+              {bestRun > 0 ? ` · best ${Math.max(bestRun, run).toLocaleString()}` : ""}
+            </p>
+            {endedAt ? (
+              <p className="mt-3 text-sm text-fg">
+                Ended at {endedAt.title}, {locationCountryLabel(endedAt)}
+                {ended?.streak?.guessed ? `. Your pin was in ${ended.streak.guessed}.` : "."}
+              </p>
+            ) : (
+              <p className="mt-3 text-sm text-fg">Every place, every country. Nothing left to miss.</p>
+            )}
           </div>
         ) : (
           <p className="atlas-rise atlas-rise-2 mt-6 result-score tabular">
@@ -169,9 +225,9 @@ export function FinalResults({
           <p className="best-stamp" role="status">
             <Trophy size={16} aria-hidden />
             <span>
-              <strong>New personal best</strong>
+              <strong>{streak ? "New best streak" : "New personal best"}</strong>
               <span className="best-stamp-was">
-                {MATCH_LENGTH_NAME[state.matchLength]} record was {beatBest.toLocaleString()}
+                {streak ? "Streak" : MATCH_LENGTH_NAME[state.matchLength]} record was {beatBest.toLocaleString()}
               </span>
             </span>
           </p>

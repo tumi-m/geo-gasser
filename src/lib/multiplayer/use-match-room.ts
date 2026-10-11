@@ -22,6 +22,8 @@ export function useMatchRoom(options: {
   matchLength?: string;
   atlas?: unknown;
   streetView?: boolean;
+  movement?: string;
+  duelRule?: string;
   enabled: boolean;
 }) {
   const [selfId, setSelfId] = useState("");

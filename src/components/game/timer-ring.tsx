@@ -121,15 +121,20 @@ export function MatchMeta({
   question,
   questions = 10,
   escape = false,
+  label,
 }: {
   round: number;
   rounds: number;
   question: number;
   questions?: number;
   escape?: boolean;
+  /** Replaces the count, for runs with no fixed length (a streak, a health duel). */
+  label?: string;
 }) {
-  const shown = escape ? `STOP ${round}/${rounds}` : `R ${round}/${rounds} · Q ${question}/${questions}`;
-  const spoken = escape
+  const shown = label ?? (escape ? `STOP ${round}/${rounds}` : `R ${round}/${rounds} · Q ${question}/${questions}`);
+  const spoken = label
+    ? label.toLowerCase()
+    : escape
     ? `Stop ${round} of ${rounds}`
     : `Round ${round} of ${rounds}, question ${question} of ${questions}`;
   return (

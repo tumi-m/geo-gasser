@@ -202,6 +202,50 @@ export function SettingsPanel({
                 </p>
               )}
             </Section>
+            <Section
+              title="Movement"
+              hint="How much you may move around each place. Online, the room's creator sets it for both players."
+            >
+              <div className="settings-choices three">
+                {(
+                  [
+                    ["moving", "Moving", "Look, zoom and walk"],
+                    ["no-move", "No move", "Look and zoom only"],
+                    ["nmpz", "NMPZ", "One fixed view"],
+                  ] as const
+                ).map(([id, label, hint]) => (
+                  <Choice
+                    key={id}
+                    label={label}
+                    hint={hint}
+                    active={settings.movement === id}
+                    onClick={() => update({ movement: id })}
+                  />
+                ))}
+              </div>
+            </Section>
+            <Section title="Duels" hint="How a duel is won, against Grok, a friend on this device or online.">
+              <div className="settings-choices two">
+                <Choice
+                  label="Points race"
+                  hint="Highest total wins"
+                  active={settings.duelRule === "points"}
+                  onClick={() => update({ duelRule: "points" })}
+                />
+                <Choice
+                  label="Health"
+                  hint="6,000 health each · lose the gap"
+                  active={settings.duelRule === "health"}
+                  onClick={() => update({ duelRule: "health" })}
+                />
+              </div>
+              {settings.duelRule === "health" && (
+                <p className="settings-footnote">
+                  After each place the lower score loses the gap between the two scores. From the fifth
+                  place it hits harder each round. First to zero loses.
+                </p>
+              )}
+            </Section>
             <Section title="Choose your map">
               <AtlasPicker value={settings.atlas} onChange={(atlas) => update({ atlas })} />
             </Section>

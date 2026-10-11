@@ -145,3 +145,27 @@ describe("server-authoritative room", () => {
     assert.equal(s.seq, before.seq);
   });
 });
+
+describe("rules in a room", () => {
+  it("a creator's health duel and movement rule set up the room for both", () => {
+    let s = applyRoomCommand(createLobbyState(), {
+      t: "join",
+      playerId: "creator",
+      name: "Creator",
+      roomCode: "RULES1",
+      seed: 5,
+      duelRule: "health",
+      movement: "no-move",
+      now,
+    });
+    assert.equal(s.duelRule, "health");
+    assert.equal(s.movement, "no-move");
+    s = applyRoomCommand(s, { t: "join", playerId: "guest", name: "Guest", now: now + 1 });
+    assert.equal(s.phase, "round_intro");
+    assert.deepEqual(
+      s.players.map((p) => p.health),
+      [6000, 6000],
+    );
+  });
+});
+

@@ -1,4 +1,4 @@
-import { Clock, Globe2, Sparkles, Telescope } from "lucide-react";
+import { Clock, Flame, Footprints, Globe2, Heart, Sparkles, Telescope } from "lucide-react";
 import { WordRise } from "@/components/motion/motion";
 import { DotGlobe } from "@/components/motion/dot-globe";
 import { globeForAtlas } from "@/components/motion/globe-presets";
@@ -26,7 +26,16 @@ export function RoundIntro({
   onStart,
   atlas,
   cosmos,
+  kicker: kickerText,
+  title,
+  rules = [],
 }: {
+  /** Replaces the "Round 2 of 5" line (Country Streak names the run instead). */
+  kicker?: string;
+  /** Replaces "Locate this". */
+  title?: string;
+  /** Rule chips under the brief: a movement rule, a duel's damage, a streak. */
+  rules?: Array<{ kind: "movement" | "health" | "streak"; label: string; accent?: boolean }>;
   /** A cosmos-round question: the card opens onto the Solar System. */
   cosmos?: boolean;
   /** Turns the globe behind the card toward the atlas being played. */
@@ -48,9 +57,9 @@ export function RoundIntro({
   onStart: () => void;
 }) {
   const bigNumber = question ?? round;
-  const kicker = question
-    ? `Round ${round} · question ${question} of ${questionsInRound}`
-    : `Round ${round} of ${totalRounds}`;
+  const kicker =
+    kickerText ??
+    (question ? `Round ${round} · question ${question} of ${questionsInRound}` : `Round ${round} of ${totalRounds}`);
   return (
     <div
       className={cn("round-intro", cosmos && "is-cosmos", reducedMotion && "is-reduced")}
@@ -84,7 +93,7 @@ export function RoundIntro({
         </div>
         <p className="round-intro-kicker">{kicker}</p>
         <h1 className="font-display round-intro-title">
-          <WordRise text={cosmos ? "Find it in the universe" : "Locate this"} delay={260} step={90} />
+          <WordRise text={title ?? (cosmos ? "Find it in the universe" : "Locate this")} delay={260} step={90} />
         </h1>
         <ul className="round-intro-chips">
           <li style={{ "--i": 0 } as React.CSSProperties}>
@@ -106,6 +115,18 @@ export function RoundIntro({
               <Sparkles size={13} /> World wildcard
             </li>
           )}
+          {rules.map((rule, i) => {
+            const Icon = rule.kind === "movement" ? Footprints : rule.kind === "health" ? Heart : Flame;
+            return (
+              <li
+                key={rule.kind}
+                className={cn(rule.accent && "is-accent")}
+                style={{ "--i": 3 + i } as React.CSSProperties}
+              >
+                <Icon size={13} /> {rule.label}
+              </li>
+            );
+          })}
         </ul>
         <p className="round-intro-hint">
           {waiting ? "Getting the place ready… or tap to start now" : "Tap or press Enter to start"}

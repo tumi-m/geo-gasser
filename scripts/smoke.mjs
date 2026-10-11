@@ -125,6 +125,38 @@ const ok =
     await page.locator(".round-intro").waitFor({ timeout: 15000 });
     return "a new match starts";
   })) &&
+  (await step("Country Streak judges a place", async () => {
+    await page.goto(`${base}/`, { waitUntil: "domcontentloaded" });
+    await page.getByRole("button", { name: /Start a streak/ }).click();
+    await page.waitForURL("**/streak");
+    await page.getByText("Which country?").waitFor({ timeout: 20000 });
+    await page.locator(".round-intro").click();
+    const map = page.locator(".leaflet-container").first();
+    await map.waitFor({ timeout: 15000 });
+    const box = await map.boundingBox();
+    await page.mouse.click(box.x + box.width * 0.5, box.y + box.height * 0.6);
+    await page.getByRole("button", { name: "Lock guess" }).click();
+    await page.locator(".round-splash").waitFor({ timeout: 15000 });
+    for (let i = 0; i < 3 && (await page.locator(".round-splash").count()); i++) {
+      await page.locator(".round-splash").click().catch(() => {});
+      await page.waitForTimeout(500);
+    }
+    const verdict = await page.locator(".reveal-rule").textContent({ timeout: 10000 });
+    return verdict?.trim().slice(0, 60);
+  })) &&
+  (await step("health duel starts at full health", async () => {
+    await page.evaluate(() => {
+      const key = "atlas-duel-settings-v3";
+      localStorage.setItem(key, JSON.stringify({ ...JSON.parse(localStorage.getItem(key) ?? "{}"), duelRule: "health" }));
+    });
+    await page.goto(`${base}/duel/bot`, { waitUntil: "domcontentloaded" });
+    await page.getByText("Health duel", { exact: false }).first().waitFor({ timeout: 20000 });
+    await page.locator(".round-intro").click();
+    await page.getByRole("button", { name: "Lock guess" }).waitFor({ timeout: 15000 });
+    const bars = await page.locator(".tally-health").count();
+    if (bars !== 2) throw new Error(`${bars} health bars, not 2`);
+    return "two health bars in the header";
+  })) &&
   (await step("Mono theme loads", async () => {
     // The second look is a separate chunk loaded on demand: pick it the way
     // a player does, in Settings → Picture, and check it is on the page.

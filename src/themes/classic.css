@@ -1600,3 +1600,42 @@ html.reduce-motion .best-stamp,html.reduce-motion .best-stamp svg {animation:non
 /* Short portrait phones (320×568): the photo strip is a few lines tall and
    the switch and controls already sit on it, so the gesture hint gives way. */
 @media (orientation: portrait) and (max-width: 640px) and (max-height: 640px) {.scene-hint {display:none}}
+/* The movement rule chip in the header gives way on short screens; the
+   round's title card has already named the rule. */
+@media (max-height: 700px) {.hud-rule {display:none}}
+/* Health duels: a bar under each player's health that drains when they are
+   hit, and the number shakes. Orange when a quarter is left. */
+.tally-health {display:block;width:100%;min-width:64px;height:4px;margin-top:5px;border-radius:999px;background:color-mix(in oklab,var(--color-fg) 14%,transparent);overflow:hidden}
+.tally-health i {display:block;height:100%;width:100%;border-radius:inherit;background:var(--color-fg);transform:scaleX(var(--hp,1));transform-origin:left;transition:transform .7s cubic-bezier(.2,.8,.2,1),background-color .3s}
+.tally-health.is-low i {background:var(--color-accent)}
+.tally-hit {display:inline-block;animation:tally-hit .5s var(--ease-out)}
+@keyframes tally-hit {0%{transform:translateX(0);color:var(--color-accent)}20%{transform:translateX(-4px)}40%{transform:translateX(4px)}60%{transform:translateX(-2px)}100%{transform:none}}
+.reduce-motion .tally-hit {animation:none}
+.reduce-motion .tally-health i {transition:none}
+@media (prefers-reduced-motion: reduce) {.tally-hit{animation:none}.tally-health i{transition:none}}
+/* Duel setup: how the duel is won, two choices side by side. */
+.duel-rules {display:grid;grid-template-columns:1fr 1fr;gap:6px;padding:4px;border:1px solid var(--color-border);border-radius:16px;background:color-mix(in oklab,var(--color-bg-elevated) 70%,transparent)}
+.duel-rules button {display:flex;align-items:center;gap:10px;min-height:52px;padding:8px 12px;border-radius:12px;text-align:left;color:var(--color-muted);transition:background-color .2s,color .2s}
+.duel-rules button span {display:flex;flex-direction:column;min-width:0}
+.duel-rules strong {font-size:14px;font-weight:600;color:inherit}
+.duel-rules small {font-size:11px;opacity:.85}
+.duel-rules button:hover:not([aria-pressed=true]) {background:var(--color-bg-subtle);color:var(--color-fg)}
+.duel-rules button[aria-pressed=true] {background:var(--color-accent);color:var(--color-accent-fg)}
+
+/* The reveal's rule line: a health duel's damage, or a streak's verdict.
+   Good news in the light text, a hit or a miss in the accent. */
+.reveal-rule {display:flex;align-items:center;gap:8px;margin-top:10px;padding:8px 12px;border:1px solid var(--color-border);border-radius:12px;font-size:13px;font-weight:500;text-align:left;color:var(--color-fg);background:color-mix(in oklab,var(--color-bg-subtle) 70%,transparent);animation:reveal-pop .45s cubic-bezier(.34,1.56,.64,1) .2s backwards}
+.reveal-rule svg {flex-shrink:0}
+.reveal-rule.is-hit,.reveal-rule.is-miss {border-color:color-mix(in oklab,var(--color-accent) 55%,transparent);background:color-mix(in oklab,var(--color-accent) 14%,transparent)}
+.reveal-rule.is-hit svg,.reveal-rule.is-miss svg {color:var(--color-accent)}
+.reveal-rule.is-keep svg {color:var(--color-za)}
+.reveal-rule.is-even {color:var(--color-muted)}
+.reduce-motion .reveal-rule {animation:none}
+@media (prefers-reduced-motion: reduce) {.reveal-rule {animation:none}}
+/* Home: the Country Streak row under the maps. */
+.streak-strip {display:flex;align-items:center;gap:14px;margin-top:18px;padding:14px 16px;border:1px solid var(--color-border);border-radius:11px;background:linear-gradient(120deg,#2f2f2f99,#26262680)}
+.streak-strip-icon {display:grid;place-items:center;width:42px;height:42px;flex-shrink:0;border:1px solid #6e6e6e;border-radius:50%;color:var(--color-accent)}
+.streak-strip strong {display:block;font-family:var(--font-display);font-size:17px;font-weight:600;letter-spacing:-.3px}
+.streak-strip small {display:block;margin-top:2px;font-size:12px;line-height:1.5;color:var(--color-muted)}
+.streak-strip button {flex-shrink:0;gap:10px;border-radius:9px;font-size:13px}
+@media (max-width:600px) {.streak-strip {flex-wrap:wrap;gap:12px;padding:13px}.streak-strip button {width:100%}}

@@ -80,3 +80,16 @@ describe("reconnect outbox", () => {
     assert.deepEqual(outbox, []);
   });
 });
+
+describe("room URL rules", () => {
+  it("carries a health duel and a movement rule, and leaves the defaults out", () => {
+    const base = { playerId: "p", name: "N" };
+    const url = new URL(matchSocketUrl("https://m.example.dev", "abc", { ...base, duelRule: "health", movement: "nmpz" }));
+    assert.equal(url.searchParams.get("duelRule"), "health");
+    assert.equal(url.searchParams.get("movement"), "nmpz");
+    const plain = new URL(matchSocketUrl("https://m.example.dev", "abc", { ...base, duelRule: "points", movement: "moving" }));
+    assert.equal(plain.searchParams.get("duelRule"), null);
+    assert.equal(plain.searchParams.get("movement"), null);
+  });
+});
+

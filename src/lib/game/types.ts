@@ -22,6 +22,16 @@ export type EarthCountry = Exclude<CountryCode, "SPACE">;
 export type Difficulty = 1 | 2 | 3 | 4 | 5;
 export type GameMode = "solo" | "duel";
 
+/**
+ * How much a player may move in the scene. "moving": look around, zoom, step
+ * between viewpoints and walk Street View. "no-move": look and zoom only.
+ * "nmpz": no move, no pan, no zoom: one fixed view.
+ */
+export type MovementRule = "moving" | "no-move" | "nmpz";
+
+/** How a duel is won: the higher total, or the last one with health left. */
+export type DuelRule = "points" | "health";
+
 export type MatchPhase =
   | "lobby"
   | "waiting_for_players"
@@ -130,6 +140,8 @@ export interface PlayerState {
   /** Captured per seat, so a hotseat handoff cannot change the first score. */
   responseMs?: number;
   roundScore?: RoundScore;
+  /** Health duels: what is left of the starting health (rules.ts). */
+  health?: number;
 }
 
 export interface RoundRecord {
@@ -141,6 +153,13 @@ export interface RoundRecord {
   envId?: string;
   truth: LatLng;
   guesses: Record<string, { guess: LatLng | null; score: RoundScore }>;
+  /** Health duels: who lost health on this place, how much, at what multiplier. */
+  damage?: { playerId: string; amount: number; multiplier: number };
+  /**
+   * Country Streak: whether the pin landed in the right country, and the
+   * country it did land in (a name to show; absent at sea or without a pin).
+   */
+  streak?: { correct: boolean; guessed?: string };
 }
 
 /**
@@ -200,6 +219,12 @@ export interface MatchState {
   lastEventAt: number;
   duelKind?: "online" | "bot" | "hotseat";
   activeSeatId?: string;
+  /** Movement rule for every scene in the match; absent means "moving". */
+  movement?: MovementRule;
+  /** Duels only; absent means "points" (highest total wins). */
+  duelRule?: DuelRule;
+  /** Country Streak: a solo run that ends on the first wrong country. */
+  streak?: boolean;
 }
 
 export interface PublicSnapshot {
@@ -236,6 +261,9 @@ export interface PublicSnapshot {
   revealed: boolean;
   roundHistory: RoundRecord[];
   winnerIds: string[];
+  movement?: MovementRule;
+  duelRule?: DuelRule;
+  streak?: boolean;
 }
 
 export interface SceneDescriptor {

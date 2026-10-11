@@ -189,3 +189,15 @@ Rules this repo has already paid for:
   the landing page and swapped the motion graphics (confetti, sparks, the
   compass intro) for austere stand-ins. The user wanted their app in other
   clothes.
+- **Rebuild a competitor's feature from how it publicly plays, never from
+  their code.** Asked to decompile a rival game's client, we declined and
+  rebuilt health duels, movement rules and Country Streak from their public
+  rules. Where public sources disagree on numbers, choose your own and
+  write them down (`src/lib/game/rules.ts`, the work folder's graph).
+- **Coarse country shapes need tolerance.** At 110 m a border town or a
+  harbour can sit outside its own outline (Victoria Falls lands in
+  Zimbabwe, Manhattan in the sea). Country Streak counts a pin within 25 km
+  of the answer, and a pin at sea inside the country's box.
+- **A rule that limits the player must reach every scene that takes input.**
+  The movement rules first covered photos and Street View; the parked 3D
+  scene could still orbit and walk until it was checked too.

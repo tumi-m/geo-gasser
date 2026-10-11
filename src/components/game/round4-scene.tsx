@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { ATMOSPHERE_FAMILY, type AtmosphereId, type EnvironmentSpec } from "@/lib/game";
+import { ATMOSPHERE_FAMILY, type AtmosphereId, type EnvironmentSpec, type MovementRule } from "@/lib/game";
 import { useMono } from "@/lib/theme";
 import { cn } from "@/lib/utils";
 
@@ -40,18 +40,25 @@ export function Round4Scene({
   env,
   reducedMotion,
   onUnavailable,
+  movement = "moving",
 }: {
   env: EnvironmentSpec;
   reducedMotion?: boolean;
   onUnavailable?: () => void;
+  /** Moving: orbit and walk. No move: orbit only. NMPZ: the camera holds still. */
+  movement?: MovementRule;
 }) {
   const mono = useMono();
   const hostRef = useRef<HTMLDivElement>(null);
   const onUnavailableRef = useRef(onUnavailable);
   onUnavailableRef.current = onUnavailable;
-  const [walking, setWalking] = useState(false);
+  const [walkPicked, setWalking] = useState(false);
+  const walking = walkPicked && movement === "moving";
   const walkingRef = useRef(walking);
   walkingRef.current = walking;
+  const fixed = movement === "nmpz";
+  const fixedRef = useRef(fixed);
+  fixedRef.current = fixed;
   const joyRef = useRef({ x: 0, y: 0, active: false });
   const [knob, setKnob] = useState({ x: 0, y: 0 });
 
@@ -97,6 +104,7 @@ export function Round4Scene({
     window.addEventListener("keyup", onKeyUp);
 
     const onDown = (e: PointerEvent) => {
+      if (fixedRef.current) return;
       dragging = true;
       lx = e.clientX;
       ly = e.clientY;
@@ -281,7 +289,7 @@ export function Round4Scene({
           );
           camera.lookAt(look);
         } else {
-          if (!reducedMotion && !dragging) yaw += dt * palette.orbitSpeed;
+          if (!reducedMotion && !dragging && !fixedRef.current) yaw += dt * palette.orbitSpeed;
           const r = cam.radius;
           camera.position.set(
             cam.target.x + Math.sin(yaw) * r,
@@ -351,28 +359,32 @@ export function Round4Scene({
   return (
     <div className="absolute inset-0">
       <div ref={hostRef} className="h-full w-full touch-none" aria-label="3D reconstruction" />
-      <div className="pointer-events-none absolute inset-x-3 top-[calc(env(safe-area-inset-top)+5.75rem)] z-10 flex items-start justify-between gap-2">
-        <button
-          type="button"
-          className={
-            mono
-              ? "pointer-events-auto inline-flex h-9 items-center border border-fg bg-bg px-3 text-[11px] font-bold uppercase tracking-[0.1em] text-fg"
-              : "pointer-events-auto inline-flex h-9 items-center rounded-full border border-border bg-bg/80 px-3 text-[11px] font-medium uppercase tracking-wider text-fg backdrop-blur-sm"
-          }
-          onClick={() => setWalking((v) => !v)}
-        >
-          {walking ? "Orbit view" : "Walk around"}
-        </button>
-        <span
-          className={
-            mono
-              ? "pointer-events-none border border-border bg-bg px-3 py-1.5 font-mono text-[10px] uppercase tracking-wider text-muted"
-              : "pointer-events-none rounded-full border border-border bg-bg/70 px-3 py-1.5 text-[10px] uppercase tracking-wider text-muted backdrop-blur-sm"
-          }
-        >
-          {walking ? "Drag to look · WASD / stick to move" : "Drag to orbit"}
-        </span>
-      </div>
+      {!fixed && (
+        <div className="pointer-events-none absolute inset-x-3 top-[calc(env(safe-area-inset-top)+5.75rem)] z-10 flex items-start justify-between gap-2">
+          {movement === "moving" && (
+            <button
+              type="button"
+              className={
+                mono
+                  ? "pointer-events-auto inline-flex h-9 items-center border border-fg bg-bg px-3 text-[11px] font-bold uppercase tracking-[0.1em] text-fg"
+                  : "pointer-events-auto inline-flex h-9 items-center rounded-full border border-border bg-bg/80 px-3 text-[11px] font-medium uppercase tracking-wider text-fg backdrop-blur-sm"
+              }
+              onClick={() => setWalking((v) => !v)}
+            >
+              {walking ? "Orbit view" : "Walk around"}
+            </button>
+          )}
+          <span
+            className={
+              mono
+                ? "pointer-events-none ml-auto border border-border bg-bg px-3 py-1.5 font-mono text-[10px] uppercase tracking-wider text-muted"
+                : "pointer-events-none ml-auto rounded-full border border-border bg-bg/70 px-3 py-1.5 text-[10px] uppercase tracking-wider text-muted backdrop-blur-sm"
+            }
+          >
+            {walking ? "Drag to look · WASD / stick to move" : "Drag to orbit"}
+          </span>
+        </div>
+      )}
       {walking && (
         <div
           className={cn(

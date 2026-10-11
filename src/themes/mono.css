@@ -689,7 +689,7 @@ button.duel-mode:hover .duel-mode-go {color:var(--color-accent)}
 .ledger-cell.is-total .ledger-value {color:var(--color-accent)}
 .ledger-note {margin-top:8px;font-family:"Helvetica Neue",Helvetica,Arial,sans-serif;font-size:11px;letter-spacing:.02em;color:var(--color-muted);text-align:left}
 .hc .ledger,.hc .ledger-cell + .ledger-cell {border-color:var(--color-fg)}
-@media (max-width: 380px) {.ledger-cell {padding:5px 7px}.ledger-value {font-size:13px}}
+@media (max-width: 420px) {.ledger-cell {padding:4px 6px}.ledger-label {font-size:8px;letter-spacing:.08em}.ledger-value {font-size:13px}}
 .hud-meta {font-family:"Helvetica Neue",Helvetica,Arial,sans-serif;font-size:10px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;white-space:nowrap;color:var(--color-muted)}
 
 /* ── Section labels ── */
@@ -787,3 +787,20 @@ button.duel-mode:hover .duel-mode-go {color:var(--color-accent)}
 .duel-mode.is-primary {background:var(--color-bg)}
 /* On the paper map the rival's comet is ink, not white. */
 .atlas-comet.is-opp i {background:radial-gradient(circle,#fff 0 30%,#000 55%,transparent 72%);box-shadow:none}
+/* Duel setup: the win rule as a hairline switch. */
+.duel-rules {gap:0;padding:0;border:1px solid var(--color-rule);border-radius:0;background:var(--color-bg)}
+.duel-rules button {border-radius:0}
+.duel-rules button + button {border-left:1px solid var(--color-rule)}
+.duel-rules strong {font-weight:700;text-transform:uppercase;letter-spacing:.08em;font-size:12px}
+.duel-rules small {font-family:var(--font-mono);font-size:10px}
+
+.reveal-rule {border-radius:0;border-color:var(--color-rule);background:var(--color-bg);font-family:var(--font-mono);font-size:12px;text-transform:uppercase;letter-spacing:.06em}
+.reveal-rule.is-hit,.reveal-rule.is-miss {border-color:var(--color-fg);background:var(--color-fg);color:var(--color-bg)}
+.reveal-rule.is-hit svg,.reveal-rule.is-miss svg,.reveal-rule.is-keep svg {color:inherit}
+.streak-strip,.streak-strip button,.streak-strip-icon {border-radius:0}
+.streak-strip {background:var(--color-bg);border-color:var(--color-rule)}
+.streak-strip-icon {border-color:var(--color-rule);color:var(--color-fg)}
+.streak-strip strong {text-transform:uppercase;letter-spacing:.04em}
+/* The wordmark's orange on white is small text on phones: a deeper orange
+   keeps it readable (5.2:1). */
+.brand-lockup .text-accent {color:#c24000}

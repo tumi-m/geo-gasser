@@ -9,6 +9,7 @@ import {
 } from "@/lib/game";
 import { cn } from "@/lib/utils";
 import { useMono } from "@/lib/theme";
+import type { MovementRule } from "@/lib/game";
 
 /**
  * Walk around the place, GeoGuessr style: the nearest Google Street View
@@ -23,11 +24,17 @@ export function StreetViewScene({
   interactive = true,
   hidden = false,
   still = false,
+  movement = "moving",
   showHints = true,
   onReady,
   onUnavailable,
   className,
 }: {
+  /**
+   * The match's movement rule. "no-move": look around and zoom, never walk.
+   * "nmpz": the starting view only (the caller also turns `interactive` off).
+   */
+  movement?: MovementRule;
   target: LatLng;
   /** Street View is the only scene: search further before giving up. */
   wide?: boolean;
@@ -55,6 +62,8 @@ export function StreetViewScene({
   const startRef = useRef<{ pano: string; heading: number } | null>(null);
   const stillRef = useRef(still);
   stillRef.current = still;
+  const movementRef = useRef(movement);
+  movementRef.current = movement;
   // Where the player was when the still view took over.
   const walkedRef = useRef<{ pano: string; pov: { heading: number; pitch: number }; zoom: number } | null>(
     null,
@@ -126,7 +135,7 @@ export function StreetViewScene({
         motionTracking: false,
         motionTrackingControl: false,
         imageDateControl: false,
-        ...moveControls(!stillRef.current),
+        ...moveControls(stillRef.current ? "nmpz" : movementRef.current),
         // Google puts these bottom-right, under the map panel; the left
         // edge of the scene is clear.
         ...(maps.ControlPosition
@@ -166,12 +175,12 @@ export function StreetViewScene({
     if (still) {
       if (!walkedRef.current)
         walkedRef.current = { pano: pano.getPano(), pov: pano.getPov(), zoom: pano.getZoom() };
-      pano.setOptions(moveControls(false));
+      pano.setOptions(moveControls("nmpz"));
       if (pano.getPano() !== start.pano) pano.setPano(start.pano);
       pano.setPov({ heading: start.heading, pitch: 0 });
       pano.setZoom(0);
     } else {
-      pano.setOptions(moveControls(true));
+      pano.setOptions(moveControls(movement));
       const walked = walkedRef.current;
       walkedRef.current = null;
       if (walked) {
@@ -180,7 +189,7 @@ export function StreetViewScene({
         pano.setZoom(walked.zoom);
       }
     }
-  }, [still, status]);
+  }, [still, status, movement]);
 
   const backToStart = () => {
     const start = startRef.current;
@@ -201,9 +210,11 @@ export function StreetViewScene({
         className={cn("street-view-pano absolute inset-0", status === "ready" && "is-ready")}
         role="application"
         aria-label={
-          still
+          still || movement === "nmpz"
             ? "A still view of the place."
-            : "Street View. Drag to look around; click the arrows or the road to walk."
+            : movement === "no-move"
+              ? "Street View. Drag to look around; walking is off in this match."
+              : "Street View. Drag to look around; click the arrows or the road to walk."
         }
       />
       {!interactive && <div className="absolute inset-0 z-[2]" aria-hidden />}
@@ -215,7 +226,7 @@ export function StreetViewScene({
       {status === "ready" && interactive && !hidden && showHints && !looked && (
         <p className="street-view-hint" aria-hidden>
           <Footprints className="size-4" />
-          Drag to look around · use the arrows to walk
+          {movement === "no-move" ? "Drag to look around · no walking this match" : "Drag to look around · use the arrows to walk"}
         </p>
       )}
       {status === "ready" && interactive && !hidden && moved && (
@@ -228,7 +239,20 @@ export function StreetViewScene({
   );
 }
 
-/** Google's movement controls, all on (Street View) or all off (the still). */
-function moveControls(on: boolean) {
-  return { linksControl: on, clickToGo: on, panControl: on, zoomControl: on, scrollwheel: on };
+/**
+ * Google's movement controls for a rule: all on (moving), looking only (no
+ * move: no arrows, no click-to-go, no arrow-key walking), or all off (NMPZ,
+ * and the still view).
+ */
+function moveControls(rule: MovementRule) {
+  const walk = rule === "moving";
+  const look = rule !== "nmpz";
+  return {
+    linksControl: walk,
+    clickToGo: walk,
+    keyboardShortcuts: walk,
+    panControl: look,
+    zoomControl: look,
+    scrollwheel: look,
+  };
 }

@@ -23,6 +23,7 @@ import {
 } from "@/lib/game";
 import { cn } from "@/lib/utils";
 import { useMono } from "@/lib/theme";
+import type { MovementRule } from "@/lib/game";
 
 type Probe = {
   getYaw: () => number;
@@ -106,8 +107,14 @@ export function SceneExplorer({
   onReady,
   onError,
   views,
+  movement = "moving",
 }: {
   src: string;
+  /**
+   * The match's movement rule. "no-move": look and zoom, but no stepping to
+   * other viewpoints. "nmpz": the whole photo, fixed: no pan, no zoom.
+   */
+  movement?: MovementRule;
   /** More viewpoints of the same place; the player steps between them. */
   views?: string[];
   alt: string;
@@ -123,8 +130,14 @@ export function SceneExplorer({
   onError?: () => void;
 }) {
   const mono = useMono();
+  const fixed = movement === "nmpz";
+  // Under NMPZ the photo is shown whole and nothing moves it; the rest of
+  // this component reads `interactive` and `fit`, so the rule is applied here.
+  interactive = interactive && !fixed;
+  if (fixed) fit = "contain";
   // Viewpoint 0 is the round's plate (with its fallbacks); the rest are views.
-  const viewKey = (views ?? []).join("|");
+  // Stepping to another viewpoint is moving, so only "moving" offers them.
+  const viewKey = movement === "moving" ? (views ?? []).join("|") : "";
   const [viewIndex, setViewIndex] = useState(0);
   useEffect(() => setViewIndex(0), [src, viewKey]);
   const viewCount = 1 + (viewKey ? viewKey.split("|").length : 0);
@@ -852,7 +865,7 @@ export function SceneExplorer({
               </button>
             </span>
           )}
-          {onToggleFit && (
+          {onToggleFit && !fixed && (
             <button
               type="button"
               aria-label={fit === "contain" ? "Fill screen with photo" : "Show full photograph"}

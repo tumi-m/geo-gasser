@@ -23,4 +23,5 @@ export * from "./cosmos.ts";
 export * from "./street-view.ts";
 export * from "./verdict.ts";
 export * from "./round-summary.ts";
+export * from "./rules.ts";
 export * from "./share-card.ts";

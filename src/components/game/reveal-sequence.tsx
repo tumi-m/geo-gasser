@@ -6,7 +6,7 @@ import {
   type PlayerState,
   type RoundScore,
 } from "@/lib/game";
-import { Flame } from "lucide-react";
+import { Check, Flame, Heart, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { RoundVerdictCard } from "./round-verdict";
 import { useCountUp } from "./use-count-up";
@@ -28,7 +28,13 @@ export function RevealOverlay({
   reducedMotion,
   markSelf,
   streak = 0,
+  ruleNote,
 }: {
+  /**
+   * A line from the match's rule: a health duel's damage, or a streak's
+   * verdict. "hit" and "miss" are bad news, "keep" good news.
+   */
+  ruleNote?: { text: string; tone: "hit" | "keep" | "miss" | "even" };
   score: RoundScore;
   you: PlayerState;
   opponent?: PlayerState;
@@ -100,7 +106,8 @@ export function RevealOverlay({
             {lastRound ? "See results" : "Continue"}
           </Button>
         </div>
-        <div className="mt-3 flex items-end justify-between gap-3">
+        {/* The ledger drops under the distance when a phone has no room for both. */}
+        <div className="mt-3 flex flex-wrap items-end justify-between gap-3">
           <p className="font-display whitespace-nowrap text-3xl tabular tracking-tight max-[380px]:text-[26px] sm:text-4xl">
             {hasPin ? formatMiss(score, shownKm) : "No pin"}
           </p>
@@ -119,6 +126,18 @@ export function RevealOverlay({
             {Math.round(clock * 100)}% of your {score.accuracyPoints.toLocaleString("en-US")}.
           </p>
         ) : null}
+        {ruleNote && (
+          <p className={cn("reveal-rule", `is-${ruleNote.tone}`)} role="status">
+            {ruleNote.tone === "keep" ? (
+              <Check className="size-4" aria-hidden />
+            ) : ruleNote.tone === "miss" ? (
+              <X className="size-4" aria-hidden />
+            ) : (
+              <Heart className="size-4" aria-hidden />
+            )}
+            {ruleNote.text}
+          </p>
+        )}
         {score.multiplier > 1 && (
           <p className="mt-2 text-left text-xs text-muted">
             Includes {score.multiplier}× reconstruction multiplier

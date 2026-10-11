@@ -39,12 +39,20 @@ import {
   ROUND4_3D_LIVE,
   TOTAL_QUESTIONS,
   loadSettings,
+  damageMultiplier,
+  isHealthDuel,
+  matchOver,
+  MOVEMENT_NAME,
+  movementOf,
+  placeByPlace,
+  streakCount,
   loadStats,
   isNewBest,
   previousBest,
   randomSeed,
   loadRecentIds,
   recordMatch,
+  recordStreak,
   rememberRecentIds,
   reduce,
   remainingSeconds,
@@ -111,10 +119,13 @@ export function MatchApp({
   mode,
   roomCode,
   duelKind = "online",
+  streak = false,
 }: {
   mode: "solo" | "duel";
   roomCode?: string;
   duelKind?: "online" | "bot" | "hotseat";
+  /** Country Streak: a solo run that ends on the first wrong country. */
+  streak?: boolean;
 }) {
   const navigate = useNavigate();
   const theme = useTheme();
@@ -226,6 +237,8 @@ export function MatchApp({
     matchLength: settings.matchLength,
     atlas: settings.atlas,
     streetView: streetViewUsable(),
+    movement: settings.movement,
+    duelRule: settings.duelRule,
     enabled: serverMode,
   });
   const {
@@ -292,8 +305,12 @@ export function MatchApp({
       atlas: settings.atlas,
       avoidLocationIds: loadRecentIds(),
       streetView: streetViewUsable(),
+      movement: settings.movement,
+      streak,
     });
   }, [
+    settings.movement,
+    streak,
     mode,
     selfId,
     name,
@@ -318,6 +335,8 @@ export function MatchApp({
         atlas: settings.atlas,
         avoidLocationIds: loadRecentIds(),
         streetView: streetViewUsable(),
+        movement: settings.movement,
+        duelRule: settings.duelRule,
         seats: [
           { id: selfId, name, avatarId },
           { id: GROK_BOT_ID, name: GROK_BOT_NAME, avatarId: "grok", kind: "bot" },
@@ -345,6 +364,8 @@ export function MatchApp({
         atlas: settings.atlas,
         avoidLocationIds: loadRecentIds(),
         streetView: streetViewUsable(),
+        movement: settings.movement,
+        duelRule: settings.duelRule,
         seats: [
           { id: selfId, name, avatarId },
           { id: "seat-2", name: guest.name, avatarId: sanitizeAvatar(guest.avatarId) },
@@ -352,6 +373,8 @@ export function MatchApp({
       });
     }
   }, [
+    settings.movement,
+    settings.duelRule,
     mode,
     duelKind,
     selfId,
@@ -399,9 +422,13 @@ export function MatchApp({
         atlas: settings.atlas,
         avoidLocationIds: loadRecentIds(),
         streetView: streetViewUsable(),
+        movement: settings.movement,
+        duelRule: settings.duelRule,
       });
     }
   }, [
+    settings.movement,
+    settings.duelRule,
     mode,
     duelKind,
     serverMode,
@@ -774,6 +801,8 @@ export function MatchApp({
   }, [loc, state.questionIndex, state.totalQuestions]);
   const reconstructionRound = isRound4(state);
   const cosmic = scene?.kind === "cosmos";
+  // How much the player may move in the scene (Settings → Game, fixed per match).
+  const movement = movementOf(state);
   const live3d = ROUND4_3D_LIVE && reconstructionRound && Boolean(env);
 
   // The clock waits for the scene: the intro holds until the photo, panorama
@@ -796,7 +825,9 @@ export function MatchApp({
     state.phase === "round_reveal" ||
     state.phase === "round_expired" ||
     state.phase === "round_results";
-  const lastRound = state.questionIndex >= (state.totalQuestions || TOTAL_QUESTIONS) - 1;
+  // The last place: the deck is spent, a health duel has a player on zero, or
+  // a streak has just been broken. Continue then leads to the results.
+  const lastRound = state.questionIndex >= (state.totalQuestions || TOTAL_QUESTIONS) - 1 || matchOver(state);
   // The end-of-round splash plays once per reveal; the result card follows it,
   // so the card's own animation runs while the player is looking at it.
   const revealKey = showingReveal ? `${state.questionIndex}:${state.roundStartedAtMs ?? 0}` : null;
@@ -809,7 +840,9 @@ export function MatchApp({
   // up from the reveal card, then rolls over as they land.
   const [flownFor, setFlownFor] = useState<string | null>(null);
   const pointsInFlight =
-    mode === "solo" && revealKey !== null && flownFor !== revealKey ? (you?.roundScore?.roundScore ?? 0) : 0;
+    mode === "solo" && !state.streak && revealKey !== null && flownFor !== revealKey
+      ? (you?.roundScore?.roundScore ?? 0)
+      : 0;
   const summarySplash =
     revealKey !== null && !questionSplash && summarySeen !== revealKey && endsRound(state);
   const splashing = questionSplash || summarySplash;
@@ -1020,15 +1053,25 @@ export function MatchApp({
       .filter((s) => s && s.distanceKm <= 5)
       .map((s) => s!.responseMs);
     const before = loadStats();
+    // A Country Streak's record is its run, not its points.
+    if (state.streak) {
+      const run = streakCount({ roundHistory: state.roundHistory });
+      const prev = before.bestCountryStreak ?? 0;
+      if (prev > 0 && run > prev) setBeatBest({ seed: state.seed, previous: prev });
+      recordStreak(before, run);
+      return;
+    }
     const score = you?.totalScore ?? 0;
     // Pass-and-play shares one device's stats between two people: its scores
     // neither set nor beat a record, which would credit whoever finished last.
     const hotseat = mode === "duel" && duelKind === "hotseat";
-    if (!hotseat && isNewBest(before, state.matchLength, score))
+    // A health duel ends when someone is out, so its points total is no record.
+    const noRecord = hotseat || isHealthDuel({ mode: state.mode, duelRule: state.duelRule });
+    if (!noRecord && isNewBest(before, state.matchLength, score))
       setBeatBest({ seed: state.seed, previous: previousBest(before, state.matchLength)! });
     recordMatch(before, {
       score,
-      length: hotseat ? undefined : state.matchLength,
+      length: noRecord ? undefined : state.matchLength,
       won: state.mode === "duel" && state.winnerIds.includes(statsId),
       distances,
       countryHits: { ZA: za, NL: nl, WORLD: world },
@@ -1042,6 +1085,8 @@ export function MatchApp({
     state.mode,
     state.matchLength,
     state.seed,
+    state.streak,
+    state.duelRule,
     mode,
     duelKind,
     selfId,
@@ -1411,6 +1456,8 @@ export function MatchApp({
             atlas: settings.atlas,
             avoidLocationIds: loadRecentIds(),
             streetView: streetViewUsable(),
+            movement: settings.movement,
+            duelRule: settings.duelRule,
           });
           // Both have asked for it: no lobby stop on the way back in.
           if (rematchAsk && state.players.some((p) => p.id === rematchAsk && p.connected))
@@ -1434,15 +1481,68 @@ export function MatchApp({
     );
   }
 
-  const qNum = state.matchLength === "escape" ? 1 : questionInRound(state.questionIndex) + 1;
+  // Escape, health duels and Country Streak: every place is its own round.
+  const byPlace = placeByPlace(state);
+  const healthDuel = isHealthDuel(state);
+  const runSoFar = state.streak ? streakCount(state) : 0;
+  const hitMultiplier = damageMultiplier(state.questionIndex + 1);
+  const qNum = byPlace ? 1 : questionInRound(state.questionIndex) + 1;
   const rounds = state.totalRounds || 4;
   // The last round of a multi-round match: real places, like every other.
   const finalRound =
-    state.matchLength !== "escape" && rounds > 1 && state.roundIndex === rounds - 1 && !cosmic;
-  const roundLabel =
-    state.matchLength === "escape"
-      ? `Round ${state.roundIndex + 1} of ${rounds}${state.questionIndex === 4 && state.atlas.preset === "sa-nl" && !state.atlas.cities?.length ? " · World wildcard" : ""}`
-      : `Round ${state.roundIndex + 1} of ${rounds} · Q${qNum}/${Math.min(QUESTIONS_PER_ROUND, state.totalQuestions - state.roundIndex * QUESTIONS_PER_ROUND)}`;
+    !byPlace && rounds > 1 && state.roundIndex === rounds - 1 && !cosmic;
+  const roundLabel = state.streak
+    ? `Country Streak · place ${state.questionIndex + 1}`
+    : healthDuel
+      ? `Round ${state.roundIndex + 1} · ×${hitMultiplier} damage`
+      : state.matchLength === "escape"
+        ? `Round ${state.roundIndex + 1} of ${rounds}${state.questionIndex === 4 && state.atlas.preset === "sa-nl" && !state.atlas.cities?.length ? " · World wildcard" : ""}`
+        : `Round ${state.roundIndex + 1} of ${rounds} · Q${qNum}/${Math.min(QUESTIONS_PER_ROUND, state.totalQuestions - state.roundIndex * QUESTIONS_PER_ROUND)}`;
+  // What this place did under the match's rule: a health duel's damage, or a
+  // streak's verdict. Read from the record of the place just revealed.
+  const revealedRecord = state.revealed ? state.roundHistory.at(-1) : undefined;
+  const hit = healthDuel ? revealedRecord?.damage : undefined;
+  const hitPlayer = hit ? state.players.find((p) => p.id === hit.playerId) : undefined;
+  const ruleNote: { text: string; tone: "hit" | "keep" | "miss" | "even" } | undefined = healthDuel
+    ? hit && hitPlayer
+      ? {
+          tone: "hit",
+          text: `${hitPlayer.id === selfId && duelKind !== "hotseat" ? "You lose" : `${hitPlayer.name} loses`} ${hit.amount.toLocaleString()} health${
+            hit.multiplier > 1 ? ` (gap ×${hit.multiplier})` : ""
+          } · ${(hitPlayer.health ?? 0) > 0 ? `${(hitPlayer.health ?? 0).toLocaleString()} left` : "knocked out"}`,
+        }
+      : revealedRecord
+        ? { tone: "even", text: "Dead level: no damage this round" }
+        : undefined
+    : state.streak && revealedRecord?.streak
+      ? revealedRecord.streak.correct
+        ? { tone: "keep", text: `Right country · ${streakCount(state)} in a row` }
+        : {
+            tone: "miss",
+            text: `${
+              revealedRecord.streak.guessed
+                ? `Your pin was in ${revealedRecord.streak.guessed}.`
+                : you?.guess
+                  ? "Your pin was at sea."
+                  : "Time ran out."
+            } The streak ends at ${streakCount(state)}.`,
+          }
+      : undefined;
+  // Rule chips on the round's title card.
+  const introRules: Array<{ kind: "movement" | "health" | "streak"; label: string; accent?: boolean }> = [
+    ...(movement !== "moving" && !cosmic
+      ? [
+          {
+            kind: "movement" as const,
+            label: movement === "no-move" ? "No move · look and zoom only" : "NMPZ · no move, no pan, no zoom",
+          },
+        ]
+      : []),
+    ...(healthDuel
+      ? [{ kind: "health" as const, label: `×${hitMultiplier} damage this round`, accent: hitMultiplier > 1 }]
+      : []),
+    ...(state.streak ? [{ kind: "streak" as const, label: "One wrong country ends the run" }] : []),
+  ];
   // Same test as the clock itself: your time is still running after the other
   // player locks (the duel is then "waiting_for_opponent"), so the last ten
   // seconds must still read as urgent — they are the tensest of the round.
@@ -1472,7 +1572,7 @@ export function MatchApp({
           key={`${state.questionIndex}:${state.roundIndex}`}
           round={state.roundIndex + 1}
           totalRounds={rounds}
-          question={state.matchLength === "escape" ? undefined : qNum}
+          question={byPlace ? undefined : qNum}
           questionsInRound={Math.min(
             QUESTIONS_PER_ROUND,
             state.totalQuestions - state.roundIndex * QUESTIONS_PER_ROUND,
@@ -1500,6 +1600,17 @@ export function MatchApp({
           reducedMotion={settings.reducedMotion}
           onStart={finishIntro}
           atlas={state.atlas}
+          kicker={
+            state.streak
+              ? runSoFar
+                ? `Country Streak · ${runSoFar} in a row`
+                : "Country Streak"
+              : healthDuel
+                ? `Round ${state.roundIndex + 1} · health duel`
+                : undefined
+          }
+          title={state.streak ? "Which country?" : undefined}
+          rules={introRules}
         />
       )}
 
@@ -1515,7 +1626,10 @@ export function MatchApp({
               wide={streetOnly}
               hidden={!showStreet}
               still={streetStill}
-              interactive={canGuess && !showSettings && !showingReveal && showStreet && !streetStill}
+              movement={movement}
+              interactive={
+                canGuess && !showSettings && !showingReveal && showStreet && !streetStill && movement !== "nmpz"
+              }
               showHints={settings.showHints}
               onReady={() => {
                 setStreetReadySrc(scene?.src ?? null);
@@ -1543,6 +1657,7 @@ export function MatchApp({
               env={env}
               reducedMotion={settings.reducedMotion}
               onUnavailable={() => setScene3dFailed(true)}
+              movement={movement}
             />
           ) : scene?.isPano && !panoFailed ? (
             <PanoViewer
@@ -1554,7 +1669,7 @@ export function MatchApp({
               pitch={scene.pitch}
               alt="Location to identify"
               reducedMotion={settings.reducedMotion}
-              interactive={canGuess && !showSettings && !showingReveal}
+              interactive={canGuess && !showSettings && !showingReveal && movement !== "nmpz"}
               onReady={markSceneReady}
               onError={() => setPanoFailed(true)}
             />
@@ -1573,6 +1688,7 @@ export function MatchApp({
               showHints={settings.showHints}
               fallbacks={flatScene.fallbacks}
               views={flatScene.views}
+              movement={movement}
               sourceUrl={loc?.sourceUrl}
               title={loc?.title}
               alt="Location to identify"
@@ -1679,12 +1795,22 @@ export function MatchApp({
               round={state.roundIndex + 1}
               rounds={state.totalRounds || 4}
               question={qNum}
-              escape={state.matchLength === "escape"}
+              escape={byPlace}
+              label={
+                state.streak
+                  ? `STREAK ${runSoFar}`
+                  : healthDuel
+                    ? `ROUND ${state.roundIndex + 1} · ×${hitMultiplier}`
+                    : undefined
+              }
             />
           ) : (
             <>
-              <RoundPips index={state.roundIndex} total={state.totalRounds || 4} />
-              {state.matchLength !== "escape" && <QuestionMark current={qNum} />}
+              {/* A streak or a health duel has no fixed length to count off. */}
+              {!state.streak && !healthDuel && (
+                <RoundPips index={state.roundIndex} total={state.totalRounds || 4} />
+              )}
+              {!byPlace && <QuestionMark current={qNum} />}
             </>
           )}
           {reconstructionRound ? (
@@ -1700,6 +1826,14 @@ export function MatchApp({
               Final round
             </div>
           ) : null}
+          {movement !== "moving" && !cosmic && !showingReveal && (
+            <div
+              className={cn("hud-rule w-fit border border-border px-2.5 py-1 text-[10px] uppercase tracking-wider text-muted", hudChip)}
+              title={movement === "no-move" ? "No move: look and zoom only" : "No move, no pan, no zoom"}
+            >
+              {MOVEMENT_NAME[movement]}
+            </div>
+          )}
         </div>
         <div className="hud-actions flex shrink-0 items-start gap-2">
           {!showingReveal && (
@@ -1731,6 +1865,7 @@ export function MatchApp({
               selfId={you?.id}
               roundLive={clockRunning || state.phase === "player_locked"}
               urgent={urgent}
+              health={healthDuel}
             />
           ) : mode === "duel" && showingReveal ? null : (
             <div className={cn("hud-score flex items-center gap-2 rounded-[var(--radius-md)] border border-border py-1.5 pl-1.5 pr-3", mono ? "bg-bg" : "bg-bg/70")}>
@@ -1744,11 +1879,12 @@ export function MatchApp({
               />
               <div className="text-right">
                 <div className="hud-score-label text-[10px] uppercase tracking-wider text-subtle">
-                  Score
+                  {state.streak ? "Streak" : "Score"}
                 </div>
                 <div className="font-display tabular text-lg leading-none" data-score-target>
+                  {/* Country Streak counts countries in a row, not points. */}
                   <RollingScore
-                    value={(you?.totalScore ?? 0) - pointsInFlight}
+                    value={state.streak ? runSoFar : (you?.totalScore ?? 0) - pointsInFlight}
                     reducedMotion={settings.reducedMotion}
                   />
                 </div>
@@ -1901,17 +2037,34 @@ export function MatchApp({
           selfId={you.id}
           score={you.roundScore}
           headline={
-            Number.isFinite(you.roundScore.distanceKm)
-              ? feedbackHeadline(you.roundScore)
-              : "TIME’S UP"
+            state.streak && revealedRecord?.streak
+              ? revealedRecord.streak.correct
+                ? "RIGHT COUNTRY"
+                : "STREAK OVER"
+              : Number.isFinite(you.roundScore.distanceKm)
+                ? feedbackHeadline(you.roundScore)
+                : "TIME’S UP"
           }
           roundLabel={roundLabel}
           winUnit={
-            state.matchLength === "escape"
+            byPlace
               ? "the round"
               : `question ${questionInRound(state.questionIndex) + 1}`
           }
-          roundNumber={state.matchLength === "escape" ? state.roundIndex + 1 : undefined}
+          roundNumber={byPlace && !state.streak ? state.roundIndex + 1 : undefined}
+          note={
+            // The headline already says "Right country": the note keeps the count.
+            state.streak && revealedRecord?.streak?.correct
+              ? `${streakCount(state)} in a row`
+              : ruleNote?.text
+          }
+          soloFigure={
+            state.streak && revealedRecord?.streak
+              ? revealedRecord.streak.correct
+                ? `${streakCount(state)}`
+                : "×"
+              : undefined
+          }
           markSelf={duelKind !== "hotseat"}
           reducedMotion={settings.reducedMotion}
           onDone={() => setSplashSeen(revealKey)}
@@ -1932,7 +2085,8 @@ export function MatchApp({
           timedOut={state.phase === "round_expired"}
           reducedMotion={settings.reducedMotion}
           markSelf={duelKind !== "hotseat"}
-          streak={you ? scoreStreak(state.roundHistory, you.id) : 0}
+          streak={you && !state.streak ? scoreStreak(state.roundHistory, you.id) : 0}
+          ruleNote={ruleNote}
           onContinue={continueRound}
         />
       )}

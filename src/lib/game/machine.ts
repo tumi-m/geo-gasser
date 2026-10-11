@@ -1,21 +1,23 @@
-import { DEFAULT_ATLAS, filterByAtlas, type AtlasSpec } from "./atlas.ts";
+import { DEFAULT_ATLAS, filterByAtlas, nationOf, type AtlasSpec } from "./atlas.ts";
 import { cosmosTarget } from "./cosmos.ts";
 import { environmentById } from "./environments.ts";
 import { getLocation, needsStreetView, playableLocations } from "./locations.ts";
 import { mulberry32 } from "./rng.ts";
 import { sceneCandidates } from "./scene.ts";
 import { NO_GUESS_KM, rankPlayers, scoreGuess } from "./scoring.ts";
-import { currentEnvId, currentLocationId, isRound4Question, planMatch, PHOTO_QUESTIONS, QUESTIONS_PER_ROUND, roundOf, TOTAL_QUESTIONS } from "./selection.ts";
+import { countryAt, pinInNation } from "../map/country-at.ts";
+import { duelDamage, isHealthDuel, placeByPlace, START_HEALTH } from "./rules.ts";
+import { currentEnvId, currentLocationId, isRound4Question, planHealthDuel, planMatch, planStreak, PHOTO_QUESTIONS, QUESTIONS_PER_ROUND, roundOf, TOTAL_QUESTIONS } from "./selection.ts";
 import { DIFFICULTY_SECONDS, MATCH_LENGTH, remainingSeconds, ROUND_DURATION_SEC, type MatchLengthId, type TimeDifficulty } from "./timer.ts";
-import type { LatLng, MatchPhase, MatchState, PlayerState, PublicSnapshot, RoundRecord, SceneInfo } from "./types.ts";
+import type { DuelRule, LatLng, MatchPhase, MatchState, MovementRule, PlayerState, PublicSnapshot, RoundRecord, SceneInfo } from "./types.ts";
 
 export { TOTAL_ROUNDS, TOTAL_QUESTIONS, QUESTIONS_PER_ROUND } from "./selection.ts";
 
 export type MatchEvent =
   | { type: "HYDRATE"; state: MatchState }
-  | { type: "CREATE_SOLO"; playerId: string; name: string; avatarId?: string; seed: number; now: number; difficulty?: TimeDifficulty; matchLength?: MatchLengthId; atlas?: AtlasSpec; avoidLocationIds?: string[]; streetView?: boolean }
-  | { type: "CREATE_DUEL"; playerId: string; name: string; avatarId?: string; roomCode: string; seed: number; now: number; difficulty?: TimeDifficulty; matchLength?: MatchLengthId; atlas?: AtlasSpec; avoidLocationIds?: string[]; streetView?: boolean }
-  | {
+  | ({ type: "CREATE_SOLO"; playerId: string; name: string; avatarId?: string; seed: number; now: number; difficulty?: TimeDifficulty; matchLength?: MatchLengthId; atlas?: AtlasSpec; avoidLocationIds?: string[]; streetView?: boolean; streak?: boolean } & Rules)
+  | ({ type: "CREATE_DUEL"; playerId: string; name: string; avatarId?: string; roomCode: string; seed: number; now: number; difficulty?: TimeDifficulty; matchLength?: MatchLengthId; atlas?: AtlasSpec; avoidLocationIds?: string[]; streetView?: boolean } & Rules)
+  | ({
       type: "CREATE_LOCAL_DUEL";
       seats: Array<{ id: string; name: string; avatarId?: string; kind?: "human" | "bot" }>;
       hotseat?: boolean;
@@ -26,7 +28,7 @@ export type MatchEvent =
       atlas?: AtlasSpec;
       avoidLocationIds?: string[];
       streetView?: boolean;
-    }
+    } & Rules)
   | { type: "PLAYER_JOIN"; playerId: string; name: string; avatarId?: string; kind?: "human" | "bot"; now: number }
   | { type: "PLAYER_LEAVE"; playerId: string; now: number }
   | { type: "START_MATCH"; now: number }
@@ -49,8 +51,79 @@ export type MatchEvent =
   | { type: "TIMEOUT"; now: number }
   | { type: "REVEAL_DONE"; now: number }
   | { type: "CONTINUE"; now: number }
-  | { type: "REMATCH"; seed: number; now: number; difficulty?: TimeDifficulty; matchLength?: MatchLengthId; atlas?: AtlasSpec; avoidLocationIds?: string[]; streetView?: boolean }
+  | ({ type: "REMATCH"; seed: number; now: number; difficulty?: TimeDifficulty; matchLength?: MatchLengthId; atlas?: AtlasSpec; avoidLocationIds?: string[]; streetView?: boolean } & Rules)
   | { type: "HOME"; now: number };
+
+/** Rule sets a match can be created with (rules.ts). Absent means the defaults. */
+type Rules = { movement?: MovementRule; duelRule?: DuelRule };
+
+/** Only the rules that differ from the defaults are stored, so old states read the same. */
+function rulesOf(
+  mode: "solo" | "duel",
+  rules: Rules & { streak?: boolean },
+): Pick<MatchState, "movement" | "duelRule" | "streak"> {
+  return {
+    movement: rules.movement && rules.movement !== "moving" ? rules.movement : undefined,
+    duelRule: mode === "duel" && rules.duelRule === "health" ? "health" : undefined,
+    streak: mode === "solo" && rules.streak ? true : undefined,
+  };
+}
+
+/** The deck for a match: a streak, a health duel or the chosen length. */
+function planFor(
+  mode: "solo" | "duel",
+  rules: Pick<MatchState, "duelRule" | "streak">,
+  seed: number,
+  matchLength: MatchLengthId | undefined,
+  atlas: AtlasSpec | undefined,
+  avoid: string[] | undefined,
+  streetView: boolean | undefined,
+) {
+  if (rules.streak) return planStreak(seed, matchLength ?? "escape", avoid, { streetView });
+  if (mode === "duel" && rules.duelRule === "health")
+    return planHealthDuel(seed, matchLength ?? "escape", atlas, avoid, { streetView });
+  return planMatch(seed, matchLength, atlas, avoid, { streetView });
+}
+
+/** Health duels start every seat at full health; other matches carry none. */
+function withHealth(players: PlayerState[], state: Pick<MatchState, "mode" | "duelRule">): PlayerState[] {
+  return isHealthDuel(state) ? players.map((p) => ({ ...p, health: START_HEALTH })) : players;
+}
+
+/**
+ * True once the place on screen is the match's last: the deck is spent, a
+ * health duel has a player on zero, or a streak has just been broken. The
+ * reveal's Continue then leads to the results.
+ */
+export function matchOver(state: MatchState): boolean {
+  if (state.questionIndex + 1 >= (state.totalQuestions ?? TOTAL_QUESTIONS)) return true;
+  if (!state.revealed) return false;
+  if (isHealthDuel(state) && state.players.some((p) => (p.health ?? START_HEALTH) <= 0)) return true;
+  if (state.streak && state.roundHistory.at(-1)?.streak?.correct === false) return true;
+  return false;
+}
+
+/** Country Streak: places named right in a row (the run so far). */
+export function streakCount(state: Pick<MatchState, "roundHistory">): number {
+  let n = 0;
+  for (const r of state.roundHistory) {
+    if (!r.streak) continue;
+    if (r.streak.correct) n += 1;
+    else break;
+  }
+  return n;
+}
+
+/** Who won: health first in a health duel, then the usual ranking. */
+function finalWinners(state: MatchState): string[] {
+  if (isHealthDuel(state)) {
+    const top = Math.max(...state.players.map((p) => p.health ?? 0));
+    const alive = state.players.filter((p) => (p.health ?? 0) === top);
+    if (alive.length === 1) return [alive[0].id];
+    return rankPlayers(alive).winnerIds;
+  }
+  return rankPlayers(state.players).winnerIds;
+}
 
 function bump(state: MatchState, phase: MatchPhase, now: number): MatchState {
   return { ...state, phase, seq: state.seq + 1, lastEventAt: now };
@@ -126,6 +199,21 @@ function applyScores(state: MatchState, now: number): MatchState {
       totalResponseMs: p.totalResponseMs + responseMs,
     };
   });
+  // Health duels: the lower score loses the gap, times this place's multiplier.
+  const damage = isHealthDuel(state) ? duelDamage(players, state.questionIndex + 1) : null;
+  const hurt = damage
+    ? players.map((p) =>
+        p.id === damage.playerId ? { ...p, health: Math.max(0, (p.health ?? START_HEALTH) - damage.amount) } : p,
+      )
+    : players;
+  // Country Streak: right if the pin is in the place's country.
+  const pin = state.streak ? (players[0]?.locked ? players[0].guess : undefined) : undefined;
+  const streak = state.streak
+    ? {
+        correct: Boolean(pin && pinInNation(pin, nationOf(loc), state.truth)),
+        guessed: pin ? countryAt(pin).name : undefined,
+      }
+    : undefined;
   const record: RoundRecord = {
     index: state.questionIndex,
     locationId: loc.id,
@@ -139,10 +227,12 @@ function applyScores(state: MatchState, now: number): MatchState {
         { guess: p.locked ? p.guess ?? null : null, score: p.roundScore! },
       ]),
     ),
+    ...(damage ? { damage } : {}),
+    ...(streak ? { streak } : {}),
   };
   return {
     ...state,
-    players,
+    players: hurt,
     revealed: true,
     roundHistory: [...state.roundHistory, record],
     seq: state.seq + 1,
@@ -214,7 +304,7 @@ function beginQuestion(state: MatchState, now: number, intro: boolean): MatchSta
     truth: loc ? { latitude: loc.latitude, longitude: loc.longitude } : undefined,
     players: resetRoundFlags(state.players),
     activeSeatId: state.duelKind === "hotseat" ? firstHuman?.id : undefined,
-    roundIndex: state.matchLength === "escape" ? state.questionIndex : roundOf(state.questionIndex),
+    roundIndex: placeByPlace(state) ? state.questionIndex : roundOf(state.questionIndex),
   };
   if (intro) {
     return { ...bump(next, "round_intro", now), roundStartedAtMs: undefined };
@@ -258,10 +348,12 @@ export function reduce(state: MatchState, event: MatchEvent): MatchState {
     case "HOME":
       return createLobbyState();
     case "CREATE_SOLO": {
-      const plan = planMatch(event.seed, event.matchLength, event.atlas, event.avoidLocationIds, { streetView: event.streetView });
+      const rules = rulesOf("solo", event);
+      const plan = planFor("solo", rules, event.seed, event.matchLength, event.atlas, event.avoidLocationIds, event.streetView);
       const opts = matchOptions(event.difficulty, event.matchLength);
       return beginRound(
         {
+          ...rules,
           seq: 0,
           phase: "match_starting",
           mode: "solo",
@@ -281,9 +373,11 @@ export function reduce(state: MatchState, event: MatchEvent): MatchState {
       );
     }
     case "CREATE_DUEL": {
-      const plan = planMatch(event.seed, event.matchLength, event.atlas, event.avoidLocationIds, { streetView: event.streetView });
+      const rules = rulesOf("duel", event);
+      const plan = planFor("duel", rules, event.seed, event.matchLength, event.atlas, event.avoidLocationIds, event.streetView);
       const opts = matchOptions(event.difficulty, event.matchLength);
       return {
+        ...rules,
         seq: 1,
         phase: "waiting_for_players",
         mode: "duel",
@@ -294,7 +388,7 @@ export function reduce(state: MatchState, event: MatchEvent): MatchState {
         questionIndex: 0,
         ...applyPlan(plan, event.streetView),
         ...opts,
-        players: [emptyPlayer(event.playerId, event.name, event.avatarId)],
+        players: withHealth([emptyPlayer(event.playerId, event.name, event.avatarId)], { mode: "duel", ...rules }),
         revealed: false,
         roundHistory: [],
         winnerIds: [],
@@ -303,13 +397,16 @@ export function reduce(state: MatchState, event: MatchEvent): MatchState {
       };
     }
     case "CREATE_LOCAL_DUEL": {
-      const plan = planMatch(event.seed, event.matchLength, event.atlas, event.avoidLocationIds, { streetView: event.streetView });
+      const rules = rulesOf("duel", event);
+      const plan = planFor("duel", rules, event.seed, event.matchLength, event.atlas, event.avoidLocationIds, event.streetView);
       const opts = matchOptions(event.difficulty, event.matchLength);
-      const seats = event.seats.slice(0, 2).map((s) =>
-        emptyPlayer(s.id, s.name, s.avatarId, s.kind ?? "human"),
+      const seats = withHealth(
+        event.seats.slice(0, 2).map((s) => emptyPlayer(s.id, s.name, s.avatarId, s.kind ?? "human")),
+        { mode: "duel", ...rules },
       );
       if (seats.length < 2) return state;
       const next: MatchState = {
+        ...rules,
         seq: 1,
         phase: "waiting_for_players",
         mode: "duel",
@@ -354,7 +451,7 @@ export function reduce(state: MatchState, event: MatchEvent): MatchState {
         seq: state.seq + 1,
         players: [
           ...state.players,
-          emptyPlayer(event.playerId, event.name, event.avatarId, event.kind ?? "human"),
+          ...withHealth([emptyPlayer(event.playerId, event.name, event.avatarId, event.kind ?? "human")], state),
         ],
         lastEventAt: event.now,
       };
@@ -381,9 +478,9 @@ export function reduce(state: MatchState, event: MatchEvent): MatchState {
     case "START_MATCH": {
       if (state.mode === "duel" && state.players.filter((p) => p.connected).length < 2) return state;
       if (!["waiting_for_players", "match_starting", "rematch_pending"].includes(state.phase)) return state;
-      return beginRound({ ...state, roundIndex: 0, questionIndex: 0, roundHistory: [], winnerIds: [], players: state.players.map((p) => ({
+      return beginRound({ ...state, roundIndex: 0, questionIndex: 0, roundHistory: [], winnerIds: [], players: withHealth(state.players.map((p) => ({
         ...emptyPlayer(p.id, p.name, p.avatarId, p.kind),
-      })) }, event.now);
+      })), state) }, event.now);
     }
     case "SWAP_PLACE": {
       // Only before anyone has answered, and only for a place that cannot be
@@ -505,31 +602,38 @@ export function reduce(state: MatchState, event: MatchEvent): MatchState {
       if (state.phase !== "round_results" && state.phase !== "next_round") return state;
       const nextQ = state.questionIndex + 1;
       // `0` means the plan held no questions: end instead of grinding blanks.
-      if (nextQ >= (state.totalQuestions ?? TOTAL_QUESTIONS)) {
-        const { winnerIds } = rankPlayers(state.players);
-        return { ...bump(state, "final_reveal", event.now), winnerIds };
+      // A health duel ends on zero health, a streak on its first miss.
+      if (matchOver(state)) {
+        return { ...bump(state, "final_reveal", event.now), winnerIds: finalWinners(state) };
       }
       const advancing: MatchState = {
         ...state,
         questionIndex: nextQ,
-        roundIndex: state.matchLength === "escape" ? nextQ : roundOf(nextQ),
+        roundIndex: placeByPlace(state) ? nextQ : roundOf(nextQ),
         phase: "next_round",
       };
-      const newRound = state.matchLength === "escape" || nextQ % QUESTIONS_PER_ROUND === 0;
+      const newRound = placeByPlace(state) || nextQ % QUESTIONS_PER_ROUND === 0;
       return beginQuestion(advancing, event.now, newRound);
     }
     case "REMATCH": {
       if (!["final_reveal","match_complete"].includes(state.phase)) return state;
       const streetView = event.streetView ?? state.streetView;
-      const plan = planMatch(event.seed, event.matchLength ?? state.matchLength, event.atlas ?? state.atlas, event.avoidLocationIds, { streetView });
+      const rules = rulesOf(state.mode, {
+        movement: event.movement ?? state.movement,
+        duelRule: event.duelRule ?? state.duelRule,
+        streak: state.streak,
+      });
+      const plan = planFor(state.mode, rules, event.seed, event.matchLength ?? state.matchLength, event.atlas ?? state.atlas, event.avoidLocationIds, streetView);
       const opts = matchOptions(event.difficulty ?? state.timeDifficulty, event.matchLength ?? state.matchLength);
       // A rematch never resurrects an absent seat: disconnected players are
       // dropped so the room waits for a real opponent instead of a ghost.
-      const players = state.players
-        .filter((p) => p.connected)
-        .map((p) => emptyPlayer(p.id, p.name, p.avatarId, p.kind));
+      const players = withHealth(
+        state.players.filter((p) => p.connected).map((p) => emptyPlayer(p.id, p.name, p.avatarId, p.kind)),
+        { mode: state.mode, ...rules },
+      );
       const next: MatchState = {
         ...state,
+        ...rules,
         seq: state.seq + 1,
         phase: state.mode === "duel" ? "rematch_pending" : "match_starting",
         seed: event.seed,
@@ -630,6 +734,9 @@ export function toPublicSnapshot(state: MatchState): PublicSnapshot {
     revealed: state.revealed,
     roundHistory: state.roundHistory,
     winnerIds: state.winnerIds,
+    movement: state.movement,
+    duelRule: state.duelRule,
+    streak: state.streak,
   };
 }
 

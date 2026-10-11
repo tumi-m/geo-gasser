@@ -1,6 +1,7 @@
 import { QUESTIONS_PER_ROUND } from "./selection.ts";
 import { ROUND_MAX } from "./scoring.ts";
 import type { MatchState, PlayerState, RoundRecord } from "./types.ts";
+import { placeByPlace } from "./rules.ts";
 
 export interface SummaryRow {
   id: string;
@@ -27,9 +28,10 @@ export interface RoundSummary {
 
 /** The question just revealed closes a multi-question round. */
 export function endsRound(
-  state: Pick<MatchState, "matchLength" | "questionIndex" | "totalQuestions">,
+  state: Pick<MatchState, "matchLength" | "questionIndex" | "totalQuestions"> &
+    Partial<Pick<MatchState, "streak" | "duelRule" | "mode">>,
 ): boolean {
-  if (state.matchLength === "escape") return false; // there a round is one question
+  if (placeByPlace(state)) return false; // there a round is one question
   const last = state.questionIndex >= (state.totalQuestions || 0) - 1;
   return last || (state.questionIndex + 1) % QUESTIONS_PER_ROUND === 0;
 }
