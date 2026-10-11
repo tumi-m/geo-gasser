@@ -90,7 +90,7 @@ export function DuelLobby() {
         <h1
           className={cn(
             "atlas-rise font-display tracking-tight",
-            mono ? "quoted mt-4 text-6xl leading-none" : "mt-1 text-5xl",
+            mono ? "mt-4 text-6xl leading-none" : "mt-1 text-5xl",
           )}
         >
           Duel

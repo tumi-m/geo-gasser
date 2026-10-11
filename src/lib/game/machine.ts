@@ -49,6 +49,9 @@ export type MatchEvent =
   /** The current place needs Street View and it could not load: deal a photo place instead. */
   | { type: "SWAP_PLACE"; now: number }
   | { type: "TIMEOUT"; now: number }
+  /** Solo only: stop the clock (a duel's rival keeps playing, so duels never pause). */
+  | { type: "PAUSE"; now: number }
+  | { type: "RESUME"; now: number }
   | { type: "REVEAL_DONE"; now: number }
   | { type: "CONTINUE"; now: number }
   | ({ type: "REMATCH"; seed: number; now: number; difficulty?: TimeDifficulty; matchLength?: MatchLengthId; atlas?: AtlasSpec; avoidLocationIds?: string[]; streetView?: boolean } & Rules)
@@ -307,9 +310,9 @@ function beginQuestion(state: MatchState, now: number, intro: boolean): MatchSta
     roundIndex: placeByPlace(state) ? state.questionIndex : roundOf(state.questionIndex),
   };
   if (intro) {
-    return { ...bump(next, "round_intro", now), roundStartedAtMs: undefined };
+    return { ...bump(next, "round_intro", now), roundStartedAtMs: undefined, pausedAtMs: undefined };
   }
-  return { ...bump(next, "round_active", now), roundStartedAtMs: now };
+  return { ...bump(next, "round_active", now), roundStartedAtMs: now, pausedAtMs: undefined };
 }
 
 /**
@@ -498,6 +501,7 @@ export function reduce(state: MatchState, event: MatchEvent): MatchState {
       };
     }
     case "PLACE_PIN": {
+      if (state.pausedAtMs != null) return state;
       if (!Number.isFinite(event.guess.latitude) || !Number.isFinite(event.guess.longitude) || Math.abs(event.guess.latitude)>90 || Math.abs(event.guess.longitude)>180) return state;
       if (state.roundStartedAtMs == null || event.now < state.roundStartedAtMs || remainingSeconds(state.roundStartedAtMs,event.now,state.durationSec)<=0) return state;
       if (state.duelKind === "hotseat" && state.phase !== "round_active") return state;
@@ -522,6 +526,7 @@ export function reduce(state: MatchState, event: MatchEvent): MatchState {
       };
     }
     case "LOCK": {
+      if (state.pausedAtMs != null) return state;
       if (state.roundStartedAtMs == null || event.now < state.roundStartedAtMs || remainingSeconds(state.roundStartedAtMs,event.now,state.durationSec)<=0) return state;
       if (state.duelKind === "hotseat" && state.phase !== "round_active") return state;
 
@@ -574,6 +579,7 @@ export function reduce(state: MatchState, event: MatchEvent): MatchState {
       };
     }
     case "TIMEOUT": {
+      if (state.pausedAtMs != null) return state;
       if (state.roundStartedAtMs == null || remainingSeconds(state.roundStartedAtMs,event.now,state.durationSec)>0) return state;
       if (state.duelKind === "hotseat" && state.phase !== "round_active") return state;
 
@@ -587,6 +593,24 @@ export function reduce(state: MatchState, event: MatchEvent): MatchState {
         return applyScores({...state,players,phase:"round_expired"},event.now);
       }
       return applyScores({ ...state, phase: "round_expired" }, event.now);
+    }
+    case "PAUSE": {
+      if (state.mode !== "solo" || state.phase !== "round_active") return state;
+      if (state.pausedAtMs != null || state.roundStartedAtMs == null) return state;
+      if (remainingSeconds(state.roundStartedAtMs, event.now, state.durationSec) <= 0) return state;
+      return { ...state, seq: state.seq + 1, pausedAtMs: event.now };
+    }
+    case "RESUME": {
+      if (state.pausedAtMs == null) return state;
+      // The round starts later by however long it stood still, so the clock,
+      // the points on offer and the response time all ignore the pause.
+      const held = Math.max(0, event.now - state.pausedAtMs);
+      return {
+        ...state,
+        seq: state.seq + 1,
+        pausedAtMs: undefined,
+        roundStartedAtMs: state.roundStartedAtMs != null ? state.roundStartedAtMs + held : undefined,
+      };
     }
     case "REVEAL_DONE": {
       if (state.phase !== "round_reveal" && state.phase !== "round_expired") return state;

@@ -125,6 +125,15 @@ const ok =
     await page.locator(".round-intro").waitFor({ timeout: 15000 });
     return "a new match starts";
   })) &&
+  (await step("career counts the match", async () => {
+    await page.goto(`${base}/career`, { waitUntil: "domcontentloaded" });
+    await page.locator(".career-hero").waitFor({ timeout: 10000 });
+    const xp = ((await page.getByText(/XP in all/).textContent()) ?? "").trim();
+    if (/^0 XP/.test(xp)) throw new Error("no XP after a whole match");
+    const earned = await page.locator(".career-medals li:not(.is-locked)").count();
+    if (!earned) throw new Error("no medal after a whole match");
+    return `${xp}, ${earned} ${earned === 1 ? "medal" : "medals"}`;
+  })) &&
   (await step("Country Streak judges a place", async () => {
     await page.goto(`${base}/`, { waitUntil: "domcontentloaded" });
     await page.getByRole("button", { name: /Start a streak/ }).click();

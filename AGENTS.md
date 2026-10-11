@@ -181,8 +181,8 @@ Rules this repo has already paid for:
   - Shared tokens and utilities live in `src/styles.css`. A new token needs
     a Classic value there and, if it differs, a Mono value on `:root` in
     `mono.css`.
-  - Only cosmetic markup branches on `useMono()`: button style, quotes,
-    labels.
+  - Only cosmetic markup branches on `useMono()`: button style and
+    labels. There are no quote marks in either look.
   - The map's colours are `MAP_PALETTES` in `src/lib/map/layers.ts`.
   - Check new screens in both looks.
 - **A theme changes the look, never the journey.** The first Mono rebuilt
@@ -201,3 +201,14 @@ Rules this repo has already paid for:
 - **A rule that limits the player must reach every scene that takes input.**
   The movement rules first covered photos and Street View; the parked 3D
   scene could still orbit and walk until it was checked too.
+- **Anything drawn on the guessing map reads as a hint.** Town dots were
+  hidden while guessing but covered every reveal, so players learned where
+  places sit, and the canvas stretched them into white blocks during the
+  fly-to. The map draws no town markers; names show at the reveal only.
+- **A dialog's key can reach the screen behind it after it closes.** The
+  pause menu's Esc resumed the round, the resume rendered between
+  listeners, and the match screen's own handler saw the same Esc and
+  paused again. Screen-level key handlers skip `e.defaultPrevented`.
+- **A pause hides the scene for its whole length.** The cover first
+  belonged to the pause menu, so opening Settings from it showed the
+  photo with the clock stopped. The cover now follows the paused state.

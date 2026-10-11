@@ -405,7 +405,8 @@ div.leaflet-container {
 .atlas-city-label {
   font-size: 10px;
   color: #000;
-  transform: translate(6px, -50%);}
+  transform: translate(-50%, -50%);
+  white-space: nowrap;}
 
 .atlas-city-major {
   font-weight: 600;
@@ -756,7 +757,7 @@ button.duel-mode:hover .duel-mode-go {color:var(--color-accent)}
 /* ── Results ── */
 
 /* ───────────────────────── Results: the record ─────────────────────────
-   A document: the champion quoted, the score in figures, the route as a
+   A document: the champion named, the score in figures, the route as a
    paper drawing, the passport in one ink. */
 .result-shell {background:var(--color-bg)}
 .result-score {font-family:var(--font-mono);font-weight:600;letter-spacing:-.04em;color:var(--color-fg)}
@@ -804,3 +805,23 @@ button.duel-mode:hover .duel-mode-go {color:var(--color-accent)}
 /* The wordmark's orange on white is small text on phones: a deeper orange
    keeps it readable (5.2:1). */
 .brand-lockup .text-accent {color:#c24000}
+/* Career: square badges and discs in ink; the bar is a hairline box. */
+.level-badge {clip-path:none;border-radius:0;background:var(--color-fg);color:var(--color-bg);font-family:var(--font-mono)}
+.medal-disc {border-radius:0;color:var(--color-bg);background:var(--color-fg);box-shadow:none}
+.medal-disc.is-locked {color:var(--color-subtle);background:var(--color-bg);box-shadow:inset 0 0 0 1px var(--color-rule)}
+.career-result,.medal-new {border-radius:0;border-color:var(--color-rule);background:var(--color-bg)}
+.career-result-title {text-transform:uppercase;letter-spacing:.04em}
+.career-result-gain {font-family:var(--font-mono);color:#c24000}
+.xp-bar {height:10px;border-radius:0;border:1px solid var(--color-fg);background:var(--color-bg)}
+.xp-bar i {border-radius:0;background:var(--color-accent);box-shadow:none}
+.level-up {border-radius:0;background:var(--color-fg);color:var(--color-bg);font-family:var(--font-mono);text-transform:uppercase;letter-spacing:.06em;font-size:12px}
+.medals-new-kicker {font-family:var(--font-mono)}
+.career-page {background:var(--color-bg)}
+.career-hero-title {font-family:var(--font-mono);text-transform:uppercase;letter-spacing:.08em;font-size:12px}
+.career-heading,.career-count {font-family:var(--font-mono)}
+.career-records > div,.career-medals li,.career-nations li {border-radius:0;border-color:var(--color-rule);background:var(--color-bg)}
+.career-records dd {font-family:var(--font-mono);font-weight:700}
+.career-nations b {border-radius:0;background:var(--color-fg);color:var(--color-bg)}
+.career-medals .career-medal-when {color:var(--color-fg)}
+.career-hero-title {color:var(--color-fg)}
+.pause-cover {background:#000}

@@ -1,4 +1,5 @@
 import { useEffect } from "react";
+import { CareerPage } from "@/components/game/career-page";
 import { DuelLobby } from "@/components/game/duel-lobby";
 import { HomeScreen } from "@/components/game/home-screen";
 import { MatchApp } from "@/components/game/match-app";
@@ -12,6 +13,7 @@ const routes: RouteDef[] = [
   { path: "/play", component: () => <MatchApp mode="solo" />, title: "Solo" },
   { path: "/streak", component: () => <MatchApp mode="solo" streak />, title: "Country Streak" },
   { path: "/duel", component: DuelLobby, title: "Duel" },
+  { path: "/career", component: CareerPage, title: "Career" },
   { path: "/duel/bot", component: () => <MatchApp mode="duel" duelKind="bot" />, title: "Duel vs Grok" },
   {
     path: "/duel/hotseat",

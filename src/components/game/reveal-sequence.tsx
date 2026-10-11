@@ -121,7 +121,7 @@ export function RevealOverlay({
         {hasPin && clock < 1 ? (
           // In a duel on a phone the rows below say enough; room goes to them.
           <p className={cn("ledger-note", opponent && "max-sm:hidden")}>
-            Locked in the {mono ? `"${tierPot.toLocaleString("en-US")}"` : tierPot.toLocaleString("en-US")}{" "}
+            Locked in the {tierPot.toLocaleString("en-US")}{" "}
             tier: the clock kept{" "}
             {Math.round(clock * 100)}% of your {score.accuracyPoints.toLocaleString("en-US")}.
           </p>

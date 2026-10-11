@@ -22,8 +22,6 @@ export interface MapPalette {
   neighbourWeight: number;
   province: string;
   graticule: string;
-  city: string;
-  cityLine: string;
   arc: string;
   arcOpp: string;
 }
@@ -50,8 +48,6 @@ export const MAP_PALETTES: Record<ThemeId, MapPalette> = {
     neighbourWeight: 0.7,
     province: "rgba(9, 9, 11, 0.5)",
     graticule: "rgba(244, 244, 240, 0.07)",
-    city: "#f4f4f0",
-    cityLine: "#09090b",
     arc: "#f4f4f0",
     arcOpp: "#5aa9ff",
   },
@@ -69,8 +65,6 @@ export const MAP_PALETTES: Record<ThemeId, MapPalette> = {
     neighbourWeight: 0.5,
     province: "rgba(0, 0, 0, 0.35)",
     graticule: "rgba(0, 0, 0, 0.08)",
-    city: "#ffffff",
-    cityLine: "#000000",
     arc: "#ff5500",
     arcOpp: "#000000",
   },
@@ -214,63 +208,32 @@ export function graticuleLayer(L: Leaflet, palette: MapPalette) {
 }
 
 /**
- * Towns and cities, revealed by size as you zoom (tier 0 = megacities and
- * capitals … 5 = small towns), so every country shows many dots at every
- * zoom and none of them stands for an answer. Dots paint on one canvas;
- * labels are culled to the view.
+ * Town names for the reveal, shown by size as you zoom (tier 0 = megacities
+ * and capitals … 5 = small towns) and culled to the view. There are no town
+ * dots: a dot on the map reads as "a place worth pinning", and while the map
+ * flies to the answer a canvas of dots is stretched into white blocks. The
+ * names stay hidden while you guess (the theme hides their pane until the
+ * map is revealing).
  */
-const DOT_ZOOM = [1.5, 3, 4.25, 5, 7.75, 8.75];
 const LABEL_ZOOM = [3.75, 5, 6, 7.75, 8.75, 9.75];
 
-export function cityLayers(
-  L: Leaflet,
-  map: LMap,
-  gate: ZoomGate,
-  places: readonly Place[],
-  palette: MapPalette,
-) {
-  // Dots get their own pane above the land (the canvas would otherwise sit
-  // under the SVG countries and only show at sea) and below the pins.
-  // Towns are for context at the reveal only: while you guess, a country with
-  // one or two dots would invite you to pin the dot (styles.css hides both
-  // panes until the map is revealing).
-  if (!map.getPane("atlas-dots")) {
-    const pane = map.createPane("atlas-dots");
-    pane.style.zIndex = "450";
-    pane.style.pointerEvents = "none";
-  }
+export function cityLabels(L: Leaflet, map: LMap, places: readonly Place[]) {
   if (!map.getPane("atlas-towns")) {
     const pane = map.createPane("atlas-towns");
     pane.style.zIndex = "550";
     pane.style.pointerEvents = "none";
   }
-  const renderer = L.canvas({ pane: "atlas-dots", padding: 0.35 });
   const labels: CityLabel[] = [];
   for (const place of places) {
     const at: [number, number] = [place.latitude, place.longitude];
     const t = Math.min(5, Math.max(0, place.tier));
-    gate.add({
-      marker: L.circleMarker(at, {
-        pane: "atlas-dots",
-        renderer,
-        radius: t <= 1 ? 3.2 : t <= 3 ? 2.6 : 2.1,
-        color: palette.cityLine,
-        weight: 1,
-        fillColor: palette.city,
-        fillOpacity: 1,
-        interactive: false,
-      }),
-      minZoom: DOT_ZOOM[t],
-      maxZoom: 99,
-      at,
-    });
     const major = t <= 1;
     labels.push({
       marker: textMarker(L, at, place.name, `atlas-city-label ${major ? "atlas-city-major" : ""}`, "atlas-towns"),
       at,
       tier: t,
       minZoom: LABEL_ZOOM[t],
-      // Rough text box to the right of the dot (labels sit at +6px).
+      // Rough text box, centred on the town.
       width: place.name.length * (major ? 6.6 : 5.6) + 10,
       shown: false,
     });
@@ -286,7 +249,8 @@ export function cityLayers(
       let want = zoom >= label.minZoom && view.contains(label.at);
       if (want) {
         const p = map.latLngToContainerPoint(label.at);
-        const box: [number, number, number, number] = [p.x + 2, p.y - 8, p.x + label.width, p.y + 8];
+        const half = label.width / 2;
+        const box: [number, number, number, number] = [p.x - half, p.y - 8, p.x + half, p.y + 8];
         want = !taken.some((b) => box[0] < b[2] && box[2] > b[0] && box[1] < b[3] && box[3] > b[1]);
         if (want) taken.push(box);
       }

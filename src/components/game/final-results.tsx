@@ -14,8 +14,10 @@ import {
   streakCount,
   placeCity,
   shareCard,
+  type CareerAward,
   type MatchState,
 } from "@/lib/game";
+import { CareerResult, MedalsUnlocked } from "./career-bits";
 import { MusicHudButton } from "./music-player";
 import { Sparks } from "./round-splash";
 import { useCountUp } from "./use-count-up";
@@ -39,6 +41,7 @@ export function FinalResults({
   rematchLabel,
   rematchPending,
   beatBest,
+  career,
 }: {
   state: MatchState;
   selfId: string;
@@ -52,6 +55,8 @@ export function FinalResults({
   rematchPending?: boolean;
   /** The record this match beat for its length, when it set a new one. */
   beatBest?: number;
+  /** What the match added to the career (absent in pass and play). */
+  career?: CareerAward;
 }) {
   const mono = useMono();
   const navigate = useNavigate();
@@ -174,7 +179,7 @@ export function FinalResults({
             {!reducedMotion && !shared && <Sparks count={20} spread={130} />}
             {crowned && <CrownDrop />}
           </span>
-          <h1 className={cn("font-display text-5xl leading-none tracking-tight sm:text-6xl", mono && "quoted")}>
+          <h1 className="font-display text-5xl leading-none tracking-tight sm:text-6xl">
             <WordRise text={headline ?? ""} delay={180} />
           </h1>
         </div>
@@ -231,6 +236,12 @@ export function FinalResults({
               </span>
             </span>
           </p>
+        )}
+        {career && (
+          <>
+            <CareerResult award={career} reducedMotion={reducedMotion} />
+            <MedalsUnlocked medals={career.medals} />
+          </>
         )}
         <ExpeditionRoute
           className="mt-7"

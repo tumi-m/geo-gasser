@@ -45,7 +45,7 @@ export function Tutorial({ onClose }: { onClose: () => void }) {
   const mono = useMono();
   return (
     <ModalShell titleId="how-title" onClose={onClose} wide>
-      <h2 id="how-title" className={cn("font-display text-2xl", mono && "quoted")}>
+      <h2 id="how-title" className="font-display text-2xl">
         How to play
       </h2>
       <ol className={cn("mt-5 list-none", mono ? "border-b border-border" : "space-y-4")}>

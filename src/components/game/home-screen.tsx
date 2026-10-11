@@ -21,11 +21,13 @@ import { SettingsPanel } from "./settings-panel";
 import { AtlasPicker } from "./atlas-picker";
 import { ModalShell } from "./modal-shell";
 import { Tutorial } from "./tutorial";
+import { LevelBadge } from "./career-bits";
 import {
   audio,
   DEFAULT_SETTINGS,
   DIFFICULTY_SECONDS,
   EMPTY_STATS,
+  levelOf,
   loadSettings,
   loadStats,
   planCounts,
@@ -190,6 +192,15 @@ export function HomeScreen() {
         <nav className="flex items-center gap-3 sm:gap-7" aria-label="Main navigation">
           <button className="nav-link" onClick={() => setPanel("help")}>
             How to play
+          </button>
+          {/* Your career, with your level on its badge. */}
+          <button
+            className="nav-link nav-career"
+            aria-label={`Career, level ${levelOf(stats.xp ?? 0).level}`}
+            onClick={() => navigate("/career")}
+          >
+            <LevelBadge level={levelOf(stats.xp ?? 0).level} />
+            <span className="nav-career-label">Career</span>
           </button>
           <MusicHudButton />
           {/* Your bot is your settings: it watches you, and dozes if you wander off. */}

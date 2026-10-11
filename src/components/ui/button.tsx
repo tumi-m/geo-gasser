@@ -27,18 +27,18 @@ const buttonVariants = cva(
 );
 
 // Mono: buttons look like actions. A black block (white in the black match
-// screen) for the primary one, framed in quotes; a hairline box for the rest.
+// screen) for the primary one; a hairline box for the rest.
 // Caps, Helvetica Bold, square corners; the accent is the hover and pressed
 // state, never decoration. Steps take 120 ms, with no spring.
 const monoButtonVariants = cva(
-  "inline-flex items-center justify-center gap-2 [--quote-pull:0.4rem] whitespace-nowrap border font-bold uppercase tracking-[0.1em] transition-[background-color,color,border-color] duration-[120ms] ease-linear disabled:pointer-events-none disabled:opacity-40 active:translate-y-px select-none",
+  "inline-flex items-center justify-center gap-2 whitespace-nowrap border font-bold uppercase tracking-[0.1em] transition-[background-color,color,border-color] duration-[120ms] ease-linear disabled:pointer-events-none disabled:opacity-40 active:translate-y-px select-none",
   {
     variants: {
       variant: {
-        primary: "quoted border-fg bg-fg text-bg hover:border-accent hover:bg-accent hover:text-accent-fg",
+        primary: "border-fg bg-fg text-bg hover:border-accent hover:bg-accent hover:text-accent-fg",
         secondary: "border-fg bg-bg text-fg hover:bg-bg-subtle",
         ghost: "border-transparent bg-transparent text-fg hover:bg-bg-subtle",
-        za: "quoted border-fg bg-fg text-bg hover:border-accent hover:bg-accent hover:text-accent-fg",
+        za: "border-fg bg-fg text-bg hover:border-accent hover:bg-accent hover:text-accent-fg",
         nl: "border-fg bg-bg text-fg hover:bg-bg-subtle",
       },
       size: {

@@ -208,6 +208,8 @@ export interface MatchState {
   /** The deck may include Street View-only places (the host has a key). */
   streetView?: boolean;
   roundStartedAtMs?: number;
+  /** Solo: when the player paused the round. The clock stands still until RESUME. */
+  pausedAtMs?: number;
   players: PlayerState[];
   /** Host-only until reveal. Stripped from public snapshots. */
   truth?: LatLng;

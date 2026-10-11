@@ -263,7 +263,8 @@ div.leaflet-container {
 .atlas-city-label {
   font-size: 10px;
   color: rgba(244, 244, 240, 0.9);
-  transform: translate(6px, -50%);
+  transform: translate(-50%, -50%);
+  white-space: nowrap;
 }
 
 .atlas-city-major {
@@ -1331,7 +1332,6 @@ button.duel-mode:hover .duel-mode-go {transform:translateX(4px);color:var(--colo
 /* Guessing map: no towns. A country with one or two dots made the dot the
    obvious pin; outlines and names still show where you are. The reveal
    brings the towns back for context. */
-.map-dock:not(.is-reveal) .leaflet-atlas-dots-pane,
 .map-dock:not(.is-reveal) .leaflet-atlas-towns-pane {display:none}
 
 /* Street View rounds. Google's own links would open the place in Google Maps
@@ -1639,3 +1639,69 @@ html.reduce-motion .best-stamp,html.reduce-motion .best-stamp svg {animation:non
 .streak-strip small {display:block;margin-top:2px;font-size:12px;line-height:1.5;color:var(--color-muted)}
 .streak-strip button {flex-shrink:0;gap:10px;border-radius:9px;font-size:13px}
 @media (max-width:600px) {.streak-strip {flex-wrap:wrap;gap:12px;padding:13px}.streak-strip button {width:100%}}
+/* ── Career: the level badge, medals and the results card ── */
+.level-badge {display:inline-grid;place-items:center;flex:none;min-width:30px;height:30px;padding:0 6px;font-family:var(--font-display);font-size:13px;font-weight:700;line-height:1;color:#2a1a00;background:linear-gradient(160deg,#ffd166,#ff9f1a);clip-path:polygon(25% 0,75% 0,100% 50%,75% 100%,25% 100%,0 50%);font-variant-numeric:tabular-nums}
+.level-badge.is-up {animation:level-pop .6s cubic-bezier(.34,1.56,.64,1)}
+@keyframes level-pop {0%{transform:scale(.4) rotate(-30deg)}60%{transform:scale(1.25)}100%{transform:none}}
+.medal-disc {--medal:44px;position:relative;display:inline-grid;place-items:center;flex:none;width:var(--medal);height:var(--medal);border-radius:50%;color:#2a1a00;background:radial-gradient(circle at 32% 28%,#fff3c4 0,#ffd166 34%,#f0a020 100%);box-shadow:inset 0 0 0 2px #ffffff55,inset 0 -3px 0 #b8740a66,0 6px 16px #0006}
+.medal-disc.is-locked {color:var(--color-subtle);background:var(--color-bg-subtle);box-shadow:inset 0 0 0 1px var(--color-border)}
+.career-result {margin-top:20px;padding:16px;border:1px solid var(--color-border);border-radius:16px;background:linear-gradient(140deg,#262626e6,#1d1d1de6)}
+.career-result-head {display:flex;align-items:center;gap:12px}
+.career-result-title {display:block;font-family:var(--font-display);font-size:18px;font-weight:600;line-height:1.15}
+.career-result-sub {display:block;margin-top:2px;font-size:12px;color:var(--color-muted)}
+.career-result-gain {flex:none;font-family:var(--font-display);font-size:20px;font-weight:600;color:var(--color-accent)}
+.xp-bar {height:8px;margin-top:12px;border-radius:999px;background:color-mix(in oklab,var(--color-fg) 12%,transparent);overflow:hidden}
+.xp-bar i {display:block;height:100%;border-radius:inherit;background:linear-gradient(90deg,#ff7a1a,var(--color-accent));transform-origin:left;transition:transform .9s cubic-bezier(.2,.8,.2,1);box-shadow:0 0 12px #ff550088}
+.xp-bar i.is-instant {transition:none}
+.xp-lines {display:flex;flex-wrap:wrap;gap:6px 14px;margin-top:10px;font-size:12px;color:var(--color-muted)}
+.xp-lines b {font-weight:600;color:var(--color-fg)}
+.level-up {display:flex;align-items:center;gap:8px;margin-top:12px;padding:8px 12px;border-radius:12px;font-size:13px;color:#2a1a00;background:linear-gradient(100deg,#ffd166,#ffb21a);animation:reveal-pop .5s cubic-bezier(.34,1.56,.64,1) backwards}
+.level-up strong {font-weight:700}
+.medals-new {margin-top:14px}
+.medals-new-kicker {font-size:11px;text-transform:uppercase;letter-spacing:.2em;color:var(--color-subtle)}
+.medals-new ul {display:grid;gap:8px;margin-top:8px}
+.medal-new {display:flex;align-items:center;gap:12px;padding:10px 12px;border:1px solid var(--color-border);border-radius:14px;background:#222222e6;animation:medal-in .6s cubic-bezier(.34,1.56,.64,1) backwards;animation-delay:calc(2.2s + var(--i,0) * .35s)}
+.medal-new strong {display:block;font-size:14px;font-weight:600}
+.medal-new small {display:block;margin-top:1px;font-size:12px;color:var(--color-muted)}
+.medal-new .medal-disc {animation:medal-spin .9s cubic-bezier(.2,.8,.2,1) backwards;animation-delay:calc(2.3s + var(--i,0) * .35s)}
+@keyframes medal-in {from{opacity:0;transform:translateY(12px) scale(.96)}}
+@keyframes medal-spin {from{transform:rotateY(180deg) scale(.6)}}
+.reduce-motion .level-badge.is-up,.reduce-motion .level-up,.reduce-motion .medal-new,.reduce-motion .medal-new .medal-disc {animation:none}
+.reduce-motion .xp-bar i {transition:none}
+@media (prefers-reduced-motion: reduce) {.level-badge.is-up,.level-up,.medal-new,.medal-new .medal-disc {animation:none}.xp-bar i {transition:none}}
+@media (min-width: 640px) {.medals-new ul {grid-template-columns:1fr 1fr}}
+/* Career page: the same dark stage as the duel lobby. */
+.career-page {background:radial-gradient(ellipse at 80% 0,#3f3f3f66,transparent 55%),var(--color-bg)}
+.career-hero {display:flex;align-items:center;gap:18px}
+.career-hero-avatar {position:relative;flex:none}
+.career-hero-badge {position:absolute;right:-6px;bottom:-4px;min-width:30px;height:30px}
+.career-hero-title {margin-top:6px;font-size:14px;color:var(--color-accent);font-weight:600}
+.career-xp-fill {transition:transform 1s cubic-bezier(.2,.8,.2,1) .3s}
+.career-heading {display:flex;align-items:baseline;gap:8px;font-size:11px;text-transform:uppercase;letter-spacing:.2em;color:var(--color-subtle)}
+.career-count {font-size:12px;letter-spacing:.05em;color:var(--color-muted)}
+.career-records {display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-top:10px}
+.career-records > div {padding:12px;border:1px solid var(--color-border);border-radius:var(--radius-md);background:#1f1f1fcc}
+.career-records dt {font-size:12px;color:var(--color-subtle)}
+.career-records dd {margin-top:4px;font-family:var(--font-display);font-size:20px;line-height:1.1}
+@media (min-width:640px) {.career-records {grid-template-columns:repeat(3,minmax(0,1fr))}}
+.career-medals {display:grid;gap:8px;margin-top:10px}
+@media (min-width:640px) {.career-medals {grid-template-columns:1fr 1fr}}
+.career-medals li {display:flex;align-items:center;gap:12px;padding:10px 12px;border:1px solid var(--color-border);border-radius:14px;background:#1f1f1fcc}
+.career-medals li.is-locked {background:transparent}
+.career-medals li.is-locked strong {color:var(--color-muted)}
+.career-medals strong {display:block;font-size:14px;font-weight:600}
+.career-medals small {display:block;margin-top:1px;font-size:12px;line-height:1.4;color:var(--color-muted)}
+.career-medals .career-medal-when {color:var(--color-accent)}
+.career-nations {display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+.career-nations li {display:inline-flex;align-items:center;gap:6px;padding:5px 10px 5px 6px;border:1px solid var(--color-border);border-radius:999px;font-size:12px;color:var(--color-fg)}
+.career-nations b {padding:1px 5px;border-radius:6px;font-family:var(--font-mono);font-size:10px;font-weight:600;color:var(--color-accent-fg);background:var(--color-accent)}
+.reduce-motion .career-xp-fill {transition:none}
+@media (prefers-reduced-motion: reduce) {.career-xp-fill {transition:none}}
+/* Home: Career in the header, with the level badge. */
+.nav-career .level-badge {min-width:24px;height:24px;font-size:11px}
+@media (max-width:480px) {.nav-career-label {position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}}
+/* Pause: the scene is covered while the clock stands still. */
+.pause-cover {position:fixed;inset:0;z-index:45;background:radial-gradient(ellipse at 50% 35%,#2a2a2a,#121212 70%);animation:pause-in .25s var(--ease-out)}
+@keyframes pause-in {from{opacity:0}}
+.reduce-motion .pause-cover {animation:none}
+@media (prefers-reduced-motion: reduce) {.pause-cover {animation:none}}

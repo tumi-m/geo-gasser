@@ -45,19 +45,6 @@
   font-variant-numeric: tabular-nums;
 }
 
-/* Straight typewriter quotes frame a primary action or title, drawn by CSS
-   with empty alternative text, so names read aloud stay unchanged. */
-@utility quoted {
-  &::before {
-    content: '"' / "";
-    margin-inline-end: calc(-1 * var(--quote-pull, 0px));
-  }
-  &::after {
-    content: '"' / "";
-    margin-inline-start: calc(-1 * var(--quote-pull, 0px));
-  }
-}
-
 /* Raw signage: caps, Helvetica Bold, open tracking. */
 @utility signage {
   font-family: var(--font-sans);

@@ -30,6 +30,14 @@ export interface PlayerStats {
   bestCountryStreak?: number;
   /** Country Streak: runs played. */
   streakRuns?: number;
+  /** Career experience (see career.ts). */
+  xp?: number;
+  /** Medals earned: id → when. */
+  medals?: Record<string, number>;
+  /** ISO codes of every country a match has shown. */
+  nations?: string[];
+  /** Duels won in a row (solo matches leave it alone). */
+  duelRun?: number;
 }
 
 export const EMPTY_STATS: PlayerStats = {

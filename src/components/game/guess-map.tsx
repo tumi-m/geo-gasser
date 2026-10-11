@@ -8,7 +8,7 @@ import worldJson from "@/data/world.json";
 import detailJson from "@/data/detail.json";
 import { describePoint, type RegionCollection } from "@/lib/map/lookup";
 import {
-  cityLayers,
+  cityLabels,
   detailCountryLayer,
   graticuleLayer,
   MAP_PALETTES,
@@ -270,7 +270,7 @@ export function GuessMap({
         detailCountryLayer(L, DETAIL.countries, palette).addTo(map);
         provinceLayer(L, DETAIL.provinces, palette).addTo(map);
         const gate = new ZoomGate(map);
-        cityLayers(L, map, gate, placeModule.PLACES, palette);
+        cityLabels(L, map, placeModule.PLACES);
         regionLabels(L, gate, DETAIL.countries, DETAIL.provinces);
         gate.update();
         map.on("zoomend moveend", () => gate.update());
@@ -957,9 +957,9 @@ export function GuessMap({
               }}
               className={cn(
                 mono
-                  ? // The round's one action: a block in the ink colour, framed
-                    // in quotes; it turns to the accent once a pin is down.
-                    "quoted inline-flex h-11 shrink-0 items-center gap-2 border border-fg bg-fg px-4 text-xs font-bold uppercase tracking-[0.1em] text-bg [--quote-pull:0.5rem] transition-[background-color,color,border-color] duration-[120ms] disabled:opacity-35"
+                  ? // The round's one action: a block in the ink colour; it
+                    // turns to the accent once a pin is down.
+                    "inline-flex h-11 shrink-0 items-center gap-2 border border-fg bg-fg px-4 text-xs font-bold uppercase tracking-[0.1em] text-bg transition-[background-color,color,border-color] duration-[120ms] disabled:opacity-35"
                   : "inline-flex h-11 shrink-0 items-center gap-2 rounded-[var(--radius-md)] bg-accent px-4 text-sm font-semibold text-accent-fg transition-[opacity,transform] active:scale-[.97] disabled:opacity-35",
                 canLock && "atlas-lock-ready",
                 canLock && mono && "border-accent bg-accent text-accent-fg",

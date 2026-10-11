@@ -7,6 +7,7 @@ import {
   Map,
   Maximize,
   Minimize,
+  Pause as PauseIcon,
   Settings as SettingsIcon,
   Share2,
 } from "lucide-react";
@@ -53,6 +54,11 @@ import {
   loadRecentIds,
   recordMatch,
   recordStreak,
+  recordCareer,
+  nationOf,
+  ROUND_MAX,
+  type CareerAward,
+  type MatchSummary,
   rememberRecentIds,
   reduce,
   remainingSeconds,
@@ -83,6 +89,7 @@ import { useMusic } from "@/lib/music/use-music";
 import { LockStamp } from "./lock-stamp";
 import { PointsFly } from "./points-fly";
 import { PointsPot } from "./points-pot";
+import { PauseMenu } from "./pause-menu";
 import { RoundIntro } from "./round-intro";
 import { RoundSplash } from "./round-splash";
 import { RoundSummarySplash } from "./round-summary-splash";
@@ -197,6 +204,8 @@ export function MatchApp({
   // A record beaten by the match that just ended, keyed by its seed so a
   // rematch's results never show the last match's news.
   const [beatBest, setBeatBest] = useState<{ seed: number; previous: number } | null>(null);
+  // What the match added to the career (XP, levels, medals), keyed the same way.
+  const [careerAward, setCareerAward] = useState<{ seed: number; award: CareerAward } | null>(null);
   const lastUrgentRef = useRef<number | null>(null);
   const name = sanitizeName(settings.displayName);
   const avatarId = sanitizeAvatar(settings.avatarId);
@@ -803,6 +812,30 @@ export function MatchApp({
   const cosmic = scene?.kind === "cosmos";
   // How much the player may move in the scene (Settings → Game, fixed per match).
   const movement = movementOf(state);
+  // Solo rounds can pause: the clock stands still and the scene is covered.
+  const paused = state.pausedAtMs != null;
+  const canPause = mode === "solo" && state.phase === "round_active" && !paused;
+  // Who paused: the player, or leaving the tab (the menu says "Welcome back").
+  const pausedBy = useRef<"menu" | "away">("menu");
+  const pause = useCallback(
+    (by: "menu" | "away") => {
+      if (!canPause) return;
+      pausedBy.current = by;
+      dispatch({ type: "PAUSE", now: performance.now() });
+    },
+    [canPause, dispatch],
+  );
+  const resume = useCallback(() => dispatch({ type: "RESUME", now: performance.now() }), [dispatch]);
+  const pauseRef = useRef(pause);
+  pauseRef.current = pause;
+  useEffect(() => {
+    if (mode !== "solo") return;
+    const onHide = () => {
+      if (document.visibilityState === "hidden") pauseRef.current("away");
+    };
+    document.addEventListener("visibilitychange", onHide);
+    return () => document.removeEventListener("visibilitychange", onHide);
+  }, [mode]);
   const live3d = ROUND4_3D_LIVE && reconstructionRound && Boolean(env);
 
   // The clock waits for the scene: the intro holds until the photo, panorama
@@ -918,6 +951,7 @@ export function MatchApp({
   useEffect(() => {
     const ticking =
       state.roundStartedAtMs != null &&
+      state.pausedAtMs == null &&
       (state.phase === "round_active" ||
         ((state.phase === "waiting_for_opponent" || state.phase === "player_locked") &&
           duelKind !== "hotseat"));
@@ -961,6 +995,7 @@ export function MatchApp({
   }, [
     state.phase,
     state.roundStartedAtMs,
+    state.pausedAtMs,
     state.durationSec,
     mode,
     duelKind,
@@ -1053,23 +1088,52 @@ export function MatchApp({
       .filter((s) => s && s.distanceKm <= 5)
       .map((s) => s!.responseMs);
     const before = loadStats();
-    // A Country Streak's record is its run, not its points.
-    if (state.streak) {
-      const run = streakCount({ roundHistory: state.roundHistory });
-      const prev = before.bestCountryStreak ?? 0;
-      if (prev > 0 && run > prev) setBeatBest({ seed: state.seed, previous: prev });
-      recordStreak(before, run);
-      return;
-    }
-    const score = you?.totalScore ?? 0;
     // Pass-and-play shares one device's stats between two people: its scores
     // neither set nor beat a record, which would credit whoever finished last.
     const hotseat = mode === "duel" && duelKind === "hotseat";
+    const healthDuelMatch = isHealthDuel({ mode: state.mode, duelRule: state.duelRule });
+    const run = state.streak ? streakCount({ roundHistory: state.roundHistory }) : 0;
+    // The career's view of the match: XP and medals are worked out from this.
+    const summary: MatchSummary = {
+      kind: state.streak ? "streak" : state.mode,
+      opponent: duelKind === "bot" ? "bot" : duelKind === "online" ? "online" : undefined,
+      health: healthDuelMatch,
+      score: you?.totalScore ?? 0,
+      won: state.mode === "duel" && state.winnerIds.includes(statsId) && state.winnerIds.length === 1,
+      places: earthRounds.filter((r) => r.guesses[statsId]).length,
+      rightCountries: state.streak
+        ? run
+        : earthRounds.filter((r) => r.guesses[statsId]?.score.countryCorrect).length,
+      perfect: earthRounds.filter((r) => (r.guesses[statsId]?.score.accuracyPoints ?? 0) >= ROUND_MAX).length,
+      closestKm: distances.filter((d) => Number.isFinite(d)).length
+        ? Math.min(...distances.filter((d) => Number.isFinite(d)))
+        : null,
+      fastestAccurateMs: fastest.length ? Math.min(...fastest) : null,
+      run: state.streak ? run : undefined,
+      healthLeft: healthDuelMatch ? you?.health : undefined,
+      movement: movementOf({ movement: state.movement }),
+      nations: earthRounds.flatMap((r) => {
+        const loc = getLocation(r.locationId);
+        return loc ? [nationOf(loc)] : [];
+      }),
+    };
+    const award = (recorded: ReturnType<typeof loadStats>) => {
+      if (hotseat) return;
+      setCareerAward({ seed: state.seed, award: recordCareer(recorded, summary).award });
+    };
+    // A Country Streak's record is its run, not its points.
+    if (state.streak) {
+      const prev = before.bestCountryStreak ?? 0;
+      if (prev > 0 && run > prev) setBeatBest({ seed: state.seed, previous: prev });
+      award(recordStreak(before, run));
+      return;
+    }
+    const score = you?.totalScore ?? 0;
     // A health duel ends when someone is out, so its points total is no record.
-    const noRecord = hotseat || isHealthDuel({ mode: state.mode, duelRule: state.duelRule });
+    const noRecord = hotseat || healthDuelMatch;
     if (!noRecord && isNewBest(before, state.matchLength, score))
       setBeatBest({ seed: state.seed, previous: previousBest(before, state.matchLength)! });
-    recordMatch(before, {
+    const recorded = recordMatch(before, {
       score,
       length: noRecord ? undefined : state.matchLength,
       won: state.mode === "duel" && state.winnerIds.includes(statsId),
@@ -1077,6 +1141,7 @@ export function MatchApp({
       countryHits: { ZA: za, NL: nl, WORLD: world },
       fastestAccurateMs: fastest.length ? Math.min(...fastest) : null,
     });
+    award(recorded);
   }, [
     state.phase,
     state.locationIds,
@@ -1087,6 +1152,7 @@ export function MatchApp({
     state.seed,
     state.streak,
     state.duelRule,
+    state.movement,
     mode,
     duelKind,
     selfId,
@@ -1202,12 +1268,22 @@ export function MatchApp({
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
+      // The pause menu is a dialog: it answers its own keys (Esc resumes).
+      // Its Esc can also reach this listener after the resume has rendered,
+      // so a key a dialog already handled is left alone.
+      if (paused || e.defaultPrevented) return;
       const el = e.target as HTMLElement | null;
       const typing = el?.tagName === "INPUT" || el?.tagName === "TEXTAREA" || el?.isContentEditable;
       if (e.key === "Escape") {
         setExploring(false);
         if (showSettings) {
           setShowSettings(false);
+          return;
+        }
+        // Esc pauses a solo round (after leaving the explore view first).
+        if (!typing && !exploring && canPause) {
+          e.preventDefault();
+          pause("menu");
           return;
         }
       }
@@ -1237,7 +1313,19 @@ export function MatchApp({
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [state.phase, showSettings, lock, finishIntro, continueRound, showingReveal, duelKind]);
+  }, [
+    state.phase,
+    showSettings,
+    lock,
+    finishIntro,
+    continueRound,
+    showingReveal,
+    duelKind,
+    paused,
+    exploring,
+    canPause,
+    pause,
+  ]);
 
   // Both transports report trouble the same way: the P2P room through its
   // error channel, the socket by not being open. Without this, a dropped
@@ -1429,6 +1517,7 @@ export function MatchApp({
         selfId={selfId}
         reducedMotion={settings.reducedMotion}
         beatBest={beatBest?.seed === state.seed ? beatBest.previous : undefined}
+        career={careerAward?.seed === state.seed ? careerAward.award : undefined}
         onRematch={() => {
           statsRecorded.current = false;
           const seed = randomSeed();
@@ -1547,9 +1636,10 @@ export function MatchApp({
   // player locks (the duel is then "waiting_for_opponent"), so the last ten
   // seconds must still read as urgent — they are the tensest of the round.
   const clockRunning =
-    state.phase === "round_active" ||
-    ((state.phase === "waiting_for_opponent" || state.phase === "player_locked") &&
-      duelKind !== "hotseat");
+    !paused &&
+    (state.phase === "round_active" ||
+      ((state.phase === "waiting_for_opponent" || state.phase === "player_locked") &&
+        duelKind !== "hotseat"));
   const urgent = remaining <= 10 && clockRunning && !you?.locked;
 
   return (
@@ -1894,15 +1984,29 @@ export function MatchApp({
           <span className="music-hud flex">
             <MusicHudButton />
           </span>
-          <Button
-            variant="ghost"
-            size="icon"
-            aria-label="Settings"
-            className="shrink-0"
-            onClick={() => setShowSettings(true)}
-          >
-            <SettingsIcon className="size-5" />
-          </Button>
+          {/* Solo, mid-round: the menu button pauses (Settings is inside). */}
+          {canPause ? (
+            <Button
+              variant="ghost"
+              size="icon"
+              aria-label="Pause"
+              title="Pause (Esc)"
+              className="shrink-0"
+              onClick={() => pause("menu")}
+            >
+              <PauseIcon className="size-5" />
+            </Button>
+          ) : (
+            <Button
+              variant="ghost"
+              size="icon"
+              aria-label="Settings"
+              className="shrink-0"
+              onClick={() => setShowSettings(true)}
+            >
+              <SettingsIcon className="size-5" />
+            </Button>
+          )}
         </div>
       </header>
 
@@ -2124,6 +2228,20 @@ export function MatchApp({
             Leave match
           </button>
         </div>
+      )}
+      {/* The scene stays covered for the whole pause, Settings included. */}
+      {paused && <div className="pause-cover" aria-hidden />}
+      {paused && !showSettings && (
+        <PauseMenu
+          remaining={remaining}
+          away={pausedBy.current === "away"}
+          onResume={resume}
+          onSettings={() => {
+            pausedBy.current = "menu";
+            setShowSettings(true);
+          }}
+          onQuit={quit}
+        />
       )}
       {showSettings && (
         <SettingsPanel
