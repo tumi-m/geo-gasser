@@ -1832,3 +1832,10 @@ html.reduce-motion .best-stamp,html.reduce-motion .best-stamp svg {animation:non
 /* The round-end moment takes the whole screen; the map returns with the reveal. */
 .round-splash.has-moment {bottom:0;padding-bottom:max(1.5rem,env(safe-area-inset-bottom))}
 .round-splash.has-moment {background:radial-gradient(ellipse at 50% 45%,#1a1a1af7 0%,#141414ee 60%,#101010e0 100%)}
+/* A scrolling reveal card fades at its foot while there is more below. */
+.reveal-card[data-more] {-webkit-mask-image:linear-gradient(#000 calc(100% - 36px),transparent);mask-image:linear-gradient(#000 calc(100% - 36px),transparent)}
+/* The reveal's badges pop in one after another; a bullseye glints gold. */
+.reveal-badge {animation:reveal-pop .45s cubic-bezier(.34,1.56,.64,1) backwards;animation-delay:calc(.35s + var(--i,0) * .12s)}
+.reveal-badge.is-bullseye {border-color:#ffd166;color:#ffd166;box-shadow:0 0 12px #ffd16655}
+.reduce-motion .reveal-badge {animation:none}
+@media (prefers-reduced-motion: reduce) {.reveal-badge {animation:none}}

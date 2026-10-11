@@ -1,6 +1,8 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import {
+  feedbackFor,
+  feedbackHeadline,
   accuracyPoints,
   geoScore,
   MAP_SIZE_KM,
@@ -130,5 +132,14 @@ describe("rankPlayers", () => {
       { id: "far", totalScore: 0, totalDistanceKm: 1_200, totalResponseMs: 45_000 },
     ]);
     assert.deepEqual(winnerIds, ["far"]);
+  });
+});
+
+describe("reveal headlines", () => {
+  it("praise a closer guess more", () => {
+    const words = [0.05, 0.5, 2, 12, 60].map((km) => feedbackHeadline({ feedback: feedbackFor(km, true) }));
+    assert.deepEqual(words, ["PERFECT READ", "INCREDIBLE", "SPOT ON", "SO CLOSE", "NICE INSTINCTS"]);
+    assert.equal(feedbackHeadline({ feedback: feedbackFor(300, true) }), "RIGHT COUNTRY");
+    assert.equal(feedbackHeadline({ feedback: feedbackFor(300, false) }), "TOUGH ONE");
   });
 });

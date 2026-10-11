@@ -848,3 +848,4 @@ button.duel-mode:hover .duel-mode-go {color:var(--color-accent)}
 .callout,.callout.is-run,.callout.is-hot-streak,.callout.is-lead-change,.callout.is-shutout,.callout.is-close-call {border-radius:0;color:#000;background:#fff;box-shadow:none;font-family:var(--font-mono)}
 .callout.is-run,.callout.is-hot-streak {color:#000;background:var(--color-accent)}
 .round-splash.has-moment {background:#000000eb}
+.reveal-badge.is-bullseye {border-color:var(--color-fg);color:var(--color-fg);box-shadow:none;font-weight:700}

@@ -21,3 +21,7 @@
 | 3 | The moment fits every screen | pass | it used to run under the header and over the map on phones; now it takes the whole screen (inner 265–627 of 844 at 390; 130–486 of 568 at 320×568); the map returns with the reveal |
 | 3 | A stray rule no longer bends the splash | pass | `.splash-headline span` made every span inline-block (it had already stacked the stars); now `> span` |
 | 3 | Reduced motion, axe, screen readers | pass | with the setting on: fades only, the tally shows its final count; axe clean; the status reads "…Tumz leads by 7,835. 2 in a row." |
+| 4 | Reveal headlines rise with accuracy | pass | 2 km read "GOOD JOB" while 60 km read "SO CLOSE"; now SPOT ON (≤5 km), SO CLOSE (≤25), NICE INSTINCTS (≤80); `scoring.test.ts` "praise a closer guess more" |
+| 4 | Reveal card at 390, 320×568, 844×390 and 1280, both looks | pass | b4.mjs: card on screen, Continue visible, the answer and your pin never under the card, nothing spills out of the card, axe clean |
+| 4 | A scrolling reveal card says there is more | pass | on 320×568 the duel rows sit below the fold; the card's foot fades while there is more to scroll (`data-more`) |
+| 4 | Motion: reveal badges | pass | badges pop in one after another; Bullseye glints gold (ink in Mono); off with reduced motion |

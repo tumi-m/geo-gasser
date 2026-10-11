@@ -10,6 +10,7 @@ import { Check, Flame, Heart, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { RoundVerdictCard } from "./round-verdict";
 import { useCountUp } from "./use-count-up";
+import { useMoreBelow } from "./use-more-below";
 import { cn } from "@/lib/utils";
 import { useMono } from "@/lib/theme";
 
@@ -64,6 +65,8 @@ export function RevealOverlay({
   const clock =
     score.clockFactor ?? (score.accuracyPoints > 0 ? score.roundScore / score.accuracyPoints : 1);
   const tierPot = Math.round(ACCURACY_MAX * clock);
+  // Short phones scroll the card: a fade at its foot says there is more.
+  const cardRef = useMoreBelow<HTMLDivElement>();
   return (
     <div
       className={cn(
@@ -73,7 +76,7 @@ export function RevealOverlay({
           : "bottom-[calc(var(--atlas-map-reveal-h)+1.5rem)]",
       )}
     >
-      <div className={cn("reveal-card atlas-rise pointer-events-auto max-h-[calc(100dvh-var(--atlas-map-reveal-h)-2rem)] w-full max-w-lg overflow-y-auto overscroll-contain rounded-[var(--radius-lg)] border border-border p-3 shadow-[var(--shadow-panel)] sm:p-4", mono ? "bg-bg" : "bg-bg/92")}>
+      <div ref={cardRef} className={cn("reveal-card atlas-rise pointer-events-auto max-h-[calc(100dvh-var(--atlas-map-reveal-h)-2rem)] w-full max-w-lg overflow-y-auto overscroll-contain rounded-[var(--radius-lg)] border border-border p-3 shadow-[var(--shadow-panel)] sm:p-4", mono ? "bg-bg" : "bg-bg/92")}>
         {/* Very short screens (iPhone SE): Continue sits beside the title, not under it. */}
         <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between [@media(max-height:700px)]:flex-row [@media(max-height:700px)]:items-start [@media(max-height:700px)]:justify-between">
           <div className="min-w-0 text-left">
@@ -145,13 +148,15 @@ export function RevealOverlay({
         )}
         {score.badges.length > 0 && (
           <div className="mt-2 flex flex-wrap gap-1.5">
-            {score.badges.map((b) => (
+            {score.badges.map((b, i) => (
               <span
                 key={b}
                 className={cn(
-                  "border border-border px-2 py-0.5 text-[10px] uppercase tracking-wider",
+                  "reveal-badge border border-border px-2 py-0.5 text-[10px] uppercase tracking-wider",
                   !mono && "rounded-full",
+                  b === "bullseye" && "is-bullseye",
                 )}
+                style={{ "--i": i } as React.CSSProperties}
               >
                 {BADGE_COPY[b]}
               </span>

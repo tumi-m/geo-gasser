@@ -104,9 +104,10 @@ export function feedbackFor(distanceKm: number, countryCorrect: boolean): Feedba
 export const FEEDBACK_COPY: Record<FeedbackId, string> = {
   perfect: "PERFECT READ",
   incredible: "INCREDIBLE",
-  good: "GOOD JOB",
-  instincts: "NICE INSTINCTS",
-  close: "SO CLOSE",
+  // Closest first: within 5 km, 25 km, then 80 km (feedbackFor).
+  good: "SPOT ON",
+  instincts: "SO CLOSE",
+  close: "NICE INSTINCTS",
   country: "RIGHT COUNTRY",
   tough: "TOUGH ONE",
 };
