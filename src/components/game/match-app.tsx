@@ -44,6 +44,8 @@ import {
   isHealthDuel,
   matchOver,
   MOVEMENT_NAME,
+  START_HEALTH,
+  levelOf,
   movementOf,
   placeByPlace,
   streakCount,
@@ -91,6 +93,7 @@ import { LockStamp } from "./lock-stamp";
 import { PointsFly } from "./points-fly";
 import { PointsPot } from "./points-pot";
 import { PauseMenu } from "./pause-menu";
+import { VsFaceoff } from "./vs-faceoff";
 import { RoundIntro } from "./round-intro";
 import { RoundSplash } from "./round-splash";
 import { RoundSummarySplash } from "./round-summary-splash";
@@ -855,6 +858,15 @@ export function MatchApp({
       ? (state.players.find((p) => p.id === state.activeSeatId) ?? state.players[0])
       : (state.players.find((p) => p.id === selfId) ?? state.players[0]);
   const opponent = state.players.find((p) => p.id !== you?.id);
+  // A duel opens with the two players facing off, once per match, over the
+  // first round's title card (whose clock waits for it).
+  const [faceoffDone, setFaceoffDone] = useState<number | null>(null);
+  const showFaceoff =
+    mode === "duel" &&
+    Boolean(opponent) &&
+    state.phase === "round_intro" &&
+    state.questionIndex === 0 &&
+    faceoffDone !== state.seed;
   const showingReveal =
     state.phase === "round_reveal" ||
     state.phase === "round_expired" ||
@@ -942,12 +954,17 @@ export function MatchApp({
     if (state.phase === "round_intro") introStartedAt.current = performance.now();
   }, [state.phase, state.questionIndex]);
   useEffect(() => {
-    if (state.phase !== "round_intro") return;
+    if (state.phase !== "round_intro" || showFaceoff) return;
     const elapsed = performance.now() - introStartedAt.current;
     const wait = Math.max(0, (sceneReady ? introHoldMs : 8000) - elapsed);
     const id = setTimeout(finishIntro, wait);
     return () => clearTimeout(id);
-  }, [state.phase, introHoldMs, finishIntro, sceneReady]);
+  }, [state.phase, introHoldMs, finishIntro, sceneReady, showFaceoff]);
+  const endFaceoff = useCallback(() => {
+    // The title card's hold starts once the face-off has gone.
+    introStartedAt.current = performance.now();
+    setFaceoffDone(state.seed);
+  }, [state.seed]);
 
   useEffect(() => {
     const ticking =
@@ -1273,6 +1290,11 @@ export function MatchApp({
       // Its Esc can also reach this listener after the resume has rendered,
       // so a key a dialog already handled is left alone.
       if (paused || e.defaultPrevented) return;
+      if (showFaceoff && (e.key === "Enter" || e.key === " " || e.key === "Escape")) {
+        e.preventDefault();
+        endFaceoff();
+        return;
+      }
       const el = e.target as HTMLElement | null;
       const typing = el?.tagName === "INPUT" || el?.tagName === "TEXTAREA" || el?.isContentEditable;
       if (e.key === "Escape") {
@@ -1326,6 +1348,8 @@ export function MatchApp({
     exploring,
     canPause,
     pause,
+    showFaceoff,
+    endFaceoff,
   ]);
 
   // Both transports report trouble the same way: the P2P room through its
@@ -1675,6 +1699,33 @@ export function MatchApp({
       {/* Locking in: a camera shutter over everything, even the splash. */}
       {shutter > 0 && <i key={shutter} className="scene-flash" aria-hidden />}
 
+      {showFaceoff && you && opponent && (
+        <VsFaceoff
+          left={{
+            name: you.name,
+            avatarId: you.avatarId,
+            tag:
+              duelKind === "hotseat"
+                ? "Player one"
+                : `You · level ${levelOf(loadStats().xp ?? 0).level} ${levelOf(loadStats().xp ?? 0).title}`,
+          }}
+          right={{
+            name: opponent.name,
+            avatarId: opponent.avatarId,
+            tag: opponent.kind === "bot" ? "Bot rival" : duelKind === "hotseat" ? "Player two" : "Online rival",
+          }}
+          rule={[
+            healthDuel
+              ? `Health duel · ${START_HEALTH.toLocaleString()} each`
+              : `Points race · ${rounds} ${rounds === 1 ? "round" : "rounds"}`,
+            movement !== "moving" ? MOVEMENT_NAME[movement] : null,
+          ]
+            .filter(Boolean)
+            .join(" · ")}
+          reducedMotion={settings.reducedMotion}
+          onDone={endFaceoff}
+        />
+      )}
       {state.phase === "round_intro" && (
         <RoundIntro
           key={`${state.questionIndex}:${state.roundIndex}`}

@@ -853,3 +853,15 @@ button.duel-mode:hover .duel-mode-go {color:var(--color-accent)}
 .result-fab button {border-radius:0;text-transform:uppercase;letter-spacing:.1em;font-size:12px;font-weight:700}
 .result-fab-home {border:1px solid var(--color-fg);background:var(--color-bg)}
 .result-fab-main {color:var(--color-bg);background:var(--color-fg)}
+.faceoff {background:#000}
+.faceoff-panel.is-left {background:#fff}
+.faceoff-panel.is-left .faceoff-name {color:#000;text-shadow:none}
+.faceoff-panel.is-left .faceoff-tag {color:#000}
+.faceoff-panel.is-right {background:#000}
+.faceoff-panel.is-right .faceoff-tag {color:#fff}
+.faceoff-lines {opacity:.18}
+.faceoff-panel.is-left .faceoff-lines {background:repeating-linear-gradient(-8deg,transparent 0 22px,#0000001a 22px 24px)}
+.faceoff-name {font-family:var(--font-sans);font-weight:800}
+.faceoff-vs {border-radius:0;color:#000;background:var(--color-accent);box-shadow:0 0 0 6px #000;font-family:var(--font-sans);font-style:normal}
+.faceoff-tag,.faceoff-rule,.faceoff-hint {font-family:var(--font-mono)}
+.faceoff-rule,.faceoff-hint {left:50%;right:auto;width:max-content;max-width:calc(100% - 32px);padding:6px 12px;transform:translateX(-50%);color:#fff;background:#000;border:1px solid #fff;text-shadow:none}

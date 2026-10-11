@@ -1854,3 +1854,36 @@ html.reduce-motion .best-stamp,html.reduce-motion .best-stamp svg {animation:non
 .career-medals li:not(.is-locked) .medal-disc::after {content:"";position:absolute;inset:0;border-radius:inherit;background:linear-gradient(115deg,transparent 35%,#ffffffb0 50%,transparent 65%);transform:translateX(-120%);animation:badge-glint 4.5s 1.4s ease-in-out infinite}
 .reduce-motion .career-medals li,.reduce-motion .career-medals .medal-disc::after {animation:none}
 @media (prefers-reduced-motion: reduce) {.career-medals li,.career-medals .medal-disc::after {animation:none}}
+/* ── Duel face-off: two panels slam in, VS crashes between them ── */
+.faceoff {position:fixed;inset:0;z-index:60;overflow:hidden;background:#0b0b0b;cursor:pointer;animation:faceoff-out .35s 2.35s ease-in forwards}
+@keyframes faceoff-out {to{opacity:0;visibility:hidden}}
+.faceoff-panel {position:absolute;inset:0;display:flex;padding:max(3.5rem,env(safe-area-inset-top)) 22px max(3.5rem,env(safe-area-inset-bottom))}
+.faceoff-panel.is-left {--side:var(--color-accent);align-items:flex-start;justify-content:flex-start;clip-path:polygon(0 0,100% 0,100% 40%,0 56%);background:radial-gradient(ellipse at 20% 25%,color-mix(in oklab,var(--side) 55%,#0b0b0b),#120a06 65%);animation:faceoff-in-left .5s cubic-bezier(.2,1.2,.3,1) backwards}
+.faceoff-panel.is-right {--side:var(--color-rival);align-items:flex-end;justify-content:flex-end;clip-path:polygon(0 60%,100% 44%,100% 100%,0 100%);background:radial-gradient(ellipse at 80% 78%,color-mix(in oklab,var(--side) 50%,#0b0b0b),#060b12 65%);animation:faceoff-in-right .5s .08s cubic-bezier(.2,1.2,.3,1) backwards}
+@keyframes faceoff-in-left {from{transform:translateX(-105%)}}
+@keyframes faceoff-in-right {from{transform:translateX(105%)}}
+/* Speed lines streak across each panel. */
+.faceoff-lines {position:absolute;inset:0;opacity:.35;background:repeating-linear-gradient(-8deg,transparent 0 22px,#ffffff14 22px 24px);animation:faceoff-lines 1.2s linear infinite}
+.faceoff-panel.is-right .faceoff-lines {animation-direction:reverse}
+@keyframes faceoff-lines {from{background-position:0 0}to{background-position:-240px 0}}
+.faceoff-player {position:relative;display:flex;align-items:center;gap:16px;animation:faceoff-player .6s .25s cubic-bezier(.2,1.4,.4,1) backwards}
+.faceoff-panel.is-right .faceoff-player {flex-direction:row-reverse;text-align:right}
+@keyframes faceoff-player {from{opacity:0;transform:scale(.7)}}
+.faceoff-name {display:block;max-width:11ch;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-family:var(--font-display);font-size:clamp(30px,9vw,56px);font-weight:800;line-height:1;text-transform:uppercase;letter-spacing:-.02em;color:#fff;text-shadow:0 4px 0 #0007}
+.faceoff-tag {display:block;margin-top:6px;font-size:12px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:color-mix(in oklab,var(--side) 70%,#fff)}
+.faceoff-vs {position:absolute;left:50%;top:48%;display:grid;place-items:center;width:96px;height:96px;margin:-48px 0 0 -48px;border-radius:50%;font-family:var(--font-display);font-size:42px;font-weight:900;font-style:italic;letter-spacing:-.04em;color:#0b0b0b;background:radial-gradient(circle at 35% 30%,#fff7d6,#ffd166 45%,#f09a10);box-shadow:0 0 0 6px #0b0b0b,0 0 40px #ffd16699;animation:faceoff-vs .55s .42s cubic-bezier(.2,1.8,.4,1) backwards}
+@keyframes faceoff-vs {from{opacity:0;transform:scale(3) rotate(-25deg)}}
+.faceoff-flash {position:absolute;inset:-60px;border-radius:50%;background:radial-gradient(circle,#ffffffcc,transparent 60%);opacity:0;animation:faceoff-flash .5s .5s ease-out}
+@keyframes faceoff-flash {0%{opacity:1;transform:scale(.4)}100%{opacity:0;transform:scale(1.6)}}
+.faceoff-rule {position:absolute;left:0;right:0;top:calc(48% + 62px);text-align:center;font-size:12px;font-weight:700;letter-spacing:.2em;text-transform:uppercase;color:#fff;text-shadow:0 2px 6px #000;animation:splash-fade .4s .8s backwards}
+.faceoff-hint {position:absolute;left:0;right:0;bottom:max(14px,env(safe-area-inset-bottom));text-align:center;font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:#ffffff99}
+@media (min-width:760px) {
+  .faceoff-panel {padding:48px 8vw}
+  .faceoff-panel.is-left {align-items:center;clip-path:polygon(0 0,56% 0,44% 100%,0 100%)}
+  .faceoff-panel.is-right {align-items:center;clip-path:polygon(56% 0,100% 0,100% 100%,44% 100%)}
+  .faceoff-vs {top:50%;width:120px;height:120px;margin:-60px 0 0 -60px;font-size:54px}
+  .faceoff-rule {top:auto;bottom:64px}
+}
+.faceoff.is-reduced,.faceoff.is-reduced * {animation:none!important}
+.faceoff.is-reduced {animation:faceoff-out .3s 1.2s ease-in forwards!important}
+@media (prefers-reduced-motion: reduce) {.faceoff *{animation:none!important}}
