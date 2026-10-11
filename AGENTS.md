@@ -216,3 +216,13 @@ Rules this repo has already paid for:
   smoke | grep` reports grep's exit code, so a failing smoke was committed
   and pushed. Run the gates into a log, check their exit codes, then print
   the table.
+- **A broad descendant selector reaches components added later.**
+  `.splash-headline span` made every span in the splash inline-block: it
+  stacked the stars once and bent the new scoreboard and stamps. Scope
+  word rules to direct children (`> span`).
+- **An overlay that takes time must hold the clock under it.** The duel
+  face-off sits over the first round's title card, whose hold starts the
+  round; the hold now waits for the face-off and restarts after it.
+- **A celebration that grows is checked on the shortest screens.** The
+  round-end moment fitted 390×844 but ran past the foot at 844×390 and
+  320×568 once the scoreboard and stamps were added.

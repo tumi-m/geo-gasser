@@ -1897,3 +1897,21 @@ html.reduce-motion .best-stamp,html.reduce-motion .best-stamp svg {animation:non
 .reduce-motion .hud-streak-flame,.reduce-motion .tally-damage {animation:none}
 .reduce-motion .tally-damage {display:none}
 @media (prefers-reduced-motion: reduce) {.hud-streak-flame {animation:none}.tally-damage {display:none}}
+/* Short landscape screens: the round-end moment and the face-off pack tighter. */
+@media (max-height:500px) {
+  .round-splash.has-moment {padding-top:max(.75rem,env(safe-area-inset-top))}
+  .round-splash.has-moment .win-banner .win-big {font-size:min(11vw,12vh)}
+  .round-splash.has-moment .win-banner {gap:4px}
+  .round-splash.has-moment .splash-sub {display:none}
+  .round-splash.has-moment .splash-headline {margin-top:4px}
+  .round-splash.has-moment .round-tally {margin-top:6px}
+  .round-splash.has-moment .callouts {margin-top:6px}
+  .round-splash.has-moment .splash-crown {top:-18px;width:30px;height:19px;margin-left:-15px}
+}
+@media (min-width:760px) and (max-height:560px) {
+  .faceoff-panel {padding:24px 5vw}
+  .faceoff-name {font-size:34px}
+  .faceoff-tag {max-width:22ch;font-size:10px;white-space:normal}
+  .faceoff-vs {width:90px;height:90px;margin:-45px 0 0 -45px;font-size:40px}
+  .faceoff-rule {bottom:40px}
+}

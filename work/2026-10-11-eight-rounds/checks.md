@@ -36,3 +36,7 @@
 | 7 | Health duels show the last hit | pass | b7.mjs: when the tally returns for the next place, "−2,314" floats off the hit player's bar (both looks); hidden with reduced motion |
 | 7 | Country Streak's HUD flame | pass | b7.mjs: a flame on the streak counter jumps in on each country and glows hotter towards ten in a row (both looks) |
 | 7 | Pause and settings | pass | pause re-checked in round 1's sweep and the last release (clock holds, scene covered); settings tabs axe clean at 320×568 (b1.mjs) |
+| 8 | Short landscape screens | pass | the round-end moment ran 25 px past the foot at 844×390 and the face-off's desktop split crowded the names into the VS; both pack tighter under 500/560 px tall (moment inner 29–349 of 390) |
+| 8 | Keyboard only | pass | t-kb8.mjs, bot duel at 1280 (Classic) and 390 (Mono): Enter skips the face-off and leaves the title card, map takes focus, Enter locks, Continue 4 Tabs away, Rematch 2 Tabs from the results' top |
+| 8 | Reduced motion (OS setting) | pass | rm8.mjs: nothing loops on home or in How to play; the face-off is still and leaves on its own; the round-end moment is still and the tally shows its final count |
+| 8 | Gates | pass | `npm run verify -- --build`: 299 pass (10 new this release); smoke passes |
