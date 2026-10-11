@@ -681,7 +681,7 @@ export function GuessMap({
     <div
       ref={wrapRef}
       className={cn(
-        "map-dock overflow-hidden border border-rule bg-[#f4f4f4] transition-[width,height,inset,opacity] duration-[180ms]",
+        "map-dock overflow-hidden border border-border bg-[#243044] shadow-[var(--shadow-panel)] transition-[width,height,inset,border-radius,box-shadow,opacity] duration-300",
         urgent && !reveal && "atlas-map-urgent",
         reveal && "is-reveal",
         expanded
@@ -708,7 +708,7 @@ export function GuessMap({
                 enterKeyHint="go"
                 aria-label="Search a city to drop a pin"
                 aria-autocomplete="list"
-                className="h-10 w-full border border-border bg-bg pl-9 pr-3 text-sm text-fg outline-none placeholder:text-subtle focus:border-accent/60"
+                className="h-10 w-full rounded-full border border-border bg-bg pl-9 pr-3 text-sm text-fg outline-none placeholder:text-subtle focus:border-accent/60"
                 onChange={(e) => {
                   setQuery(e.target.value);
                   setActiveHit(0);
@@ -761,7 +761,7 @@ export function GuessMap({
                         </span>
                         <span
                           className={cn(
-                            "shrink-0 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider",
+                            "shrink-0 rounded-full px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider",
                             place.country === "ZA"
                               ? "bg-za text-fg"
                               : place.country === "NL"
@@ -894,7 +894,7 @@ export function GuessMap({
           <div className="absolute right-3 top-3 z-[800]">
             <button
               type="button"
-              className="map-tool hit-44 border border-border bg-bg"
+              className="map-tool hit-44 border border-border bg-bg/85 backdrop-blur-sm"
               onClick={onToggleExpand}
               aria-label={expanded ? "Shrink map" : "Expand map"}
               title={expanded ? "Shrink map" : "Expand map"}
@@ -913,7 +913,7 @@ export function GuessMap({
               <>
                 <span
                   className={cn(
-                    "map-readout-dot size-2 shrink-0",
+                    "map-readout-dot size-2 shrink-0 rounded-full",
                     readout.country === "ZA" ? "bg-za" : readout.country === "NL" ? "bg-nl" : "bg-subtle",
                   )}
                   key={guessKey}
@@ -941,10 +941,8 @@ export function GuessMap({
                 onLock();
               }}
               className={cn(
-                // The round's one action: a block in the ink colour, framed in
-                // quotes; it turns to the accent once a pin is down.
-                "quoted inline-flex h-11 shrink-0 items-center gap-2 border border-fg bg-fg px-4 text-xs font-bold uppercase tracking-[0.1em] text-bg [--quote-pull:0.5rem] transition-[background-color,color,border-color] duration-[120ms] disabled:opacity-35",
-                canLock && "atlas-lock-ready border-accent bg-accent text-accent-fg",
+                "inline-flex h-11 shrink-0 items-center gap-2 rounded-[var(--radius-md)] bg-accent px-4 text-sm font-semibold text-accent-fg transition-[opacity,transform] active:scale-[.97] disabled:opacity-35",
+                canLock && "atlas-lock-ready",
               )}
             >
               <Lock className="size-4" />

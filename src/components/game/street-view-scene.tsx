@@ -191,7 +191,7 @@ export function StreetViewScene({
 
   return (
     <div
-      className={cn("street-view absolute inset-0 bg-black", hidden && "is-hidden", className)}
+      className={cn("street-view absolute inset-0 bg-[#111111]", hidden && "is-hidden", className)}
       aria-hidden={hidden || undefined}
     >
       <div

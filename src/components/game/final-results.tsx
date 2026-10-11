@@ -13,6 +13,7 @@ import {
   type MatchState,
 } from "@/lib/game";
 import { MusicHudButton } from "./music-player";
+import { Sparks } from "./round-splash";
 import { useCountUp } from "./use-count-up";
 import { WordRise } from "@/components/motion/motion";
 import { useRevealOnScroll } from "@/components/motion/use-reveal";
@@ -78,7 +79,7 @@ export function FinalResults({
     !reducedMotion && ((crowned && (youWin || state.duelKind === "hotseat")) || beatBest != null);
   const winColour =
     crowned && state.winnerIds[0] === state.players[1]?.id
-      ? "var(--color-nl)"
+      ? "var(--color-rival)"
       : "var(--color-accent)";
   // A new best is known a moment after this screen mounts (the stats are
   // recorded then), so the burst starts whenever `fanfare` turns true.
@@ -109,14 +110,12 @@ export function FinalResults({
     >
       {showFx && (
         <div className="result-fx">
-          <WinFx color={winColour} grid />
+          <WinFx color={winColour} confetti />
         </div>
       )}
       <div className="relative mx-auto flex min-h-[calc(100dvh-5rem)] max-w-lg flex-col justify-center">
         <div className="atlas-rise flex items-center justify-between gap-3">
-          <p className="eyebrow">
-            <span className="index-no" aria-hidden>FIN</span> {kicker}
-          </p>
+          <p className="text-xs uppercase tracking-[0.28em] text-muted">{kicker}</p>
           <div className="-my-2">
             <MusicHudButton />
           </div>
@@ -134,9 +133,10 @@ export function FinalResults({
               live
               mood={shared ? "neutral" : "happy"}
             />
+            {!reducedMotion && !shared && <Sparks count={20} spread={130} />}
             {crowned && <CrownDrop />}
           </span>
-          <h1 className="quoted font-display text-5xl leading-none tracking-tight sm:text-6xl">
+          <h1 className="font-display text-5xl leading-none tracking-tight sm:text-6xl">
             <WordRise text={headline ?? ""} delay={180} />
           </h1>
         </div>
@@ -229,7 +229,7 @@ export function FinalResults({
             Rematch used to sit under forty rows. Long matches fold each round
             into one line that opens on demand. */}
         <section className="mt-10" aria-labelledby="result-breakdown">
-          <h2 id="result-breakdown" className="eyebrow">
+          <h2 id="result-breakdown" className="text-[11px] uppercase tracking-[0.2em] text-subtle">
             {escape ? "Your stops" : "Round by round"}
           </h2>
           {duel && other ? (
@@ -271,13 +271,13 @@ export function FinalResults({
                           <span className="mt-0.5 flex items-center gap-2 text-xs text-muted">
                             <span
                               className={cn(
-                                "inline-block size-1.5",
+                                "inline-block size-1.5 rounded-full",
                                 loc?.country === "NL"
                                   ? "bg-nl"
                                   : loc?.country === "WORLD"
                                     ? "bg-accent"
                                     : loc?.country === "SPACE"
-                                      ? "border border-fg"
+                                      ? "bg-[#8fb4ff]"
                                       : "bg-za",
                               )}
                             />
@@ -410,9 +410,9 @@ function Stat({
       ref={ref}
       data-reveal
       style={{ "--i": i } as React.CSSProperties}
-      className="border border-border p-3"
+      className="rounded-[var(--radius-md)] border border-border p-3"
     >
-      <dt className="font-mono text-[10px] uppercase tracking-[0.12em] text-subtle">{label}</dt>
+      <dt className="text-subtle">{label}</dt>
       <dd className="mt-1 font-display text-xl tabular">{value === null ? "—" : format(shown)}</dd>
     </div>
   );

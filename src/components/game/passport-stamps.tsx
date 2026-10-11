@@ -5,7 +5,7 @@ import { avatarSeed, getLocation, nationLabel, nationOf, type RoundRecord } from
  * Each lands at its own slight angle (from a hash, so it is the same every
  * time) when the card scrolls into view.
  */
-// One ink, the page's own; a slight tilt is the only flourish left.
+const INKS = ["#ffd166", "#4fbf8b", "#e07a43", "#8fb4ff", "#f0a6c8"];
 
 export function PassportStamps({ history }: { history: RoundRecord[] }) {
   const nations: string[] = [];
@@ -25,7 +25,7 @@ export function PassportStamps({ history }: { history: RoundRecord[] }) {
       data-reveal
       aria-label={`Countries visited: ${nations.map(nationLabel).join(", ")}`}
     >
-      <p className="eyebrow">Passport</p>
+      <p className="text-[11px] uppercase tracking-[0.2em] text-subtle">Passport</p>
       <ul className="passport-stamps">
         {nations.map((n, i) => {
           const seed = avatarSeed(`stamp:${n}`);
@@ -36,7 +36,8 @@ export function PassportStamps({ history }: { history: RoundRecord[] }) {
               style={
                 {
                   "--i": i,
-                  "--tilt": `${((seed - 0.5) * 5).toFixed(1)}deg`,
+                  "--tilt": `${((seed - 0.5) * 18).toFixed(1)}deg`,
+                  "--ink": INKS[Math.floor(seed * INKS.length) % INKS.length],
                 } as React.CSSProperties
               }
             >

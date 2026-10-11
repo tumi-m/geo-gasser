@@ -351,18 +351,18 @@ export function Round4Scene({
       <div className="pointer-events-none absolute inset-x-3 top-[calc(env(safe-area-inset-top)+5.75rem)] z-10 flex items-start justify-between gap-2">
         <button
           type="button"
-          className="pointer-events-auto inline-flex h-9 items-center border border-fg bg-bg px-3 text-[11px] font-bold uppercase tracking-[0.1em] text-fg"
+          className="pointer-events-auto inline-flex h-9 items-center rounded-full border border-border bg-bg/80 px-3 text-[11px] font-medium uppercase tracking-wider text-fg backdrop-blur-sm"
           onClick={() => setWalking((v) => !v)}
         >
           {walking ? "Orbit view" : "Walk around"}
         </button>
-        <span className="pointer-events-none border border-border bg-bg px-3 py-1.5 font-mono text-[10px] uppercase tracking-wider text-muted">
+        <span className="pointer-events-none rounded-full border border-border bg-bg/70 px-3 py-1.5 text-[10px] uppercase tracking-wider text-muted backdrop-blur-sm">
           {walking ? "Drag to look · WASD / stick to move" : "Drag to orbit"}
         </span>
       </div>
       {walking && (
         <div
-          className="absolute left-4 z-10 size-24 touch-none rounded-full border border-fg bg-bg/50 max-sm:bottom-[calc(var(--atlas-map-h)+0.75rem)] sm:bottom-4"
+          className="absolute left-4 z-10 size-24 touch-none rounded-full border border-border bg-bg/50 backdrop-blur-sm max-sm:bottom-[calc(var(--atlas-map-h)+0.75rem)] sm:bottom-4"
           onPointerDown={onJoy}
           onPointerMove={(e) => {
             if (joyRef.current.active) onJoy(e);

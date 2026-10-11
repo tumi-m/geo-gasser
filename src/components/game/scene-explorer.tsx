@@ -694,7 +694,7 @@ export function SceneExplorer({
     <div className="absolute inset-0 bg-bg-subtle">
       <div
         ref={hostRef}
-        className="absolute inset-0 cursor-grab touch-none overflow-hidden bg-black"
+        className="absolute inset-0 cursor-grab touch-none overflow-hidden bg-[#111111]"
         aria-label="Look around the location. Drag to look, WASD to inspect, scroll to zoom."
       >
         {ready && !failed && <span key={current} className="scene-sheen" aria-hidden />}
@@ -780,7 +780,7 @@ export function SceneExplorer({
       )}
       {failed && (
         <button
-          className="absolute top-[55%] left-1/2 -translate-x-1/2 z-10 bg-accent text-accent-fg px-5 py-3"
+          className="absolute top-[55%] left-1/2 -translate-x-1/2 z-10 rounded-lg bg-accent text-accent-fg px-5 py-3"
           onClick={() => {
             setFailed(false);
             setRetry((n) => n + 1);

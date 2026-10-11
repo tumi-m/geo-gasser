@@ -92,7 +92,7 @@ export function ModalShell({
   return createPortal(
     <div
       data-modal-root
-      className="fixed inset-0 z-50 flex items-end justify-center bg-black/55 p-3 sm:p-5 pt-[max(1rem,env(safe-area-inset-top))] pb-[max(1rem,env(safe-area-inset-bottom))] sm:items-center"
+      className="fixed inset-0 z-50 flex items-end justify-center bg-bg/75 backdrop-blur-md p-3 sm:p-5 pt-[max(1rem,env(safe-area-inset-top))] pb-[max(1rem,env(safe-area-inset-bottom))] sm:items-center"
       role="dialog"
       aria-modal="true"
       aria-labelledby={titleId}
@@ -104,7 +104,7 @@ export function ModalShell({
         ref={panelRef}
         tabIndex={-1}
         className={cn(
-          "atlas-modal max-h-[calc(100dvh-2rem)] overflow-y-auto overscroll-contain w-full border border-rule bg-bg-elevated p-5",
+          "atlas-modal max-h-[calc(100dvh-2rem)] overflow-y-auto overscroll-contain w-full rounded-[var(--radius-xl)] border border-border bg-bg-elevated p-5 shadow-[var(--shadow-panel)]",
           wide ? "max-w-lg" : "max-w-md",
           className,
         )}

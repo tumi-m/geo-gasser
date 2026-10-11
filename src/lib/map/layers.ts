@@ -6,24 +6,18 @@ import { COUNTRY_NAMES, labelPoint, type RegionCollection } from "./lookup";
 type Leaflet = typeof import("leaflet");
 type LMap = import("leaflet").Map;
 
-/**
- * The map is a technical drawing on paper, whatever screen it sits in: white
- * land, an industrial-grey sea, black borders and an exposed graticule. The
- * countries in play are drawn with a heavier line, not a colour. Your line to
- * the answer is the one accent; your rival's is black and dashed.
- */
 export const MAP_COLORS = {
-  water: "#f4f4f4",
-  land: "#ffffff",
-  neighbour: "#ffffff",
-  za: "#ffffff",
-  nl: "#ffffff",
-  border: "#000000",
-  province: "rgba(0, 0, 0, 0.35)",
-  graticule: "rgba(0, 0, 0, 0.08)",
-  city: "#ffffff",
-  arc: "#ff5500",
-  arcOpp: "#000000",
+  water: "#243044",
+  land: "#8b93a3",
+  neighbour: "#9aa3b3",
+  za: "#3f9a70",
+  nl: "#d96a32",
+  border: "#10141c",
+  province: "rgba(9, 9, 11, 0.5)",
+  graticule: "rgba(244, 244, 240, 0.07)",
+  city: "#f4f4f0",
+  arc: "#f4f4f0",
+  arcOpp: "#5aa9ff",
 } as const;
 
 /** Leaflet order: [lat, lng]. */
@@ -112,7 +106,7 @@ export function worldLayer(L: Leaflet, world: RegionCollection, skip: Set<string
   };
   return L.geoJSON(trimmed, {
     interactive: false,
-    style: () => ({ color: MAP_COLORS.border, weight: 0.5, fillColor: MAP_COLORS.land, fillOpacity: 1 }),
+    style: () => ({ color: MAP_COLORS.border, weight: 0.6, fillColor: MAP_COLORS.land, fillOpacity: 1 }),
   });
 }
 
@@ -131,9 +125,9 @@ export function detailCountryLayer(L: Leaflet, countries: RegionCollection) {
     interactive: false,
     style: (feature) => {
       const c = (feature?.properties as { c?: string } | undefined)?.c;
-      if (c === "ZA") return { color: MAP_COLORS.border, weight: 1.8, fillColor: MAP_COLORS.za, fillOpacity: 1 };
-      if (c === "NL") return { color: MAP_COLORS.border, weight: 1.8, fillColor: MAP_COLORS.nl, fillOpacity: 1 };
-      return { color: MAP_COLORS.border, weight: 0.5, fillColor: MAP_COLORS.neighbour, fillOpacity: 1 };
+      if (c === "ZA") return { color: "#0b1a14", weight: 1.4, fillColor: MAP_COLORS.za, fillOpacity: 1 };
+      if (c === "NL") return { color: "#241008", weight: 1.4, fillColor: MAP_COLORS.nl, fillOpacity: 1 };
+      return { color: MAP_COLORS.border, weight: 0.7, fillColor: MAP_COLORS.neighbour, fillOpacity: 1 };
     },
   });
 }
@@ -197,7 +191,7 @@ export function cityLayers(L: Leaflet, map: LMap, gate: ZoomGate, places: readon
         pane: "atlas-dots",
         renderer,
         radius: t <= 1 ? 3.2 : t <= 3 ? 2.6 : 2.1,
-        color: "#000000",
+        color: "#09090b",
         weight: 1,
         fillColor: MAP_COLORS.city,
         fillOpacity: 1,

@@ -3,9 +3,9 @@ import { cn } from "@/lib/utils";
 
 /**
  * The points a perfect guess would still earn, stepping down with the clock
- * in five tiers (timer.ts): 5,000, 4,500, 4,000, 3,500, 3,000. Drawn as a
- * ledger strip: the pot, then one cell per tier. Spent tiers go dark, the
- * live one drains toward the next step, and the strip names the next drop.
+ * in five tiers (timer.ts): 5,000, 4,500, 4,000, 3,500, 3,000. A pill with
+ * the pot, then one small bar per tier. Spent tiers go dark, the live one
+ * drains toward the next step, and the pill names the next drop.
  */
 export function PointsPot({
   remaining,
@@ -50,7 +50,7 @@ export function PointsPot({
         ))}
       </span>
       <span className="pot-next" aria-hidden>
-        {locked ? "LOCKED" : last ? "FLOOR" : `−${drop} · ${Math.ceil(left)}S`}
+        {locked ? "Locked" : last ? "Last step" : `−${drop} in ${Math.ceil(left)}s`}
       </span>
       {/* Spoken once per step, not every second. */}
       <span className="sr-only" aria-live="polite">
