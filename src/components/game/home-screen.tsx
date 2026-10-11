@@ -20,7 +20,6 @@ import { SettingsPanel } from "./settings-panel";
 import { AtlasPicker } from "./atlas-picker";
 import { ModalShell } from "./modal-shell";
 import { Tutorial } from "./tutorial";
-import { SystemMeta } from "./system-meta";
 import {
   audio,
   DEFAULT_SETTINGS,
@@ -40,7 +39,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { sanitizeName } from "@/lib/multiplayer";
 import { cn, plural } from "@/lib/utils";
-import { applyTheme, useMono } from "@/lib/theme";
+import { applyTheme } from "@/lib/theme";
 import { BrushUnderline, FlightPath, WordRise } from "@/components/motion/motion";
 import { useRevealOnScroll } from "@/components/motion/use-reveal";
 import { usePointerTilt } from "@/components/motion/use-pointer-tilt";
@@ -51,7 +50,6 @@ import { globeForAtlas } from "@/components/motion/globe-presets";
 const DESTINATION_MS = 7000;
 
 export function HomeScreen() {
-  const mono = useMono();
   const navigate = useNavigate();
   // Stored settings and stats are read after mount: the server renders the
   // defaults, and the first client render has to match it or React throws the
@@ -176,79 +174,17 @@ export function HomeScreen() {
       icon: SlidersHorizontal,
     },
   ] as const;
-  const citiesNote = settings.atlas.cities?.length ? ` · ${settings.atlas.cities.length} cities` : "";
-  // All three stay mounted so the change is a crossfade, not a cut.
-  const heroImages = destinations.map((place, index) => (
-    <img
-      key={place.src}
-      className={cn("journey-image", index === destination && "is-active")}
-      src={place.src}
-      alt={index === destination ? `${place.name}, ${place.country}` : ""}
-      aria-hidden={index !== destination}
-      fetchPriority={index === 0 ? "high" : "low"}
-    />
-  ));
-  // The featured place: where, what, the three thumbnails and the credit.
-  const destinationInfo = (
-    <>
-      <p>
-        <MapPin size={14} />
-        {featured.country}
-      </p>
-      <h2 key={featured.name} className="journey-swap">
-        {featured.name}
-      </h2>
-      <span key={featured.note} className="journey-swap is-late">
-        {featured.note}
-      </span>
-      <div className="destination-switcher" role="group" aria-label="Featured destinations">
-        {destinations.map((place, index) => (
-          <button
-            key={place.name}
-            aria-label={`Preview ${place.name}`}
-            aria-pressed={index === destination}
-            onClick={() => {
-              setTouring(false);
-              setDestination(index);
-            }}
-          >
-            <img src={place.src} alt="" />
-            <span>{String(index + 1).padStart(2, "0")}</span>
-            {index === destination && autoplay && (
-              <i
-                key={destination}
-                className="destination-progress"
-                style={{ animationDuration: `${DESTINATION_MS}ms` }}
-              />
-            )}
-          </button>
-        ))}
-      </div>
-      <a href={featured.source} target="_blank" rel="noreferrer" className="journey-credit">
-        Photo: Wikimedia contributors ↗
-      </a>
-    </>
-  );
   return (
     <main ref={homeRef} className="expedition-home">
       <header className="expedition-nav">
         <a href="/" className="brand-lockup" aria-label="Atlas Duel home">
-          {mono ? (
-            <>
-              <Compass size={20} strokeWidth={2} aria-hidden />
-              <span>Atlas Duel</span>
-            </>
-          ) : (
-            <>
-              <Compass size={32} strokeWidth={1.5} />
-              <span>
-                ATLAS<span className="text-accent">DUEL</span>
-              </span>
-            </>
-          )}
+          <Compass size={32} strokeWidth={1.5} />
+          <span>
+            ATLAS<span className="text-accent">DUEL</span>
+          </span>
         </a>
-        <nav className={cn("flex items-center", mono ? "gap-1 sm:gap-4" : "gap-3 sm:gap-7")} aria-label="Main navigation">
-          <button className={cn("nav-link", mono && "quoted")} onClick={() => setPanel("help")}>
+        <nav className="flex items-center gap-3 sm:gap-7" aria-label="Main navigation">
+          <button className="nav-link" onClick={() => setPanel("help")}>
             How to play
           </button>
           <MusicHudButton />
@@ -275,47 +211,37 @@ export function HomeScreen() {
         onFocus={() => setHeld(true)}
         onBlur={() => setHeld(false)}
       >
-        {/* Classic: the photo fills the hero and the copy sits over it. */}
-        {!mono && (
-          <>
-            {heroImages}
-            <div className="journey-shade" />
-            <FlightPath still={settings.reducedMotion} />
-          </>
-        )}
+        {/* All three stay mounted so the change is a crossfade, not a cut. */}
+        {destinations.map((place, index) => (
+          <img
+            key={place.src}
+            className={cn("journey-image", index === destination && "is-active")}
+            src={place.src}
+            alt={index === destination ? `${place.name}, ${place.country}` : ""}
+            aria-hidden={index !== destination}
+            fetchPriority={index === 0 ? "high" : "low"}
+          />
+        ))}
+        <div className="journey-shade" />
+        <FlightPath still={settings.reducedMotion} />
         <div className="journey-copy">
-          {mono ? (
-            <p className="eyebrow">
-              <span className="index-no" aria-hidden>
-                01
-              </span>{" "}
-              The world is your playground
-            </p>
-          ) : (
-            <p className="eyebrow">
-              <span className="status-dot" /> THE WORLD IS YOUR PLAYGROUND
-            </p>
-          )}
-          {mono ? (
-            <h1 className="quoted">
-              <WordRise text="Go somewhere unexpected." delay={80} />
-            </h1>
-          ) : (
-            <h1>
-              <WordRise text="Go somewhere" delay={120} />
-              <br />
-              <span className="serif-word">
-                <WordRise text="unexpected." delay={300} />
-                <BrushUnderline delay={750} />
-              </span>
-            </h1>
-          )}
+          <p className="eyebrow">
+            <span className="status-dot" /> THE WORLD IS YOUR PLAYGROUND
+          </p>
+          <h1>
+            <WordRise text="Go somewhere" delay={120} />
+            <br />
+            <span className="serif-word">
+              <WordRise text="unexpected." delay={300} />
+              <BrushUnderline delay={750} />
+            </span>
+          </h1>
           <p>
             A little instinct. A few clues.
             <br />A whole world to discover.
           </p>
           <div className="hero-actions">
-            <Button size="lg" className={cn(!mono && "cta-shine")} onClick={() => play("/play")}>
+            <Button size="lg" className="cta-shine" onClick={() => play("/play")}>
               Let’s explore <ArrowRight size={19} />
             </Button>
             <Button size="lg" variant="secondary" onClick={() => play("/duel")}>
@@ -337,35 +263,58 @@ export function HomeScreen() {
             <ChevronDown size={13} />
           </button>
         </div>
-        {mono ? (
-          // Mono: the photo is a framed figure beside the copy, captioned.
-          <figure className="journey-frame">
-            <div className="journey-photo">{heroImages}</div>
-            <figcaption className="journey-destination">{destinationInfo}</figcaption>
-          </figure>
-        ) : (
-          <div className="journey-destination">{destinationInfo}</div>
-        )}
+        <div className="journey-destination">
+          <p>
+            <MapPin size={14} />
+            {featured.country}
+          </p>
+          <h2 key={featured.name} className="journey-swap">
+            {featured.name}
+          </h2>
+          <span key={featured.note} className="journey-swap is-late">
+            {featured.note}
+          </span>
+          <div className="destination-switcher" role="group" aria-label="Featured destinations">
+            {destinations.map((place, index) => (
+              <button
+                key={place.name}
+                aria-label={`Preview ${place.name}`}
+                aria-pressed={index === destination}
+                onClick={() => {
+                  setTouring(false);
+                  setDestination(index);
+                }}
+              >
+                <img src={place.src} alt="" />
+                <span>{String(index + 1).padStart(2, "0")}</span>
+                {index === destination && autoplay && (
+                  <i
+                    key={destination}
+                    className="destination-progress"
+                    style={{ animationDuration: `${DESTINATION_MS}ms` }}
+                  />
+                )}
+              </button>
+            ))}
+          </div>
+          <a href={featured.source} target="_blank" rel="noreferrer" className="journey-credit">
+            Photo: Wikimedia contributors ↗
+          </a>
+        </div>
       </section>
       <section className="expedition-packs" aria-labelledby="atlas-title">
         <div className="section-heading" data-reveal>
           <h2 id="atlas-title" className="packs-title">
-            {mono ? (
-              <span className="index-no" aria-hidden>
-                02
-              </span>
-            ) : (
-              // Turns to face whichever map you pick.
-              <DotGlobe
-                className="packs-globe"
-                reducedMotion={settings.reducedMotion}
-                {...globeForAtlas(settings.atlas)}
-              />
-            )}
+            {/* Turns to face whichever map you pick. */}
+            <DotGlobe
+              className="packs-globe"
+              reducedMotion={settings.reducedMotion}
+              {...globeForAtlas(settings.atlas)}
+            />
             Choose your playground.
           </h2>
-          <button className={cn("nav-link", mono && "quoted")} onClick={() => setPanel("atlas")}>
-            Explore maps {!mono && <ArrowRight size={15} />}
+          <button className="nav-link" onClick={() => setPanel("atlas")}>
+            Explore maps <ArrowRight size={15} />
           </button>
         </div>
         <div className="pack-grid">
@@ -383,40 +332,25 @@ export function HomeScreen() {
                 aria-pressed={selected}
                 onClick={() => choose(card.id)}
               >
-                {mono ? (
-                  <>
-                    <span className="pack-photo">
-                      <img src={card.src} alt="" loading="lazy" />
+                <img src={card.src} alt="" loading="lazy" />
+                <div className="pack-shade" />
+                <div className="pack-top">
+                  <span>{card.subtitle}</span>
+                  <span className="pack-check">
+                    {selected ? <Check size={16} /> : <card.icon size={16} />}
+                  </span>
+                </div>
+                <div className="pack-copy">
+                  <h3>{card.name}</h3>
+                  {selected && (
+                    <span>
+                      Selected
+                      {settings.atlas.cities?.length
+                        ? ` · ${settings.atlas.cities.length} cities`
+                        : ""}
                     </span>
-                    <span className="pack-copy">
-                      <span className="pack-top">
-                        <span>
-                          {String(cardIndex + 1).padStart(2, "0")} · {card.subtitle}
-                        </span>
-                        <span className="pack-check" aria-hidden>
-                          {selected ? <Check size={14} strokeWidth={3} /> : <card.icon size={14} />}
-                        </span>
-                      </span>
-                      <h3>{card.name}</h3>
-                      <span className="pack-state">{selected ? `Selected${citiesNote}` : "Select"}</span>
-                    </span>
-                  </>
-                ) : (
-                  <>
-                    <img src={card.src} alt="" loading="lazy" />
-                    <div className="pack-shade" />
-                    <div className="pack-top">
-                      <span>{card.subtitle}</span>
-                      <span className="pack-check">
-                        {selected ? <Check size={16} /> : <card.icon size={16} />}
-                      </span>
-                    </div>
-                    <div className="pack-copy">
-                      <h3>{card.name}</h3>
-                      {selected && <span>Selected{citiesNote}</span>}
-                    </div>
-                  </>
-                )}
+                  )}
+                </div>
               </button>
             );
           })}
@@ -424,24 +358,17 @@ export function HomeScreen() {
       </section>
       <footer className="expedition-footer">
         <span>
-          {mono ? (
-            <span className="index-no" aria-hidden>
-              03
-            </span>
-          ) : (
-            <Compass size={16} />
-          )}
+          <Compass size={16} />
           {playableLocations(streetView).length} places. Endless perspective.
         </span>
         {stats.personalBest > 0 ? (
           <span>
-            <Trophy size={mono ? 14 : 15} className={cn(!mono && "text-accent")} aria-hidden={mono || undefined} />{" "}
-            Personal best {stats.personalBest.toLocaleString()}
+            <Trophy size={15} className="text-accent" /> Personal best{" "}
+            {stats.personalBest.toLocaleString()}
           </span>
         ) : (
           <span>No account. Just curiosity.</span>
         )}
-        {mono && <SystemMeta />}
       </footer>
       {panel === "atlas" && (
         <ModalShell titleId="atlas-title-modal" onClose={() => setPanel(null)} wide>

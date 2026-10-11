@@ -60,12 +60,8 @@ export function DuelLobby() {
 
   return (
     <main className="duel-lobby relative min-h-dvh overflow-hidden">
-      {!mono && (
-        <>
-          <div className="duel-orbit" aria-hidden />
-          <div className="duel-orbit is-b" aria-hidden />
-        </>
-      )}
+      <div className="duel-orbit" aria-hidden />
+      <div className="duel-orbit is-b" aria-hidden />
       <div className="relative z-10 mx-auto flex min-h-dvh max-w-md flex-col justify-center px-5 py-8 pt-[max(2rem,env(safe-area-inset-top))] pb-[max(2rem,env(safe-area-inset-bottom))]">
         <div className="atlas-rise flex items-center justify-between gap-3">
           {mono ? (

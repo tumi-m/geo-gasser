@@ -13,3 +13,8 @@
 | 4 | Keyboard in both themes | pass | kb7: map focused after every splash, Rematch 2 Tabs away |
 | 4 | Reduced motion in both themes | pass | rm7 (setting and OS): home 0 running; splash settles |
 | 4 | Gates | pass | `npm run verify -- --build`; `npm run smoke` with a new "Mono theme loads" step |
+| revision | Mono keeps Classic's landing page and every motion graphic | pass | frames at 390 and 1280: photo hero with flight path and brush underline, globe on the packs heading, compass intro, confetti and rays on the splash, crown and rays on results, lobby orbits; all in Mono's black, white and orange with the paper map |
+| revision | Short screens | pass | 320×568: the gesture hint gives way in both looks; 740×360: the compass card shrinks to fit |
+| revision | axe, keyboard, reduced motion in both looks | pass | axe7 at 390 and 1280, match7, lobby7: clean; kb7 and rm7 (setting and OS) as before |
+| revision | Gates | pass | `npm run verify -- --build`: 255 pass; smoke incl. "Mono theme loads"; the Mono skin chunk is 31 KB |
+

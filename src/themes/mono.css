@@ -1,7 +1,11 @@
-/* Mono: black and white with one orange, a drawing-style map. Loaded by
-   src/lib/theme.ts only when the theme is Mono. */
+/*
+ * Mono: a skin over Classic. The layout, the landing page and every motion
+ * graphic are Classic's (src/themes/classic.css, loaded first); this file
+ * only changes how they look: white pages and a black playing screen,
+ * Helvetica, square corners, hairlines, one orange, and the drawing-style
+ * map. Loaded by src/lib/theme.ts only when the theme is Mono.
+ */
 
-/* Mono's tokens, over the shared defaults in styles.css. */
 :root {
   --color-bg: #ffffff;
   --color-bg-elevated: #ffffff;
@@ -16,6 +20,7 @@
   --color-za: #000000;
   --color-nl: #000000;
   --color-danger: #ff5500;
+  --color-rival: #000000;
   --font-sans: "Helvetica Neue", Helvetica, Arial, "Liberation Sans", "Nimbus Sans", sans-serif;
   --font-display: "Helvetica Neue", Helvetica, Arial, "Liberation Sans", "Nimbus Sans", sans-serif;
   --font-mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
@@ -25,26 +30,9 @@
   --radius-lg: 0px;
   --radius-xl: 0px;
   --shadow-panel: none;
-  --color-rival: #000000;
 }
 
-:root {
-  --motion-stagger: 30ms;
-  --motion-micro: 100ms;
-  --motion-quick: 120ms;
-  --motion-fast: 150ms;
-  --motion-medium: 180ms;
-  --motion-slow: 180ms;
-  --motion-emphasis: 180ms;
-  /* A precision shutter: quick out of the gate, settled at once, no overshoot. */
-  --ease-machine: cubic-bezier(0.2, 0, 0, 1);
-  --ease-smooth-out: var(--ease-machine);
-  --ease-out: var(--ease-machine);
-  --motion-y-medium: 6px;
-  --motion-scale-modal: 1;
-}
-
-/* The instrument: the playing screen, in black, around the photo. */
+/* The playing screen stays black around the photo. */
 .match-stage {
   color: var(--color-fg);
   background-color: var(--color-bg);
@@ -62,18 +50,25 @@
 }
 
 html.hc {
+  --color-bg: #ffffff;
+  --color-bg-elevated: #ffffff;
+  --color-bg-subtle: #f4f4f4;
+  --color-fg: #000000;
   --color-muted: #000000;
   --color-subtle: #1a1a1a;
   --color-border: #000000;
+  --color-accent: #ff5500;
+  --color-accent-fg: #000000;
 }
 html.hc .match-stage {
+  --color-bg: #000000;
+  --color-fg: #ffffff;
   --color-muted: #ffffff;
   --color-subtle: #e5e5e5;
   --color-border: #ffffff;
 }
 
-/* Mono's display type is bold and tight; the shared utility in styles.css
-   only sets the family. */
+/* Display type is bold and tight; the shared utility only sets the family. */
 @layer utilities {
   .font-display {
     font-weight: 700;
@@ -157,6 +152,110 @@ html.hc .match-stage {
   }
 }
 
+/* ── Square corners: Classic's rounded pieces, squared. Pins, rings,
+   orbits and the avatars' halos stay round. ── */
+input[type="range"],
+.atlas-distance-label,
+.map-regions,
+.map-regions button,
+.map-regions button i,
+.map-tool,
+.status-dot,
+.hero-actions > button:first-child,
+.destination-card,
+.pack-card,
+.pack-check,
+.selected-strip,
+.selected-strip button,
+.daily-card,
+.passport-card,
+.daily-icon,
+.country-chip,
+.city-chip,
+.atlas-search,
+.scene-controls button,
+.result-stop img,
+.hero-actions button,
+.hero-setup i,
+.duel-panel,
+.journey-hero,
+.destination-switcher button,
+.destination-switcher img,
+.settings-shell,
+.settings-tabs,
+.settings-tabs button,
+.settings-choice,
+.settings-notice,
+.settings-switch,
+.settings-switch span,
+.settings-footer button,
+.scene-controls,
+.scene-hint,
+.view-mode-button,
+.music-panel,
+.music-tabs,
+.music-tabs button,
+.music-embed,
+.music-art,
+.music-dev,
+.music-bars i,
+.verdict-bar,
+.verdict-bar > i,
+.splash-trophy,
+.sparks i,
+.round-splash.is-summary .splash-player.is-right .splash-name::before,
+.summary-pips li,
+.summary-bars li,
+.passport-stamp,
+.destination-progress,
+.journey-copy .status-dot::after,
+.round-intro-number,
+.round-intro-chips li,
+.lock-stamp svg,
+.lock-stamp p,
+.waiting-dots i,
+.duel-card,
+.duel-mode,
+.duel-edit,
+.duel-mode-art,
+.avatar-shape,
+.avatar-swatch,
+.avatar-shuffle,
+.avatar-swatch::after,
+.match-hud .view-mode-button,
+.match-hud .tally-in-dot,
+.atlas-pin-label,
+.cosmos-hint,
+.ruler-pin-label,
+.ruler-miss,
+.ruler-fit,
+.street-view-status,
+.street-view-home,
+.view-source,
+.view-source button,
+.scene-loading,
+.street-view-hint,
+.scene-swap-notice,
+.host-silent,
+.host-silent button,
+.street-view-refused,
+.street-view-refused code,
+.street-view-refused button,
+.win-confetti i,
+.win-banner .win-label,
+.rival-locked,
+.points-fly-y,
+.streak-badge,
+.best-stamp,
+.settings-tabs::before,
+.lobby-vs,
+.pot,
+.pot-tiers i {
+  border-radius: 0;
+}
+
+/* ── The map: paper, ink and one accent ── */
+
 .atlas-pin-dot {
   display: block;
   width: 16px;
@@ -164,25 +263,20 @@ html.hc .match-stage {
   border-radius: 999px;
   border: 2px solid #000;
   box-shadow:none;
-  transform-origin: center bottom;
-  animation:atlas-drop .18s var(--ease-smooth-out);
-}
+  transform-origin: center bottom;}
 
 .atlas-pin-you {
-  background: #ff5500;
-}
+  background: #ff5500;}
 
 /* The answer is a black square: the one fixed point on the drawing. */
 .atlas-pin-truth {
   background: #000;
   border-color: #fff;
   border-radius: 0;
-  outline: 1px solid #000;
-}
+  outline: 1px solid #000;}
 
 .atlas-pin-opp {
-  background: #fff;
-}
+  background: #fff;}
 
 .atlas-pin-label {
   position: absolute;
@@ -197,21 +291,18 @@ html.hc .match-stage {
   color: #fff;
   background: #000;
   white-space: nowrap;
-  text-transform: uppercase;
-}
+  text-transform: uppercase;}
 
 /* Pins that land close together must not stack their labels: yours sits
    above, the opponent's below, the answer's to the right. */
 .atlas-pin-kind-opp .atlas-pin-label {
   top: auto;
-  bottom: -8px;
-}
+  bottom: -8px;}
 
 .atlas-pin-kind-truth .atlas-pin-label {
   top: 50%;
   left: calc(50% + 12px);
-  transform: translateY(-50%);
-}
+  transform: translateY(-50%);}
 
 /* Guess-map heights. One source of truth for the sheet, the reveal card
    offset, and the round-4 caption. Phones get at least half the screen
@@ -220,15 +311,13 @@ html.hc .match-stage {
 :root {
   --atlas-map-h: clamp(300px, 42vh, 460px);
   --atlas-map-w: min(100% - 1.5rem, 420px);
-  --atlas-map-reveal-h: min(46vh, 440px);
-}
+  --atlas-map-reveal-h: min(46vh, 440px);}
 
 @media (max-width: 640px) {
   :root {
     --atlas-map-h: max(330px, 49dvh);
     /* Leaves the reveal card room for both duel rows without scrolling. */
-    --atlas-map-reveal-h: max(330px, 47dvh);
-  }
+    --atlas-map-reveal-h: max(330px, 47dvh);}
 }
 
 /* Leaflet host: water colour doubles as the "did it paint?" signal. */
@@ -237,33 +326,28 @@ div.leaflet-container {
   background: #f4f4f4 !important;
   font: inherit;
   outline: none;
-  touch-action: none;
-}
+  touch-action: none;}
 
 /* Draggable overlay pane is transparent; keep it that way over our water. */
 .leaflet-pane {
-  background: transparent;
-}
+  background: transparent;}
 
 .leaflet-container .leaflet-interactive,
 .leaflet-container path,
 .leaflet-container .leaflet-overlay-pane svg {
-  cursor: crosshair;
-}
+  cursor: crosshair;}
 
 /* Leaflet's default divIcon box must not frame our pins. The icon is a
    40px hit target so thumbs can grab the 16px dot. */
 .atlas-pin-icon,
 .atlas-label-icon {
   background: transparent;
-  border: none;
-}
+  border: none;}
 
 .atlas-pin-icon {
   display: flex;
   align-items: center;
-  justify-content: center;
-}
+  justify-content: center;}
 
 .atlas-pin {
   position: relative;
@@ -272,37 +356,20 @@ div.leaflet-container {
   justify-content: center;
   width: 40px;
   height: 40px;
-  pointer-events: auto;
-}
+  pointer-events: auto;}
 
 .atlas-pin-ring {
   position: absolute;
   inset: 4px;
   border-radius: 999px;
   border: 2px solid var(--color-fg);
-  opacity: 0;
-  animation:none;
-}
-
-@keyframes atlas-pin-pulse {
-  0% {
-    transform: scale(0.45);
-    opacity: 0.9;
-  }
-  80%,
-  100% {
-    transform: scale(1.4);
-    opacity: 0;
-  }
-}
+  opacity: 0;}
 
 .leaflet-marker-draggable .atlas-pin-dot {
-  cursor: grab;
-}
+  cursor: grab;}
 
 .leaflet-marker-draggable:active .atlas-pin-dot {
-  cursor: grabbing;
-}
+  cursor: grabbing;}
 
 /* Map labels. All are HTML markers, so they render without glyph tiles. */
 .atlas-country-label,
@@ -314,41 +381,35 @@ div.leaflet-container {
   white-space: nowrap;
   transform: translate(-50%, -50%);
   pointer-events: none;
-  text-shadow:none;
-}
+  text-shadow:none;}
 
 .atlas-country-label {
   font-size: 10px;
   font-weight: 700;
   letter-spacing: 0.16em;
   text-transform: uppercase;
-  color: rgba(0, 0, 0, 0.62);
-}
+  color: rgba(0, 0, 0, 0.62);}
 
 .atlas-country-focus {
   font-size: 12px;
   font-weight: 700;
   letter-spacing: 0.22em;
-  color: #000;
-}
+  color: #000;}
 
 .atlas-province-label {
   font-size: 9px;
   letter-spacing: 0.1em;
   text-transform: uppercase;
-  color: rgba(0, 0, 0, 0.55);
-}
+  color: rgba(0, 0, 0, 0.55);}
 
 .atlas-city-label {
   font-size: 10px;
   color: #000;
-  transform: translate(6px, -50%);
-}
+  transform: translate(6px, -50%);}
 
 .atlas-city-major {
   font-weight: 600;
-  font-size: 11px;
-}
+  font-size: 11px;}
 
 .atlas-distance-label {
   font-family: var(--font-mono);
@@ -360,39 +421,25 @@ div.leaflet-container {
   border: 0;
   border-radius:0;
   padding: 3px 10px;
-  text-shadow:none;
-  animation:atlas-drop .18s var(--ease-smooth-out);
-}
+  text-shadow:none;}
 
 /* Last-10-seconds pressure on the map frame itself. */
 .atlas-map-urgent {
-  box-shadow:0 0 0 2px var(--color-danger);
-  animation:none;
-}
-
-@keyframes atlas-map-urgent {
-  0%,
-  100% {
-    box-shadow:0 0 0 2px var(--color-danger);
-  }
-  50% {
-    box-shadow:0 0 0 4px color-mix(in oklab, var(--color-danger) 55%, transparent);
-  }
-}
+  box-shadow:0 0 0 2px var(--color-danger);}
 
 /* The guessing dock: a tool strip, the map, and one action bar. Nothing but
    the zoom buttons sits on the map itself. */
 .map-dock {display:flex;flex-direction:column}
 .map-dock-bar {position:relative;z-index:800;display:flex;align-items:center;gap:6px;flex-shrink:0;padding:6px;background:color-mix(in oklab,var(--color-bg) 94%,transparent)}
 .map-dock-bar.is-top {border-bottom:1px solid var(--color-border)}
-.map-dock-bar.is-bottom {border-top:1px solid var(--color-border);padding-left:12px;transition:background .18s}
+.map-dock-bar.is-bottom {border-top:1px solid var(--color-border);padding-left:12px}
 .map-dock-bar.is-bottom.is-armed {background:color-mix(in oklab,var(--color-accent) 7%,var(--color-bg))}
 .map-regions {display:flex;gap:0;padding:0;border:1px solid var(--color-rule)}
-.map-regions button {display:inline-flex;align-items:center;gap:6px;height:32px;padding:0 11px;border-radius:0;font-size:11px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--color-muted);transition:background .18s,color .18s}
+.map-regions button {display:inline-flex;align-items:center;gap:6px;height:32px;padding:0 11px;border-radius:0;font-size:11px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--color-muted)}
 .map-regions button:hover {color:var(--color-fg);background:var(--color-bg-subtle)}
 .map-regions button.is-on {color:var(--color-accent-fg);background:var(--color-accent)}
 .map-regions button i {width:7px;height:7px;border-radius:0}
-.map-tool {display:inline-flex;align-items:center;justify-content:center;width:40px;height:40px;flex-shrink:0;border-radius:0;color:var(--color-fg);transition:background .18s,transform .18s}
+.map-tool {display:inline-flex;align-items:center;justify-content:center;width:40px;height:40px;flex-shrink:0;border-radius:0;color:var(--color-fg)}
 .map-tool:hover {background:#ffffff12}
 .map-tool:active {transform:scale(.94)}
 @media (max-width: 400px) {
@@ -400,17 +447,12 @@ div.leaflet-container {
   .map-tool {width:36px}
 }
 @media (max-width: 349px) {.map-regions .map-region-label {display:none}}
-.map-search-list {animation:chip-in .18s var(--ease-out)}
 /* Keyboard play: a focus ring on the map and a crosshair where Enter drops the pin. */
 .map-dock:has(.leaflet-container:focus-visible) {box-shadow:0 0 0 2px var(--color-accent)}
 .leaflet-container:focus-visible {outline:none}
-.map-crosshair {position:absolute;left:50%;top:50%;z-index:750;width:26px;height:26px;margin:-13px 0 0 -13px;pointer-events:none;opacity:0;transition:opacity .18s;background:linear-gradient(var(--color-accent),var(--color-accent)) center/2px 100% no-repeat,linear-gradient(var(--color-accent),var(--color-accent)) center/100% 2px no-repeat;outline:1px solid #000;outline-offset:-1px}
+.map-crosshair {position:absolute;left:50%;top:50%;z-index:750;width:26px;height:26px;margin:-13px 0 0 -13px;pointer-events:none;opacity:0;background:linear-gradient(var(--color-accent),var(--color-accent)) center/2px 100% no-repeat,linear-gradient(var(--color-accent),var(--color-accent)) center/100% 2px no-repeat;outline:1px solid #000;outline-offset:-1px}
 .map-dock:has(.leaflet-container:focus-visible) .map-crosshair {opacity:1}
 .map-dock input[type=search]::-webkit-search-cancel-button {display:none}
-/* A new pin: its place name slides in and the country dot pops. */
-.map-readout {animation:readout-in .18s var(--ease-out)}
-.map-readout-dot {animation:number-pop .18s var(--ease-machine)}
-@keyframes readout-in {from{opacity:0;transform:translateY(6px)}}
 /* Desktop: the docked map stays small over the photo and opens up when you
    reach for it. */
 @media (hover: hover) and (min-width: 641px) {
@@ -425,19 +467,16 @@ div.leaflet-container {
   font-size: 10px;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  box-shadow:var(--shadow-panel);
-}
+  box-shadow:var(--shadow-panel);}
 
 .leaflet-tooltip-top::before {
-  border-top-color: var(--color-border);
-}
+  border-top-color: var(--color-border);}
 
 /* Zoom buttons match the app chrome. */
 .leaflet-bar {
   border: 1px solid #000;
   border-radius:0;
-  overflow: hidden;
-}
+  overflow: hidden;}
 
 .leaflet-bar a {
   background: #fff;
@@ -446,13 +485,11 @@ div.leaflet-container {
   height: 34px;
   line-height: 34px;
   font-size: 18px;
-  border-bottom: 1px solid #000;
-}
+  border-bottom: 1px solid #000;}
 
 .leaflet-bar a:hover {
   background: #ff5500;
-  color: #000;
-}
+  color: #000;}
 
 /* At the zoom limit Leaflet greys the button out on a white block; keep it
    in the chrome, just quieter. */
@@ -460,148 +497,9 @@ div.leaflet-container {
 .leaflet-bar a.leaflet-disabled:hover {
   background: #fff;
   color: #8c8c8c;
-  opacity: 0.55;
-}
+  opacity: 0.55;}
 
-@keyframes atlas-drop {
-  from {
-    transform: translateY(-18px) scale(0.6);
-    opacity: 0;
-  }
-  to {
-    transform: none;
-    opacity: 1;
-  }
-}
-
-@keyframes atlas-shake {
-  0%,
-  100% {
-    transform: translate3d(0, 0, 0);
-  }
-  20% {
-    transform: translate3d(-3px, 1px, 0);
-  }
-  40% {
-    transform: translate3d(3px, -2px, 0);
-  }
-  60% {
-    transform: translate3d(-2px, 1px, 0);
-  }
-  80% {
-    transform: translate3d(2px, 0, 0);
-  }
-}
-
-.atlas-shake {
-  animation:atlas-shake .18s var(--ease-out);
-}
-
-@keyframes atlas-modal-in {
-  from {
-    opacity: 0;
-    transform: translateY(8px) scale(var(--motion-scale-modal));
-  }
-  to {
-    opacity: 1;
-    transform: none;
-  }
-}
-
-.atlas-modal {
-  animation:atlas-modal-in var(--motion-fast) var(--ease-smooth-out);
-}
-
-/* Opacity and a short lift only. No filter: a filtered element is drawn as its
-   own layer, and iOS Safari rasterises a tall one at reduced resolution — the
-   results list came out blurred with a magenta seam along its top edge.
-   `backwards` holds the start frame through the stagger delay, then lets go, so
-   no transform or layer stays on the text once it has arrived. */
-@keyframes atlas-rise {
-  from {
-    opacity: 0;
-    transform: translateY(var(--motion-y-medium));
-  }
-}
-
-.atlas-rise {
-  animation:atlas-rise var(--motion-slow) var(--ease-smooth-out) backwards;
-}
-
-.atlas-rise-1 {
-  animation-delay: calc(var(--motion-stagger) * 1);
-}
-.atlas-rise-2 {
-  animation-delay: calc(var(--motion-stagger) * 2);
-}
-.atlas-rise-3 {
-  animation-delay: calc(var(--motion-stagger) * 3);
-}
-.atlas-rise-4 {
-  animation-delay: calc(var(--motion-stagger) * 4);
-}
-
-@keyframes atlas-pulse-ready {
-  0%,
-  100% {
-    box-shadow:0 0 0 0 color-mix(in oklab, var(--color-accent) 35%, transparent);
-  }
-  50% {
-    box-shadow:0 0 0 6px transparent;
-  }
-}
-
-.atlas-lock-ready {
-  animation:none;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  *,
-  *::before,
-  *::after {
-    animation-duration: 0.01ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
-    scroll-behavior: auto !important;
-  }
-}
-
-/* Expedition identity */
-
-.text-action {display:flex; gap:13px; font-size:13px; padding:12px 0; border-bottom:1px solid var(--color-border)}
-.floating-stamp {position:absolute; right:-3%; bottom:34px; display:flex; align-items:center; gap:10px; border-radius:0; height:117px; width:117px; flex-direction:column; justify-content:center; background:var(--color-accent); color:var(--color-bg); transform:rotate(12deg); box-shadow:none; text-align:center; font-size:8px; letter-spacing:1px; line-height:1.5;}
-.floating-stamp strong {font-family:Georgia,serif; font-style:italic; font-weight:400; font-size:15px; letter-spacing:0;}
-.coordinate-note {position:absolute; bottom:-7px; right:21%; display:flex; gap:7px; font-size:10px; color:var(--color-muted);}
-.orbit {position:absolute; z-index:-1; border:1px dashed #64727170; border-radius:0; width:450px; height:300px; left:0; top:50px; transform:rotate(-24deg);}
-.orbit-two {transform:rotate(36deg); width:390px; height:400px; top:0; left:40px;}
-.daily-card,.passport-card {border:1px solid var(--color-border); border-radius:0; padding:23px; display:flex; align-items:center; gap:18px; text-align:left;}
-.daily-card {background:var(--color-bg-subtle);}
-.daily-icon {border:1px solid #66805d; border-radius:0; width:47px; height:47px; display:grid; place-items:center; color:var(--color-accent); flex-shrink:0;}
-.daily-card h3 {font-size:16px; font-weight:600; margin:5px 0;}
-.daily-card p:last-child,.passport-card p:last-child {font-size:11px; color:var(--color-muted); line-height:1.6;}
-.passport-card strong {font-size:17px; font-weight:500; display:block; margin:5px 0;}
-.country-grid {display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin-top:8px;}
-.country-chip {display:flex; gap:7px; align-items:center; text-align:left; border:1px solid var(--color-border); padding:10px; border-radius:0; font-size:11px; min-height:44px;}
-.country-chip small {margin-left:auto; color:var(--color-muted);}
-.country-chip.selected,.city-chip.selected {border-color:var(--color-rule); background:var(--color-accent); color:var(--color-accent-fg);}
-.city-chip {border:1px solid var(--color-border); border-radius:0; padding:10px 13px; font-size:11px; min-height:40px;}
-.atlas-search {margin-top:10px; background:var(--color-bg); border:1px solid var(--color-border); border-radius:0; padding:12px; width:100%; font-size:14px;}
-.match-hud {background:linear-gradient(#07121bcd,transparent); padding-bottom:50px !important;}
-.scene-label {position:absolute; left:24px; top:138px; font-size:10px; letter-spacing:2px; text-transform:uppercase; color:#fff; text-shadow:none;}
-.scene-controls {position:absolute; left:24px; bottom:24px; z-index:20; display:flex; gap:8px; align-items:center;}
-.scene-controls button {width:44px; height:44px; border:1px solid #ffffff40; border-radius:0; display:grid; place-items:center; background:#000;}
-.result-shell {background:radial-gradient(ellipse at 50% 0,#3b554d66,transparent 60%),var(--color-bg);}
-.result-score {font-size:clamp(65px,12vw,110px); font-family:var(--font-display); font-weight:700; letter-spacing:-5px; line-height:1; color:var(--color-accent);}
-.result-stop {display:grid; grid-template-columns:36px 60px 1fr auto; gap:14px; align-items:center; padding:12px; border-bottom:1px solid var(--color-border);}
-.result-stop img {width:60px; height:48px; object-fit:cover; border-radius:0;}
-.reduce-motion *, .reduce-motion *::before,.reduce-motion *::after {animation-duration:.01ms!important; animation-iteration-count:1!important; transition-duration:.01ms!important; scroll-behavior:auto!important;}
-button:focus-visible,a:focus-visible {outline:2px solid var(--color-accent)!important; outline-offset:4px;}
-@media(max-width:900px) {.floating-stamp{width:90px;height:90px;right:-3%;bottom:17px;gap:3px}.coordinate-note{font-size:8px;right:5%;bottom:-8px}.orbit{width:310px;height:260px}.orbit-two{width:260px;height:320px}.passport-card{padding:18px}.country-grid{grid-template-columns:repeat(2,1fr)}}
-@media(max-width:600px) {.coordinate-note{bottom:0;right:13%}.floating-stamp{bottom:15px;right:0}.orbit{width:300px;height:240px;top:20px}.orbit-two{height:280px;width:265px;top:0}.daily-card{padding:17px;gap:12px}.daily-card h3{font-size:14px}.daily-icon{width:38px;height:38px}.scene-label{left:17px;top:128px}.result-stop{grid-template-columns:22px 43px 1fr auto;gap:8px;padding:12px 0}.result-stop img{width:43px;height:43px}}
-@media(max-width:640px){.scene-controls{left:15px;bottom:calc(var(--atlas-map-h) + 0.75rem)}}.duel-lobby{background:var(--color-bg)}.duel-panel{border:1px solid var(--color-rule);background:var(--color-bg);padding:28px}
-@media(max-width:600px){.duel-panel{padding:20px;border-radius:0}}
-
-/* A photographic opening, with enough quiet space to find your next game. */
+/* ── Settings ── */
 
 /* Settings is one bounded surface. Only the active section scrolls. */
 .settings-shell {max-width:740px!important;height:min(730px,calc(100dvh - 2rem));padding:0!important;display:flex;flex-direction:column;overflow:hidden;background:var(--color-bg)}
@@ -609,7 +507,7 @@ button:focus-visible,a:focus-visible {outline:2px solid var(--color-accent)!impo
 .settings-header h2 {font-family:var(--font-display);font-size:28px;font-weight:700;letter-spacing:-.03em;margin-top:8px;line-height:1}
 .settings-header .eyebrow {font-size:10px;letter-spacing:.14em;color:var(--color-muted)}
 .settings-tabs {display:grid;grid-template-columns:repeat(4,1fr);gap:0;padding:0;margin:16px 24px;border:1px solid var(--color-rule);flex-shrink:0}
-.settings-tabs button {display:flex;justify-content:center;align-items:center;gap:7px;min-height:44px;font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--color-fg);transition:background-color .12s linear,color .12s linear}
+.settings-tabs button {display:flex;justify-content:center;align-items:center;gap:7px;min-height:44px;font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--color-fg)}
 .settings-tabs button[aria-selected=true] {color:var(--color-accent-fg)}
 .settings-tabs button:hover:not([aria-selected=true]) {background:var(--color-bg-subtle)}
 .settings-content {flex:1;min-height:0;overflow-y:auto;overscroll-behavior:contain;padding:8px 24px 28px;scrollbar-gutter:stable}
@@ -621,7 +519,7 @@ button:focus-visible,a:focus-visible {outline:2px solid var(--color-accent)!impo
 .settings-choices.three {grid-template-columns:repeat(3,1fr)}
 .settings-choices.two {grid-template-columns:repeat(2,1fr)}
 .settings-choices.lengths {grid-template-columns:repeat(5,1fr)}
-.settings-choice {min-height:72px;padding:12px;text-align:left;background:var(--color-bg);outline:1px solid var(--color-rule);transition:background-color .12s linear}
+.settings-choice {min-height:72px;padding:12px;text-align:left;background:var(--color-bg);outline:1px solid var(--color-rule)}
 .settings-choice:hover {background:var(--color-bg-subtle)}
 .settings-choice.selected {background:var(--color-accent);color:var(--color-accent-fg)}
 .settings-choice>span {display:flex;align-items:center;justify-content:space-between;gap:6px;font-size:13px;font-weight:700}
@@ -633,8 +531,8 @@ button:focus-visible,a:focus-visible {outline:2px solid var(--color-accent)!impo
 .settings-toggle {display:flex;align-items:center;justify-content:space-between;gap:22px;padding:16px 0;border-bottom:1px solid var(--color-border)}
 .settings-toggle strong,.settings-volume strong {display:block;font-size:14px;font-weight:700}
 .settings-toggle small,.settings-volume small {display:block;font-size:12px;line-height:1.6;color:var(--color-muted);margin-top:5px}
-.settings-switch {width:46px;height:26px;border:1px solid var(--color-rule);background:var(--color-bg);position:relative;flex-shrink:0;transition:background-color .12s linear}
-.settings-switch span {position:absolute;left:3px;top:3px;width:18px;height:18px;background:var(--color-rule);transition:transform .12s var(--ease-machine)}
+.settings-switch {width:46px;height:26px;border:1px solid var(--color-rule);background:var(--color-bg);position:relative;flex-shrink:0}
+.settings-switch span {position:absolute;left:3px;top:3px;width:18px;height:18px;background:var(--color-rule)}
 .settings-switch.on {background:var(--color-accent);border-color:var(--color-rule)}
 .settings-switch.on span {transform:translateX(20px);background:var(--color-accent-fg)}
 .settings-volume {display:block;margin-top:27px}
@@ -648,14 +546,6 @@ button:focus-visible,a:focus-visible {outline:2px solid var(--color-accent)!impo
 .settings-footer>div {display:flex;align-items:center;gap:5px}
 .settings-footer button {min-height:44px}
 
-/* The photograph gets the space; controls float above it. */
-.scene-viewport {position:absolute;inset:0;overflow:hidden;background:#000}
-.scene-controls {left:22px;bottom:22px;padding:5px;gap:4px;border-radius:0;background:#000;border:1px solid #2a2a2a;backdrop-filter:none}
-.scene-controls button {width:37px;height:37px;border:0;background:transparent}
-.scene-controls button:hover {background:#ffffff18}
-.scene-hint {text-shadow:none;background:#000;width:fit-content;max-width:80%;margin:auto;padding:7px 12px;border-radius:0}
-.match-hud {padding-bottom:20px!important;background:linear-gradient(#07121b8c,transparent)}
-.view-mode-button {display:flex;align-items:center;justify-content:center;gap:8px;min-height:40px;padding:8px 13px;border:1px solid #ffffff40;border-radius:0;background:#10202bd9;backdrop-filter:none;font-size:11px;color:#f1f5ee}
 .view-mode-button[aria-pressed=true] {background:var(--color-accent);color:#12212a;border-color:var(--color-accent)}
 .match-stage:fullscreen {height:100dvh}
 .hc .settings-choice,.hc .settings-tabs,.hc .settings-shell {border-color:var(--color-fg)}
@@ -665,17 +555,19 @@ button:focus-visible,a:focus-visible {outline:2px solid var(--color-accent)!impo
 }
 @media(max-width:370px){.settings-footer>span{font-size:10px}}
 
+/* ── Music player ── */
+
 /* Music player — the player's own Spotify / Apple Music soundtrack. Opened
    from a music button in each screen's header; the panel drops from just under
    that button (--music-top is set on open). */
 .music-dock {position:fixed;z-index:35;top:var(--music-top,76px);right:max(16px,env(safe-area-inset-right));display:flex;flex-direction:column;align-items:flex-end;pointer-events:none}
-.music-panel {width:min(calc(100vw - 32px),380px);max-height:min(600px,calc(100dvh - var(--music-top,76px) - 16px));display:flex;flex-direction:column;overflow:hidden;border:1px solid var(--color-rule);border-radius:0;background:var(--color-bg-elevated);box-shadow:none;outline:none;opacity:0;transform:translateY(-4px);transition:opacity .14s linear,transform .14s linear}
+.music-panel {width:min(calc(100vw - 32px),380px);max-height:min(600px,calc(100dvh - var(--music-top,76px) - 16px));display:flex;flex-direction:column;overflow:hidden;border:1px solid var(--color-rule);border-radius:0;background:var(--color-bg-elevated);box-shadow:none;outline:none;opacity:0;transform:translateY(-4px)}
 .music-panel.is-open {opacity:1;transform:none;pointer-events:auto}
 .music-header {padding:18px 14px 12px 20px;display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-shrink:0}
 .music-header .eyebrow {display:flex;align-items:center;gap:6px;font-family:var(--font-mono);font-size:10px;letter-spacing:.14em;color:var(--color-muted)}
 .music-header h2 {font-family:var(--font-display);font-size:22px;font-weight:700;letter-spacing:-.02em;margin-top:7px}
 .music-tabs {display:grid;grid-template-columns:1fr 1fr;gap:0;padding:0;margin:0 18px 12px;border:1px solid var(--color-rule);border-radius:0;background:var(--color-bg);flex-shrink:0}
-.music-tabs button {min-height:38px;border-radius:0;font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--color-muted);transition:background-color .12s linear,color .12s linear}
+.music-tabs button {min-height:38px;border-radius:0;font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--color-muted)}
 .music-tabs button + button {border-left:1px solid var(--color-rule)}
 .music-tabs button[aria-selected=true] {background:var(--color-accent);color:var(--color-accent-fg);box-shadow:none}
 .music-tabs button:hover:not([aria-selected=true]) {background:var(--color-bg-subtle);color:var(--color-fg)}
@@ -693,7 +585,7 @@ button:focus-visible,a:focus-visible {outline:2px solid var(--color-accent)!impo
 .music-art {width:40px;height:40px;border-radius:0;object-fit:cover;flex-shrink:0;background:var(--color-bg-subtle);display:flex;align-items:center;justify-content:center;color:var(--color-subtle)}
 .music-account {display:flex;flex-direction:column;gap:10px}
 .music-list {display:flex;flex-direction:column;border-top:1px solid var(--color-border)}
-.music-list button {width:100%;display:flex;align-items:center;gap:12px;padding:8px 2px;border-bottom:1px solid var(--color-border);text-align:left;font-size:14px;transition:background-color .12s linear}
+.music-list button {width:100%;display:flex;align-items:center;gap:12px;padding:8px 2px;border-bottom:1px solid var(--color-border);text-align:left;font-size:14px}
 .music-list button span {flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .music-list button svg {color:var(--color-subtle)}
 .music-list button:hover {background:var(--color-bg-subtle)}
@@ -710,352 +602,17 @@ button:focus-visible,a:focus-visible {outline:2px solid var(--color-accent)!impo
 .music-transport {min-width:40px;padding:8px}
 .music-bars {display:inline-flex;align-items:flex-end;gap:2px;height:12px;flex-shrink:0}
 .music-bars i {display:block;width:2px;height:4px;border-radius:0;background:var(--color-accent)}
-@keyframes music-level {0%,100%{height:4px}50%{height:12px}}
-.music-bars.is-playing i {animation:music-level .9s ease-in-out infinite}
-.music-bars.is-playing i:nth-child(2) {animation-delay:-.3s}
-.music-bars.is-playing i:nth-child(3) {animation-delay:-.6s}
-.reduce-motion .music-bars i {animation:none}
-.reduce-motion .music-bars.is-playing i {height:9px}
-.reduce-motion .music-panel {transition:none}
 .hc .music-panel {background:var(--color-bg-elevated);border-color:var(--color-fg)}
 .hc .music-tabs {border-color:var(--color-fg)}
-@media (prefers-reduced-motion: reduce) {
-  .music-bars i {animation:none}
-  .music-bars.is-playing i {height:9px}
-  .music-panel {transition:none}
-}
 
-/* Round verdict — who took the round, by name. Transform and opacity only:
-   no filters (see .atlas-rise). */
-.verdict-headline {min-height:2.6rem;margin-bottom:8px;opacity:0;transform:translateY(4px);transition:opacity .18s var(--ease-smooth-out),transform .18s var(--ease-smooth-out)}
-.verdict.is-settled .verdict-headline {opacity:1;transform:none}
-@media (max-width: 640px) {.verdict-headline {min-height:1.6rem;margin-bottom:6px}}
-/* Short phones: the splash just named the winner and the winning row wears
-   the trophy, so the headline gives its line to the rows. */
-@media (max-width: 640px) and (max-height: 780px) {
-  :root {--atlas-map-reveal-h: max(290px, 43dvh)}
-  .verdict-headline {display:none}
-}
-.verdict-rows {display:flex;flex-direction:column;gap:6px}
-.verdict-row {display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:10px;padding:8px 10px;border:1px solid var(--color-border);border-radius:0;background:#ffffff05;transition:border-color .18s var(--ease-out),background-color .18s var(--ease-out)}
-.verdict-row.is-winner {border-color:var(--color-accent);background:color-mix(in oklab,var(--color-accent) 9%,transparent)}
-.verdict-bar {height:4px;margin-top:6px;border-radius:0;background:#ffffff12;overflow:hidden}
-.verdict-bar > i {display:block;height:100%;border-radius:0;background:var(--color-muted);transform-origin:left;transform:scaleX(0);transition:transform .18s var(--ease-smooth-out) 250ms,background-color .18s}
-.verdict.is-run .verdict-bar > i {transform:scaleX(var(--share,0))}
-.verdict-row.is-winner .verdict-bar > i {background:var(--color-accent)}
-.verdict-crown {display:inline-flex;color:var(--color-accent);animation:verdict-crown .18s var(--ease-smooth-out) backwards}
-@keyframes verdict-crown {from{opacity:0;transform:scale(.3) rotate(-25deg)}60%{transform:scale(1.25) rotate(6deg)}}
-.hc .verdict-row.is-winner {border-width:2px}
+/* ── Duel setup and the bot builder ── */
 
-/* Round splash — the end-of-round moment. Sits over the photo and leaves
-   the reveal map visible below. Transform and opacity only. */
-.round-splash {position:absolute;inset-inline:0;top:0;bottom:var(--atlas-map-reveal-h);z-index:45;display:flex;align-items:center;justify-content:center;padding:max(4.5rem,env(safe-area-inset-top)) 16px 16px;background:#000000eb;border-bottom:1px solid #fff;cursor:pointer;transition:opacity .15s linear}
-.round-splash.is-leave {opacity:0}
-.splash-inner {width:100%;max-width:440px;text-align:center}
-.splash-kicker {font-size:11px;letter-spacing:.28em;text-transform:uppercase;color:var(--color-muted);animation:splash-drop .18s var(--ease-smooth-out) backwards}
-.splash-duel {position:relative;display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:18px}
-.splash-vs {position:absolute;left:50%;top:32px;transform:translateX(-50%);font-family:var(--font-display);font-size:13px;letter-spacing:.2em;text-transform:uppercase;color:var(--color-subtle);animation:splash-fade .18s .25s backwards}
-.splash-player {display:flex;flex-direction:column;align-items:center;min-width:0;transition:opacity .18s var(--ease-out)}
-.splash-player.is-left {animation:splash-in-left .18s var(--ease-smooth-out) backwards}
-.splash-player.is-right {animation:splash-in-right .18s var(--ease-smooth-out) .06s backwards}
-.splash-player.is-loser {opacity:.42}
-.splash-avatar {position:relative;display:flex;border-radius:0;transition:transform .18s var(--ease-machine)}
-.splash-player.is-winner .splash-avatar {transform:scale(1.14)}
-.splash-player.is-winner .splash-avatar::after {content:"";position:absolute;inset:-6px;border:2px solid var(--color-accent);border-radius:0;animation:none}
-.splash-trophy {position:absolute;top:-16px;right:-12px;display:flex;padding:5px;border-radius:0;background:var(--color-accent);color:var(--color-accent-fg);box-shadow:none;animation:splash-trophy .18s var(--ease-machine) backwards}
-.splash-name {margin-top:12px;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:14px;color:var(--color-fg)}
-.splash-name span {font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--color-subtle)}
-.splash-points {margin-top:2px;font-family:var(--font-display);font-size:26px;line-height:1.1;color:var(--color-fg)}
-.splash-player.is-winner .splash-points {color:var(--color-accent)}
-.splash-solo {position:relative;display:flex;justify-content:center;margin-top:10px}
-.splash-big {font-family:var(--font-display);font-size:clamp(52px,14vw,84px);font-weight:700;letter-spacing:-2px;line-height:1;color:var(--color-accent)}
-.splash-headline {margin-top:18px;min-height:1.2em;font-family:var(--font-display);font-size:clamp(24px,6.4vw,34px);line-height:1.15;letter-spacing:-.02em}
-.splash-headline span {display:inline-block;animation:splash-word .18s var(--ease-smooth-out) backwards;animation-delay:calc(var(--i) * 70ms)}
-.splash-sub {margin-top:6px;min-height:1.3em;font-size:13px;color:var(--color-muted);animation:splash-fade .18s .25s backwards}
-.splash-hint {margin-top:14px;font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:var(--color-subtle);opacity:0;transition:opacity .18s .6s}
-.round-splash.is-crown .splash-hint {opacity:1}
-@keyframes splash-drop {from{opacity:0;transform:translateY(-10px)}}
-@keyframes splash-fade {from{opacity:0}}
-@keyframes splash-in-left {from{opacity:0;transform:translateX(-48px)}}
-@keyframes splash-in-right {from{opacity:0;transform:translateX(48px)}}
-@keyframes splash-word {from{opacity:0;transform:translateY(14px)}}
-@keyframes splash-trophy {from{opacity:0;transform:translateY(-26px) scale(.4) rotate(-30deg)}}
-@keyframes splash-ring {from{opacity:.9;transform:scale(1)}to{opacity:0;transform:scale(1.45)}}
-
-/* Reveal card: slide-ins, a pop on the headline, one shimmer across the winner. */
-.reveal-pop {animation:reveal-pop .18s var(--ease-machine) backwards}
-@keyframes reveal-pop {from{opacity:0;transform:scale(.88)}}
-.verdict-row.is-left-in {animation:splash-in-left .18s var(--ease-smooth-out) backwards}
-.verdict-row.is-right-in {animation:splash-in-right .18s var(--ease-smooth-out) .06s backwards}
-.verdict-row {position:relative;overflow:hidden}
-.verdict-row.is-winner::after {content:"";position:absolute;inset:0;background:linear-gradient(100deg,transparent 30%,color-mix(in oklab,var(--color-accent) 22%,transparent) 50%,transparent 70%);transform:translateX(-100%);animation:none;pointer-events:none}
-@keyframes verdict-shimmer {to{transform:translateX(100%)}}
-
-/* HUD score: a bump as the total rolls over. */
-.score-bump {animation:score-bump .18s var(--ease-machine)}
-@keyframes score-bump {40%{transform:scale(1.12);color:var(--color-accent)}}
-
-/* Final results: the winner's burst sits behind the headline avatar. */
-.result-burst {position:relative;display:inline-flex}
-
-/* Round summary: one pip per question, lit in turn in the colour of whoever
-   took it (yours lime, theirs orange, ties grey); solo gets a bar per question. */
-.round-splash.is-summary .splash-player.is-left .splash-name::before,
-.round-splash.is-summary .splash-player.is-right .splash-name::before {content:"";display:inline-block;width:7px;height:7px;margin-right:6px;border-radius:0;vertical-align:1px;background:var(--color-accent)}
-.round-splash.is-summary .splash-player.is-right .splash-name::before {background:var(--color-nl)}
-.summary-pips {display:flex;justify-content:center;gap:6px;margin-top:18px}
-.summary-pips li {width:clamp(14px,5vw,22px);height:clamp(14px,5vw,22px);border-radius:0;background:#ffffff14;animation:summary-pip .18s var(--ease-machine) var(--at) backwards}
-.summary-pips li.is-first {background:var(--color-accent)}
-.summary-pips li.is-second {background:var(--color-nl)}
-.summary-pips li.is-tie {background:var(--color-subtle)}
-.summary-bars {display:flex;align-items:flex-end;justify-content:center;gap:6px;height:64px;margin-top:16px}
-.summary-bars li {width:clamp(12px,4.5vw,20px);height:calc(var(--h) * 100%);border-radius:0;background:var(--color-muted);transform-origin:bottom;animation:summary-bar .18s var(--ease-smooth-out) var(--at) backwards}
-.summary-bars li.is-best {background:var(--color-accent)}
-@keyframes summary-pip {from{opacity:0;transform:scale(.2)}}
-@keyframes summary-bar {from{opacity:0;transform:scaleY(0)}}
-
-/* Reduced motion keeps the beats but trades movement for cross-fades
-   (outranks the blanket .reduce-motion rule by specificity). */
-/* Every piece fades in once; looping avatar idles must not turn into a blink. */
-.round-splash.is-reduced *,.round-splash.is-reduced::after {animation-name:splash-fade!important;animation-duration:.4s!important;animation-iteration-count:1!important;transition-property:opacity!important;transition-duration:.3s!important}
-.round-splash.is-reduced {transition-duration:.3s!important}
-.round-splash.is-reduced .splash-player.is-winner .splash-avatar {transform:none}
-.round-splash.is-reduced .splash-avatar::after {display:none}
-
-/* Phones: the photo sits between the HUD and the map, so nothing in it hides
-   behind the timer and score, and at the reveal it follows the map as it
-   shrinks instead of leaving an empty strip above it. */
-@media (max-width: 640px) {
-  /* The map sheet sits max(0.75rem, safe-area) above the bottom edge
-     (guess-map.tsx); the photo ends exactly where the sheet begins. */
-  .match-stage .scene-viewport {top:var(--atlas-hud-h,0px);bottom:calc(var(--atlas-map-h) + max(0.75rem,env(safe-area-inset-bottom)))}
-  .match-stage.is-revealing .scene-viewport {bottom:calc(var(--atlas-map-reveal-h) + max(0.75rem,env(safe-area-inset-bottom)))}
-  .match-stage.is-exploring .scene-viewport {bottom:0}
-}
-
-/* Letterbox fill: a soft, dark copy of the same photo behind a photo shown
-   whole, instead of flat bars. A static layer; the photo itself is not filtered. */
-.scene-backdrop {position:absolute;inset:0;width:100%;height:100%;object-fit:cover;transform:scale(1.15);filter:blur(22px) saturate(1.15) brightness(.5);pointer-events:none;user-select:none}
-
-/* ───────────────────────── Motion graphics: shared ───────────────────────── */
-/* Words rise out of their own line box. The clip keeps descenders. */
-.word-rise-clip {display:inline-block;overflow:hidden;vertical-align:bottom;padding-bottom:.12em;margin-bottom:-.12em}
-.word-rise-clip > span {display:inline-block;animation:word-rise .18s var(--ease-machine) backwards}
-@keyframes word-rise {from{transform:translateY(105%)}}
-
-/* Scroll reveals: armed by JS, so the server HTML is never hidden. */
-/* Results: the expedition map. The route draws hop by hop once the card is
-   in view; without the observer (no JS) everything is simply drawn. */
-.route-card {overflow:hidden;border:1px solid var(--color-border);border-radius:0;background:radial-gradient(ellipse at 50% 40%,#16303a,#0c161d 75%)}
-.route-card svg {display:block;width:100%;height:auto}
-.route-grid {fill:none;stroke:#ffffff0c;stroke-width:1}
-.route-land {fill:#294049;stroke:#3d5663;stroke-width:.7;stroke-linejoin:round}
-.route-hop {fill:none;stroke:var(--color-accent);stroke-width:2.2;stroke-linecap:round;stroke-dasharray:1;stroke-dashoffset:0;opacity:.9}
-.route-stop {--tier:var(--color-accent);transform-box:fill-box;transform-origin:center}
-.route-stop.is-great {--tier:#5fd394}
-.route-stop.is-good {--tier:var(--color-accent)}
-.route-stop.is-fair {--tier:#f08a4b}
-.route-stop.is-miss {--tier:#6b7a82}
-.route-stop-dot {fill:var(--tier);stroke:#0c161d;stroke-width:1.5}
-.route-stop-ring {fill:none;stroke:var(--tier);stroke-width:1.5;opacity:0;transform-box:fill-box;transform-origin:center}
-.route-stop-n {font-size:10.5px;font-weight:700;fill:#0c161d;font-family:var(--font-sans,inherit)}
-.reveal-armed .route-card .route-hop {stroke-dashoffset:1}
-.reveal-armed .route-card .route-stop {opacity:0}
-.reveal-armed .route-card[data-shown] .route-hop {animation:route-hop var(--hop) cubic-bezier(.45,0,.25,1) forwards;animation-delay:calc(var(--i) * var(--hop) + var(--hop) + 350ms)}
-.reveal-armed .route-card[data-shown] .route-stop {animation:route-stop .18s var(--ease-machine) forwards;animation-delay:calc(var(--i) * var(--hop) + 350ms)}
-.reveal-armed .route-card[data-shown] .route-stop-ring {animation:route-ring .18s var(--ease-out) forwards;animation-delay:calc(var(--i) * var(--hop) + 400ms)}
-@keyframes route-hop {to{stroke-dashoffset:0}}
-@keyframes route-stop {from{opacity:0;transform:scale(.2)}to{opacity:1;transform:none}}
-@keyframes route-ring {0%{opacity:.9;transform:scale(1)}100%{opacity:0;transform:scale(2.8)}}
-/* Results: passport stamps, inked at an angle, landing one by one. */
-.passport {margin-top:22px}
-.passport-stamps {display:flex;flex-wrap:wrap;gap:12px 14px;margin-top:10px}
-.passport-stamp {--ink:var(--color-accent);display:grid;justify-items:center;gap:1px;min-width:92px;padding:9px 12px 8px;border:2px solid var(--ink);border-radius:0;box-shadow:inset 0 0 0 3px var(--color-bg),inset 0 0 0 4px color-mix(in oklab,var(--ink) 55%,transparent);color:var(--ink);transform:rotate(var(--tilt));opacity:.92}
-.passport-code {font-family:var(--font-display);font-size:22px;font-weight:700;line-height:1;letter-spacing:.04em}
-.passport-name {font-size:9px;font-weight:600;letter-spacing:.16em;text-transform:uppercase;max-width:120px;text-align:center}
-.passport-date {font-size:8px;letter-spacing:.14em;opacity:.75}
-.reveal-armed .passport .passport-stamp {opacity:0}
-.reveal-armed .passport[data-shown] .passport-stamp {animation:stamp-in .18s var(--ease-machine) forwards;animation-delay:calc(var(--i) * 140ms + 250ms)}
-@keyframes stamp-in {0%{opacity:0;transform:rotate(var(--tilt)) scale(1.9)}60%{opacity:.95;transform:rotate(var(--tilt)) scale(.94)}100%{opacity:.92;transform:rotate(var(--tilt)) scale(1)}}
-.reveal-armed [data-reveal] {opacity:0;transform:translateY(6px);transition:opacity .18s var(--ease-machine),transform .18s var(--ease-machine);transition-delay:calc(var(--i,0) * 40ms)}
-.reveal-armed [data-reveal][data-shown] {opacity:1;transform:none}
-@keyframes dot-ping {0%{opacity:.9;transform:scale(.6)}80%,100%{opacity:0;transform:scale(2)}}
-
-/* The flight path: draws in once, then a pin keeps making the trip. */
-
-@keyframes route-draw {to{stroke-dashoffset:0}}
-@keyframes route-fade {from{opacity:0}}
-
-/* ───────────────────────── Screen transitions ───────────────────────── */
-::view-transition-old(root) {animation:screen-out .18s cubic-bezier(.4,0,1,1) both}
-::view-transition-new(root) {animation:screen-in .18s cubic-bezier(0,0,.2,1) .06s both}
-@keyframes screen-out {to{opacity:0;transform:scale(.985)}}
-@keyframes screen-in {from{opacity:0;transform:translateY(14px)}}
-html.reduce-motion::view-transition-old(root),html.reduce-motion::view-transition-new(root) {animation:none}
-@media (prefers-reduced-motion: reduce) {::view-transition-old(root),::view-transition-new(root) {animation:none}}
-
-/* ───────────────────────── Round intro title card ───────────────────────── */
-
-/* The dotted Earth behind the title card turns toward the atlas in play. */
-.dot-globe {display:block;pointer-events:none}
-.lobby-globe {position:absolute;top:-70px;right:-120px;width:min(440px,110vw);aspect-ratio:1;opacity:.55;animation:fade-in .18s var(--ease-out) backwards}
-@media (min-width: 900px) {.lobby-globe {top:50%;right:-9vw;width:min(600px,44vw);transform:translateY(-50%);opacity:.75}}
-/* A new photo arrives out of focus and pulls sharp (filter on the image only,
-   never on text). */
-.scene-plate {transition:opacity .18s var(--ease-out),filter .18s var(--ease-out)}
-.scene-plate.is-loading {filter:blur(18px) saturate(.6) brightness(1.15)}
-.reduce-motion .scene-plate.is-loading {filter:none}
-@keyframes fade-in {from{opacity:0}}
-@keyframes ring-draw {to{stroke-dashoffset:0}}
-@keyframes number-pop {from{opacity:0;transform:scale(.4)}}
-@keyframes chip-in {from{opacity:0;transform:translateY(10px)}}
-/* Reduced motion: a still card; only the hold ring still fills (it is information). */
-
-/* ───────────────────────── In-round motion ───────────────────────── */
-/* One sweep of light across a plate as it develops in. */
-/* Reveal: a comet leads each arc to the answer; yours lands with a burst. */
-.atlas-comet {pointer-events:none}
-.atlas-comet i {position:absolute;left:-4px;top:-4px;width:8px;height:8px;background:#ff5500;outline:1px solid #000}
-.atlas-comet.is-opp i {background:#000}
-.atlas-impact {pointer-events:none}
-.atlas-impact i {position:absolute;left:-10px;top:-10px;width:20px;height:20px;border-radius:0;border:2px solid var(--color-accent);opacity:0;animation:impact-ring .18s var(--ease-out) forwards}
-.atlas-impact i + i {border-color:#000;animation-delay:.12s}
-@keyframes impact-ring {0%{opacity:1;transform:scale(.4)}100%{opacity:0;transform:scale(3.6)}}
-/* The lens over the photo. Opacity and transform only. */
-.scene-atmos {position:absolute;inset:0;z-index:2;pointer-events:none;overflow:hidden}
-.scene-atmos::before {content:"";position:absolute;inset:0;background:radial-gradient(ellipse 78% 72% at 50% 46%,transparent 58%,#04080cb3 100%);transition:opacity .18s var(--ease-out)}
-.scene-atmos.is-calm::before {opacity:.4}
-.scene-grain {position:absolute;inset:-60px;opacity:.06;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 .9 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");animation:none}
-@keyframes grain-shift {0%{transform:translate(0,0)}20%{transform:translate(-22px,14px)}40%{transform:translate(18px,-26px)}60%{transform:translate(-12px,-8px)}80%{transform:translate(26px,20px)}100%{transform:translate(0,0)}}
-.scene-tension {position:absolute;inset:0;opacity:0;background:radial-gradient(ellipse 72% 66% at 50% 46%,transparent 50%,#d0402ecc 100%);transform:scale(1.12);transition:opacity .18s var(--ease-out)}
-.scene-atmos.is-urgent .scene-tension {opacity:calc(.3 + var(--tension) * .6);animation:none}
-@keyframes tension-beat {0%{transform:scale(1.12)}14%{transform:scale(1.0)}30%{transform:scale(1.06)}42%{transform:scale(1.01)}100%{transform:scale(1.12)}}
-/* Locking in: a camera shutter blinks over the photo. */
-.scene-flash {position:absolute;inset:0;z-index:46;pointer-events:none;background:radial-gradient(ellipse at 50% 50%,#fffef2 0%,#fffef2aa 45%,transparent 80%);opacity:0;animation:scene-flash .18s var(--ease-out)}
-@keyframes scene-flash {0%{opacity:0}12%{opacity:.5}100%{opacity:0}}
-.reduce-motion .scene-grain,.reduce-motion .scene-flash {display:none}
-@media (prefers-reduced-motion: reduce) {.scene-grain,.scene-flash {display:none}}
-/* The loupe: a magnifier over the photo, from the sharpest plate there is.
-   On touch it floats above the finger so the finger does not hide it. */
-.scene-loupe {position:absolute;z-index:16;width:168px;height:168px;margin:-84px 0 0 -84px;border-radius:50%;pointer-events:none;background-color:#000;background-repeat:no-repeat;border:1px solid #fff;box-shadow:inset 0 0 0 1px #000;animation:loupe-in .14s linear}
-.scene-loupe.is-touch {margin-top:-210px}
-.scene-loupe::after {content:"";position:absolute;left:50%;top:50%;width:10px;height:10px;margin:-5px 0 0 -5px;border-radius:0;border:1px solid var(--color-accent)}
-@keyframes loupe-in {from{opacity:0}}
-.scene-controls button.is-on {background:var(--color-accent);color:var(--color-accent-fg)}
-.scene-views {display:inline-flex;align-items:center;gap:0;margin-left:2px;padding-left:4px;border-left:1px solid #ffffff26}
-.scene-views-count {min-width:30px;text-align:center;font-size:12px;font-variant-numeric:tabular-nums;color:var(--color-fg)}
-/* Stepping to another viewpoint: a light passes across, like walking on. */
-.scene-walk {position:absolute;inset:0;z-index:2;pointer-events:none;background:#ffffff14;border-left:1px solid #fff;transform:translateX(-100%);animation:scene-walk .18s linear forwards}
-@keyframes scene-walk {to{transform:translateX(100%)}}
-.reduce-motion .scene-walk {display:none}
-.scene-sheen {position:absolute;inset:0;z-index:1;pointer-events:none;background:none;transform:translateX(-100%);animation:none}
-@keyframes scene-sheen {to{transform:translateX(100%)}}
-/* Your pin: a ring spreads each time it lands. */
-.atlas-pin-ripple {position:absolute;left:50%;top:50%;width:16px;height:16px;margin:-8px 0 0 -8px;border-radius:999px;border:2px solid var(--color-accent);pointer-events:none;animation:pin-ripple .18s cubic-bezier(.2,.8,.2,1) forwards}
-@keyframes pin-ripple {from{opacity:.95;transform:scale(1)}to{opacity:0;transform:scale(4.2)}}
-/* Last ten seconds: the clock beats once a second and its ring glows. */
-.timer-beat {display:inline-block;animation:timer-beat .18s var(--ease-machine)}
-@keyframes timer-beat {30%{transform:scale(1.14)}}
-.timer-urgent {filter:drop-shadow(0 0 6px color-mix(in oklab,var(--color-danger) 70%,transparent));animation:none}
-@keyframes timer-glow {50%{filter:drop-shadow(0 0 1px transparent)}}
-/* Locked in: a ring and a check draw themselves, then the stamp clears. */
-.lock-stamp {position:absolute;left:50%;top:max(28%,9rem);z-index:35;display:flex;flex-direction:column;align-items:center;gap:8px;pointer-events:none;transform:translateX(-50%);animation:stamp-life .18s var(--ease-out) forwards}
-.lock-stamp svg {width:76px;height:76px;padding:6px;border-radius:0;background:#000;box-shadow:none}
-.lock-stamp-ring {fill:none;stroke:var(--color-accent);stroke-width:3;stroke-dasharray:1;stroke-dashoffset:1;transform:rotate(-90deg);transform-origin:32px 32px;animation:ring-draw .18s cubic-bezier(.65,0,.35,1) forwards}
-.lock-stamp-check {fill:none;stroke:var(--color-accent);stroke-width:5;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:1;stroke-dashoffset:1;animation:ring-draw .18s cubic-bezier(.65,0,.35,1) .35s forwards}
-.lock-stamp p {padding:4px 12px;border-radius:0;background:var(--color-accent);color:var(--color-accent-fg);font-size:11px;font-weight:700;letter-spacing:.18em;text-transform:uppercase;animation:stamp-word .18s var(--ease-machine) .45s backwards}
-@keyframes stamp-life {0%{opacity:0;transform:translateX(-50%) scale(.7)}14%{opacity:1;transform:translateX(-50%) scale(1.04)}22%{transform:translateX(-50%) scale(1)}80%{opacity:1}100%{opacity:0;transform:translateX(-50%) translateY(-10px)}}
-@keyframes stamp-word {from{opacity:0;transform:scale(1.6)}}
-/* Waiting on the other player: three dots that breathe. */
-.waiting-chip {animation:chip-in .18s var(--ease-smooth-out) backwards}
-/* The clock steps once a second; the ring glides between steps. */
-.timer-progress {transition:stroke-dashoffset 1s linear,color .3s}
-.waiting-dots {display:inline-flex;gap:3px}
-.waiting-dots i {width:4px;height:4px;border-radius:0;background:var(--color-accent);animation:dot-breathe 1.1s ease-in-out infinite}
-.waiting-dots i:nth-child(2) {animation-delay:.15s}
-.waiting-dots i:nth-child(3) {animation-delay:.3s}
-@keyframes dot-breathe {0%,100%{opacity:.25;transform:translateY(0)}40%{opacity:1;transform:translateY(-3px)}}
-/* The lobby's empty seat: a dashed ring that keeps pinging until someone sits. */
-.lobby-seat {position:relative;display:grid;place-items:center;width:40px;height:40px;flex-shrink:0;border-radius:999px;border:1.5px dashed var(--color-border)}
-.lobby-ghost {opacity:.5}
-.lobby-seat::after {content:"";position:absolute;inset:-1px;border-radius:inherit;border:1.5px solid var(--color-accent);opacity:0;animation:none}
-
-/* ───────────────────────── Final results ───────────────────────── */
-.result-avatar-pop {animation:number-pop .18s var(--ease-machine) .1s backwards}
-.result-avatar-pop::after {content:"";position:absolute;inset:-5px;border-radius:999px;border:2px solid var(--color-accent);pointer-events:none;animation:none}
-.rematch-nudge {animation:none}
-
-/* ───────────────────────── Player bots ───────────────────────── */
-/* Faces: two rounded strokes. Mood sets their angle; transitions spring. */
-.avatar .av-eye {transform-box:fill-box;transform-origin:center;transform:rotate(14deg);transition:transform .38s var(--ease-machine)}
-.avatar.mood-happy .av-eye-l {transform:rotate(30deg) scaleY(.82) translateY(-4%)}
-.avatar.mood-happy .av-eye-r {transform:rotate(-30deg) scaleY(.82) translateY(-4%)}
-.avatar.mood-sad .av-eye-l {transform:rotate(-26deg) scaleY(.9) translateY(8%)}
-.avatar.mood-sad .av-eye-r {transform:rotate(26deg) scaleY(.9) translateY(8%)}
-.avatar.mood-surprised .av-eye {transform:scale(1.35,.62)}
-.avatar.mood-focus .av-eye {transform:rotate(0) scale(.95,.38) translateY(30%)}
-.avatar .av-look {transform:translate(var(--lx,0),var(--ly,0));transition:transform .25s var(--ease-out)}
-.avatar .av-blink,.avatar .av-glance,.avatar .av-body,.avatar .av-pop {transform-box:fill-box;transform-origin:center}
-.avatar .av-body {transform-origin:50% 100%}
-/* Live bots breathe, blink on their own rhythm, and glance around. */
-.avatar-live .av-body {animation:av-breathe var(--breathe-dur,3.6s) ease-in-out infinite}
-.avatar-live .av-blink {animation:av-blink var(--blink-dur,4.5s) ease-in-out var(--blink-delay,0s) infinite}
-.avatar-live .av-glance {animation:av-glance var(--glance-dur,12s) ease-in-out var(--glance-delay,0s) infinite}
-.avatar-live .av-pop.is-popping {animation:av-pop .6s var(--ease-machine)}
-@keyframes av-breathe {50%{transform:scale(1.025,.975)}}
-@keyframes av-blink {0%,91%,100%{transform:scaleY(1)}94%{transform:scaleY(.08)}97%{transform:scaleY(1)}}
-@keyframes av-glance {0%,18%,100%{transform:translate(0,0)}24%,38%{transform:translate(2.6px,-.6px)}44%,58%{transform:translate(0,0)}64%,76%{transform:translate(-2.6px,.4px)}82%{transform:translate(0,0)}}
-@keyframes av-pop {0%{transform:scale(.5) rotate(-16deg)}55%{transform:scale(1.12) rotate(5deg)}80%{transform:scale(.96) rotate(-2deg)}100%{transform:none}}
-/* Watching you: while you move, the eyes lock on and the idle glance rests. */
-.avatar.is-watching .av-glance {animation:none}
-.avatar .av-hop {transform-box:fill-box;transform-origin:50% 100%}
-.avatar-live .av-hop.is-hopping {animation:av-hop .55s var(--ease-machine)}
-@keyframes av-hop {30%{transform:translateY(-14%) scale(1.05,.95)}62%{transform:translateY(0) scale(.95,1.06)}82%{transform:scale(1.02,.98)}}
-/* Thinking: eyes narrow to dots, look up and dart side to side. */
-.avatar.mood-thinking .av-eye {transform:rotate(0) scale(1,.48)}
-.avatar.mood-thinking .av-look {transform:translate(-1.6px,-2.6px)}
-.avatar-live.mood-thinking .av-glance {animation:av-think 2.6s ease-in-out infinite}
-@keyframes av-think {0%,100%{transform:translate(0,0)}30%,45%{transform:translate(3.2px,0)}70%,85%{transform:translate(-.6px,.4px)}}
-/* Waiting: the eyes give way to three round dots that type, like a message
-   on its way. */
-.avatar .av-dot {transform-box:fill-box;transform-origin:center;transform:scale(0);opacity:0;transition:transform .3s var(--ease-machine),opacity .2s}
-.avatar.mood-waiting .av-eye {transform:rotate(0) scale(.2);opacity:0;transition:transform .2s,opacity .15s}
-.avatar.mood-waiting .av-dot {transform:scale(1);opacity:1}
-.avatar.mood-waiting .av-look {transform:none}
-.avatar-live.mood-waiting .av-glance,.avatar-live.mood-waiting .av-blink {animation:none}
-.avatar-live.mood-waiting .av-dot {animation:av-type 1.05s ease-in-out infinite}
-.avatar-live.mood-waiting .av-dot.is-m {animation-delay:.15s}
-.avatar-live.mood-waiting .av-dot.is-r {animation-delay:.3s}
-@keyframes av-type {0%,60%,100%{translate:0 0;opacity:.5}30%{translate:0 -3.4px;opacity:1}}
-/* A wink: one eye closes, the other smiles. */
-.avatar.mood-wink .av-eye-l {transform:rotate(30deg) scaleY(.82) translateY(-4%)}
-.avatar.mood-wink .av-eye-r {transform:rotate(-8deg) scale(1.1,.14) translateY(30%)}
-/* Dozing: lids drop, breathing slows, a couple of z's float up. */
-.avatar .av-zz {opacity:0;pointer-events:none}
-.avatar .av-zz text {font:700 9px/1 var(--font-sans,system-ui);fill:var(--color-muted)}
-.avatar.is-sleepy .av-eye {transform:rotate(0) scale(1.1,.16) translateY(85%)}
-.avatar.is-sleepy .av-glance,.avatar.is-sleepy .av-blink {animation:none}
-.avatar-live.is-sleepy .av-body {animation-duration:6.5s}
-.avatar-live.is-sleepy .av-zz {opacity:1}
-.avatar-live.is-sleepy .av-zz text {animation:av-zz 3.2s ease-in-out infinite}
-.avatar-live.is-sleepy .av-zz text + text {animation-delay:1.6s}
-@keyframes av-zz {0%{opacity:0;transform:translate(0,4px)}25%{opacity:1}100%{opacity:0;transform:translate(5px,-8px)}}
-/* Surprised bots jolt; happy ones bounce their eyes. */
-.avatar-live.mood-surprised .av-look {animation:av-jolt .5s var(--ease-machine)}
-@keyframes av-jolt {30%{transform:translate(var(--lx,0),calc(var(--ly,0px) - 2px)) scale(1.08)}}
-.avatar-live.mood-happy .av-glance {animation:av-cheer 1.8s ease-in-out infinite}
-@keyframes av-cheer {0%,100%{transform:translateY(0)}20%{transform:translateY(-1.4px)}40%{transform:translateY(0)}55%{transform:translateY(-.8px)}70%{transform:translateY(0)}}
-
-/* Builder: bodies in the current colour, then colours, then shuffle. */
-/* Duel setup: you, then three rivals as cards. Two slow orbits (a lime and
-   an orange traveller) circle behind it. */
-/* Duel setup: you, then the rivals as rows in one ruled list. */
 .duel-card,.duel-mode {border:1px solid var(--color-rule);background:var(--color-bg);padding:12px}
 .duel-avatar-button {flex-shrink:0;border-radius:999px}
-.duel-edit {display:inline-flex;align-items:center;gap:6px;height:44px;flex-shrink:0;padding:0 12px;border:1px solid var(--color-rule);font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--color-fg);transition:background-color .12s linear}
+.duel-edit {display:inline-flex;align-items:center;gap:6px;height:44px;flex-shrink:0;padding:0 12px;border:1px solid var(--color-rule);font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--color-fg)}
 .duel-edit:hover {background:var(--color-bg-subtle)}
 .duel-edit.is-on {background:var(--color-accent);color:var(--color-accent-fg)}
-.duel-mode {display:block;width:100%;text-align:left;transition:background-color .12s linear}
+.duel-mode {display:block;width:100%;text-align:left}
 .duel-mode + .duel-mode,.duel-mode + section.duel-mode {margin-top:-1px!important}
 button.duel-mode,.duel-mode-head {display:flex;align-items:center;gap:12px;width:100%}
 button.duel-mode:hover,.duel-mode:has(.duel-mode-head:hover) {background:var(--color-bg-subtle)}
@@ -1063,227 +620,24 @@ button.duel-mode:hover,.duel-mode:has(.duel-mode-head:hover) {background:var(--c
 .duel-mode-art {display:grid;place-items:center;width:48px;height:48px;flex-shrink:0;border:1px solid var(--color-border)}
 .duel-mode-art.is-pair {display:flex;align-items:center;justify-content:center}
 .duel-mode-art.is-pair > :last-child {margin-left:-10px}
-.duel-mode-go {flex-shrink:0;color:var(--color-fg);transition:color .12s linear}
+.duel-mode-go {flex-shrink:0;color:var(--color-fg)}
 button.duel-mode:hover .duel-mode-go {color:var(--color-accent)}
 .duel-mode.is-open .duel-mode-go {transform:rotate(180deg)}
-.duel-collapse {display:grid;grid-template-rows:0fr;transition:grid-template-rows .18s var(--ease-machine)}
+.duel-collapse {display:grid;grid-template-rows:0fr}
 .duel-collapse.is-open {grid-template-rows:1fr}
 .avatar-builder {display:flex;flex-direction:column;align-items:center;gap:12px}
 .avatar-builder-row {display:grid;justify-content:center;gap:8px}
 .avatar-builder-row:has(.avatar-shape) {grid-template-columns:repeat(4,44px)}
 .avatar-builder-row:has(.avatar-swatch) {grid-template-columns:repeat(6,28px);gap:10px 12px}
-.avatar-shape {display:grid;place-items:center;width:44px;height:44px;border:1px solid transparent;background:var(--color-bg-subtle);transition:background-color .12s linear,border-color .12s linear}
+.avatar-shape {display:grid;place-items:center;width:44px;height:44px;border:1px solid transparent;background:var(--color-bg-subtle)}
 .avatar-shape:hover {border-color:var(--color-border)}
 .avatar-shape.is-on {border-color:var(--color-rule);background:var(--color-bg)}
 .avatar-swatch {width:28px;height:28px;background:var(--swatch);box-shadow:inset 0 0 0 1px #0002}
 .avatar-swatch.is-on {outline:2px solid var(--color-rule);outline-offset:3px}
-.avatar-shuffle {display:inline-flex;align-items:center;gap:6px;min-height:36px;padding:0 12px;border:1px solid var(--color-rule);font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--color-fg);transition:background-color .12s linear}
+.avatar-shuffle {display:inline-flex;align-items:center;gap:6px;min-height:36px;padding:0 12px;border:1px solid var(--color-rule);font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--color-fg)}
 .avatar-shuffle:hover {background:var(--color-bg-subtle)}
 
-/* Photo hint: the arrows nudge the way the photo reaches past the frame. */
-.scene-hint-arrows {display:inline-flex;color:var(--color-accent)}
-.scene-hint-arrows.is-wide {animation:none}
-.scene-hint-arrows.is-tall {animation:none}
-@keyframes hint-sway-x {50%{transform:translateX(3px)}}
-@keyframes hint-sway-y {50%{transform:translateY(3px)}}
-
-/* ───────────────────────── Touch targets ───────────────────────── */
-/* An invisible 44px hit area around small controls, without resizing them. */
-.hit-44 {position:relative}
-.hit-44::after {content:"";position:absolute;inset:-2px}
-.settings-toggle.is-clickable {cursor:pointer}
-@media (pointer: coarse) {
-  .leaflet-touch .leaflet-control-zoom.leaflet-bar a {width:44px;height:44px;line-height:44px;font-size:20px}
-  .scene-explorer-controls.scene-controls button,.scene-controls button {width:42px;height:42px}
-  .avatar-swatch {position:relative}
-  .avatar-swatch::after {content:"";position:absolute;inset:-7px;border-radius:0}
-  input[type="range"] {height:32px;background:linear-gradient(var(--color-bg-subtle),var(--color-bg-subtle)) center / 100% 6px no-repeat}
-  input[type="range"]::-webkit-slider-thumb {width:26px;height:26px}
-  .settings-switch {position:relative}
-  .settings-switch::after {content:"";position:absolute;inset:-9px -4px}
-}
-
-/* ───────────────────────── Phone HUD ───────────────────────── */
-.tally-in-dot {display:none}
-@media (max-width: 640px), (orientation: landscape) and (max-height: 520px) {
-  /* Everything fits on a 360–390px screen: icon-only Explore, a name-free
-     duel tally (the bots tell players apart), buttons that never shrink.
-     Landscape phones too: a full-size tally reached down under the map. */
-  .match-hud > div:last-child {gap:6px}
-  .match-hud .view-mode-button {width:44px;min-height:44px;height:44px;padding:0;border-radius:0}
-  .match-hud .view-mode-label {position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
-  .match-hud .score-tally {min-width:0;padding:5px 9px}
-  .match-hud .score-tally .tally-name-line {display:none}
-  .match-hud .score-tally [role=listitem] {gap:7px;padding:2px 0}
-  .match-hud .tally-in-dot {display:inline-block;width:6px;height:6px;border-radius:0;background:var(--color-accent);align-self:center}
-  .match-hud .music-bars {height:12px}
-}
-@media (max-width: 640px) {
-  .match-hud [role=timer] {gap:8px}
-  .match-hud [role=timer] svg {width:38px;height:38px}
-  .match-hud [role=timer] > span {font-size:26px}
-}
-@media (max-width: 374px) {
-  .match-hud .hud-score-label {display:none}
-  .match-hud {padding-inline:8px}
-}
-
-/* Reveal map: pin labels on small dark pills so they read over anything,
-   and the map's own country names step back so they stop colliding. */
-.atlas-pin-label {padding:1px 6px;border-radius:0;background:#000;line-height:1.5;text-shadow:none}
-.is-reveal .atlas-country-label,.is-reveal .atlas-province-label,.is-reveal .atlas-city-label {opacity:.32;transition:opacity .18s}
-/* On touch screens the reveal map is pinch-zoomable; its +/- would only
-   cover pins in the corner. */
-@media (pointer: coarse) {.is-reveal .leaflet-control-zoom {display:none}}
-
-/* Landscape phones: too short to stack the card over the map, so the reveal
-   goes side by side — the card on the left, the map on the right. */
-@media (orientation: landscape) and (max-height: 520px) {
-  .reveal-dock {top:10px;bottom:10px;right:50%;justify-content:center}
-  .reveal-card {max-height:100%}
-  .map-dock.is-reveal:not(.is-expanded) {left:calc(50% + 4px);right:12px;top:64px;bottom:10px;height:auto}
-  .round-splash {right:50%;bottom:0}
-}
-
-/* ── Cosmos round ──────────────────────────────────────────────────────────
-   The scene is a live motion graphic; the map is a ruler of distance from
-   the Sun along the bottom. The ruler needs less height than a map, so the
-   scene gets the room. */
-.match-stage.is-cosmos {--atlas-map-h: 232px; --atlas-map-reveal-h: 236px}
-@media (max-width: 640px) {.match-stage.is-cosmos {--atlas-map-h: 236px; --atlas-map-reveal-h: 232px}}
-.match-stage.is-cosmos .scene-viewport {bottom:calc(var(--atlas-map-h) + max(0.75rem,env(safe-area-inset-bottom)))}
-.match-stage.is-cosmos.is-revealing .scene-viewport {bottom:calc(var(--atlas-map-reveal-h) + max(0.75rem,env(safe-area-inset-bottom)))}
-.match-stage.is-cosmos.is-exploring .scene-viewport {bottom:0}
-.cosmos-clue {position:absolute;left:12px;bottom:12px;z-index:5;max-width:min(30rem,calc(100% - 24px));margin:0;padding:8px 12px 9px;border:1px solid #ffffff1f;border-radius:0;background:#03050acc;backdrop-filter:none;animation:cosmos-clue-in .18s var(--ease-out) .9s both}
-.cosmos-clue figcaption {font-size:9px;letter-spacing:.2em;text-transform:uppercase;color:var(--color-accent)}
-.cosmos-clue p {margin-top:2px;font-size:12.5px;line-height:1.4;color:#e8eef0}
-@keyframes cosmos-clue-in {from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
-.cosmos-hint {position:absolute;right:12px;bottom:14px;z-index:5;padding:5px 10px;border-radius:0;background:#03050aaa;font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:#cfd8dc;transition:opacity .18s}
-.cosmos-hint.is-gone {opacity:0}
-@media (max-width: 640px) {.cosmos-hint {display:none}.cosmos-clue p {font-size:11.5px}}
-.cosmos-scene canvas:focus-visible {outline:2px solid var(--color-accent);outline-offset:-2px}
-
-.cosmos-dock {background:#000;border-top:1px solid #2a2a2a;transition:height .18s linear}
-.ruler-body {display:flex;flex-direction:column}
-.ruler-zones,.ruler-ticks {position:relative;height:20px;flex-shrink:0;pointer-events:none}
-.ruler-zones span,.ruler-ticks span {position:absolute;top:50%;transform:translate(-50%,-50%);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.ruler-zones span {font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:var(--color-muted);opacity:.85}
-.ruler-ticks span {font-size:10px;color:#9fb0b6;font-variant-numeric:tabular-nums}
-.ruler-ticks span::before {content:"";position:absolute;left:50%;top:-5px;width:1px;height:5px;background:#ffffff40}
-.ruler-track {position:relative;flex:1;min-height:56px;margin-inline:0;overflow:hidden;touch-action:none;outline:none;border-block:1px solid #ffffff12}
-.ruler-track.is-live {cursor:crosshair}
-.ruler-track:focus-visible {box-shadow:inset 0 0 0 2px var(--color-accent)}
-.ruler-pin {--pin:var(--color-accent);position:absolute;top:0;bottom:0;width:0;pointer-events:none}
-.ruler-pin::before {content:"";position:absolute;top:22px;bottom:0;left:-1px;width:2px;background:linear-gradient(180deg,var(--pin),color-mix(in oklab,var(--pin) 20%,transparent))}
-.ruler-pin::after {content:"";position:absolute;top:50%;left:-6px;width:12px;height:12px;margin-top:-6px;border-radius:50%;background:var(--pin);box-shadow:0 0 0 3px #05080fcc}
-.ruler-pin-label {position:absolute;top:3px;left:0;transform:translateX(-50%);max-width:9rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding:1px 7px;border-radius:999px;background:#000;color:var(--pin);font-size:10.5px;font-weight:600;line-height:1.5}
-.ruler-pin.is-opp {--pin:#8fb4ff}
-.ruler-pin.is-truth {--pin:#ffd27a;z-index:2}
-.ruler-pin.is-truth.is-reveal::after {animation:ruler-truth .18s var(--ease-out) .35s both}
-.ruler-pin.is-reveal {animation:ruler-pin-in .18s var(--ease-out) both}
-.ruler-pin.is-truth.is-reveal {animation-delay:.25s}
-@keyframes ruler-pin-in {from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:none}}
-@keyframes ruler-truth {0%{box-shadow:0 0 0 3px #05080fcc,0 0 0 0 #ffd27acc}70%{box-shadow:0 0 0 3px #05080fcc,0 0 0 18px #ffd27a00}100%{box-shadow:0 0 0 3px #05080fcc}}
-.ruler-miss {position:absolute;top:50%;height:8px;margin-top:-4px;border-radius:0;background:var(--color-accent);transform-origin:left;animation:ruler-miss .18s var(--ease-out) .5s both}
-@keyframes ruler-miss {from{transform:scaleX(0)}to{transform:none}}
-.ruler-fit {padding:0 12px;border-radius:0;font-size:11px;font-weight:600;color:var(--color-fg)}
-.ruler-fit:hover {background:#ffffff10}
-@media (orientation: landscape) and (max-height: 520px) {
-  .cosmos-dock.is-reveal {left:calc(50% + 4px);right:12px;top:64px;bottom:10px;height:auto}
-}
-@media (prefers-reduced-motion: reduce) {
-  .cosmos-clue,.ruler-pin.is-reveal,.ruler-pin.is-truth.is-reveal::after,.ruler-miss {animation:none}
-}
-
-/* Guessing map: no towns. A country with one or two dots made the dot the
-   obvious pin; outlines and names still show where you are. The reveal
-   brings the towns back for context. */
-.map-dock:not(.is-reveal) .leaflet-atlas-dots-pane,
-.map-dock:not(.is-reveal) .leaflet-atlas-towns-pane {display:none}
-
-/* Street View rounds. Google's own links would open the place in Google Maps
-   (and name it), so they stay visible for credit but do not open anything. */
-.street-view a[href*="google.com/maps"],.street-view a[href*="maps.google"],.street-view .gm-iv-address,.street-view .gm-style-cc a {pointer-events:none!important}
-.street-view .gm-iv-address {display:none!important}
-.street-view-status {position:absolute;left:50%;top:50%;z-index:3;transform:translate(-50%,-50%);padding:8px 14px;border-radius:0;background:#000;font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--color-muted)}
-.street-view-home {position:absolute;left:12px;bottom:1.25rem;z-index:5;display:inline-flex;align-items:center;gap:6px;height:40px;padding:0 14px;border-radius:0;border:1px solid var(--color-border);background:#000;font-size:13px;font-weight:600;color:var(--color-fg)}
-@media (max-width: 640px) {.street-view-home {bottom:12px}}
-/* The header is a full-width strip with a fade below its content. That
-   strip used to catch clicks: in a duel the two-row score card makes it tall
-   enough to cover this switch, and it blocked dragging the scene along the
-   top. Only the header's own controls take the pointer now. */
-.match-hud {pointer-events:none}
-.match-hud > * {pointer-events:auto}
-.view-source {position:absolute;right:12px;bottom:calc(var(--atlas-map-h) + 1.25rem);z-index:21;display:inline-flex;border:1px solid var(--color-border);border-radius:0;background:#000;padding:3px}
-@media (min-width: 641px) {.view-source {top:calc(var(--atlas-hud-h,72px) + 8px);bottom:auto;left:50%;right:auto;transform:translateX(-50%)}}
-@media (max-width: 640px) {.view-source {top:calc(var(--atlas-hud-h,72px) + 10px);bottom:auto}.street-view-home {bottom:12px}}
-.view-source button {height:34px;padding:0 13px;border-radius:0;font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--color-muted)}
-.view-source button[aria-pressed=true] {background:var(--color-accent);color:var(--color-accent-fg)}
-/* Not found yet, or not here: the side stays, greyed, and says why on hover
-   and to screen readers. */
-.view-source button.is-waiting {opacity:.45;cursor:not-allowed}
-/* The reveal covers the whole scene on phones; on wider screens the switch
-   moves to the clear top-left corner so the card never sits on it. */
-.view-source.is-reveal {display:none}
-@media (min-width: 641px) and (min-height: 521px) {.view-source.is-reveal {display:inline-flex;top:calc(var(--atlas-hud-h,72px) + 8px);left:16px;transform:none}}
-/* Landscape phones: the map covers the middle, so the switch sits in the
-   strip of scene to its left, under the clock. */
-@media (orientation: landscape) and (max-height: 520px) {.view-source {top:calc(var(--atlas-hud-h,72px) + 8px);left:12px;right:auto;bottom:auto;transform:none}}
-
-/* The narrowest phones: music lives in Settings → Sound during a match, so
-   the header keeps Settings itself on screen. */
-@media (max-width: 380px) {.match-hud .hud-actions .music-hud {display:none}}
-/* Landscape phones: the map takes the right half, so the hint sits over the
-   left half where the photo is. */
-@media (orientation: landscape) and (max-height: 520px) {
-  .scene-hint {position:absolute;left:12px;right:auto;max-width:calc(50% - 24px);margin:0}
-}
-/* Short portrait phones (320×568): the photo strip is a few lines tall and
-   the switch and controls already sit on it, so the gesture hint gives way. */
-@media (orientation: portrait) and (max-width: 640px) and (max-height: 640px) {.scene-hint {display:none}}
-/* Street View arrives softly instead of popping in tile by tile. */
-.street-view-pano {opacity:0;transition:opacity .18s var(--ease-out)}
-/* Behind the photo: still loaded, out of sight and out of reach. */
-.street-view.is-hidden {visibility:hidden;pointer-events:none}
-.street-view-pano.is-ready {opacity:1}
-.street-view-status {animation:sv-breathe 1.6s ease-in-out infinite}
-/* Shown only if the photo takes a moment: fades in after 0.6 s, so a fast
-   load never flashes it. */
-.scene-loading {position:absolute;left:50%;top:50%;z-index:3;transform:translate(-50%,-50%);margin:0;padding:8px 14px;border-radius:0;background:#000;font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--color-muted);pointer-events:none;opacity:0;animation:scene-loading-in .3s ease-out .6s forwards, sv-breathe 1.6s ease-in-out .9s infinite}
-@keyframes scene-loading-in {to{opacity:1}}
-@media (prefers-reduced-motion: reduce) {.scene-loading{animation:scene-loading-in .01s linear .6s forwards}}
-@keyframes sv-breathe {0%,100%{opacity:.55}50%{opacity:1}}
-@media (prefers-reduced-motion: reduce) {.street-view-pano{transition:none}.street-view-status{animation:none}}
-html.reduce-motion .street-view-pano {transition:none}
-html.reduce-motion .street-view-status {animation:none}
-html.reduce-motion .scene-loading {animation:scene-loading-in .01s linear .6s forwards}
-.street-view-hint {position:absolute;left:50%;bottom:1.25rem;z-index:4;display:inline-flex;align-items:center;gap:8px;transform:translateX(-50%);max-width:calc(100% - 24px);padding:7px 14px;border-radius:0;background:#000;font-size:12px;color:var(--color-fg);white-space:nowrap;pointer-events:none;animation:sv-hint-in .5s var(--ease-out) .4s both, sv-hint-out .6s ease-in 7s forwards}
-.street-view-hint svg {color:var(--color-accent)}
-@keyframes sv-hint-in {from{opacity:0;transform:translate(-50%,6px)}to{opacity:1;transform:translate(-50%,0)}}
-@keyframes sv-hint-out {to{opacity:0}}
-@media (max-width: 640px) {.street-view-hint {bottom:60px;font-size:11px}}
-html.reduce-motion .street-view-hint {animation:sv-hint-out .01s linear 7s forwards}
-@media (prefers-reduced-motion: reduce) {.street-view-hint,.scene-swap-notice {animation:none}}
-.scene-swap-notice {position:absolute;left:50%;top:calc(var(--atlas-hud-h,72px) + 12px);z-index:16;width:max-content;max-width:calc(100% - 32px);transform:translateX(-50%);padding:9px 16px;border-radius:0;border:1px solid var(--color-border);background:#000;font-size:13px;line-height:1.4;text-align:center;color:var(--color-fg);box-shadow:none;animation:sv-hint-in .18s var(--ease-out) both}
-.street-view-missing {position:absolute;inset:0;display:grid;place-content:center;gap:6px;padding:24px;text-align:center;background:#000}
-.street-view-missing p:first-child {font-family:var(--font-display);font-size:20px;color:var(--color-fg)}
-.street-view-missing p:last-child {font-size:13px;color:var(--color-muted)}
-
-/* Results: each round of a long match folds into one line. */
-.result-round {border:1px solid var(--color-border);border-radius:0;background:color-mix(in oklab,var(--color-bg) 60%,transparent)}
-.result-round > summary {display:flex;align-items:center;gap:10px;min-height:48px;padding:10px 12px;cursor:pointer;list-style:none;border-radius:inherit}
-.result-round > summary::-webkit-details-marker {display:none}
-.result-round > summary::after {content:"";width:8px;height:8px;margin-left:4px;border-right:2px solid var(--color-muted);border-bottom:2px solid var(--color-muted);transform:rotate(45deg) translateY(-2px);transition:transform .18s var(--ease-out)}
-.result-round[open] > summary::after {transform:rotate(-135deg) translateY(-2px)}
-.result-round[open] > summary {border-bottom:1px solid var(--color-border);border-bottom-left-radius:0;border-bottom-right-radius:0}
-.result-round > div {padding:0 8px 8px}
-.result-round-name {font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:var(--color-fg)}
-
-/* Online: the guest has heard nothing from the host for a while. */
-.host-silent {position:absolute;left:50%;top:calc(var(--atlas-hud-h,72px) + 12px);z-index:40;display:flex;align-items:center;gap:12px;width:max-content;max-width:calc(100% - 32px);transform:translateX(-50%);padding:10px 12px 10px 16px;border-radius:0;border:1px solid var(--color-danger);background:#140d10f2;font-size:13px;line-height:1.4;color:var(--color-fg);box-shadow:none}
-.host-silent button {flex-shrink:0;min-height:40px;padding:0 14px;border-radius:0;border:1px solid var(--color-border);font-weight:600;font-size:12px}
-@media (max-width: 480px) {.host-silent {flex-direction:column;align-items:stretch;text-align:center}}
-.rematch-note {margin-top:24px;margin-bottom:-12px;padding:10px 14px;border-radius:0;border:1px solid color-mix(in oklab,var(--color-accent) 45%,transparent);background:color-mix(in oklab,var(--color-accent) 10%,transparent);font-size:14px;color:var(--color-fg);text-align:center}
+/* ── Settings → Picture: Street View refused ── */
 
 /* Settings → Picture: Street View refused, why, and a retry. */
 .street-view-refused {display:grid;gap:10px;padding:12px 14px;border:1px solid color-mix(in oklab,var(--color-danger) 55%,transparent);background:color-mix(in oklab,var(--color-danger) 8%,transparent);border-radius:0;font-size:12px;line-height:1.55;color:var(--color-muted)}
@@ -1291,108 +645,19 @@ html.reduce-motion .street-view-hint {animation:sv-hint-out .01s linear 7s forwa
 .street-view-refused code {justify-self:start;padding:2px 8px;border-radius:0;background:var(--color-bg-subtle);font-family:var(--font-mono);font-size:11px;color:var(--color-fg)}
 .street-view-refused button {justify-self:start;min-height:40px;padding:0 16px;border-radius:0;border:1px solid var(--color-rule);background:var(--color-bg);font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--color-fg)}
 
-/* Winner moment: the end of every round (winner-moment.tsx). Rays turn and a
-   flash goes off behind the splash, confetti fires from both lower corners,
-   the winner's name slams in with a shake, a crown drops onto their avatar;
-   solo rounds stamp in stars. Transforms and opacity only. */
-.round-splash > .splash-inner {position:relative;z-index:1}
-/* Room above the players for the crown that drops onto the winner. */
-.round-splash .splash-duel {margin-top:28px}
-/* Scoped under the banner: the older ".splash-headline span" word rule would
-   otherwise make the row inline-block and stack the stars. */
-
-.round-splash.is-reduced.has-win .splash-inner {animation:none!important}
-
-/* Live round. Locking in: two rings burst from your pin. */
-.atlas-pin-shock {position:absolute;left:50%;top:50%;width:16px;height:16px;margin:-8px 0 0 -8px;border-radius:999px;border:3px solid var(--color-accent);box-shadow:none;pointer-events:none;animation:pin-shock .18s cubic-bezier(.15,.85,.25,1) backwards}
-@keyframes pin-shock {from{opacity:1;transform:scale(.6)}to{opacity:0;transform:scale(6)}}
-/* The last five seconds: one big number a beat, over the scene. */
-.final-count {position:absolute;left:50%;top:46%;z-index:6;font-family:var(--font-display);font-weight:800;font-size:clamp(96px,30vw,190px);line-height:1;color:#fff;-webkit-text-stroke:2px color-mix(in oklab,var(--color-danger) 80%,#fff);text-shadow:none;pointer-events:none;transform:translate(-50%,-50%);animation:final-count 1s cubic-bezier(.2,.9,.3,1) forwards}
-@media (prefers-reduced-motion: reduce) {.final-count{animation:final-count-calm 1s linear forwards}}
-html.reduce-motion .final-count {animation:final-count-calm 1s linear forwards}
-@keyframes final-count-calm {0%,70%{opacity:.8}100%{opacity:0}}
-/* Your rival locks in while you are still thinking. */
-.rival-locked {position:absolute;right:16px;top:calc(var(--atlas-hud-h,72px) + 8px);z-index:22;display:flex;align-items:center;gap:8px;margin:0;padding:4px 14px 4px 4px;border-radius:0;border:1px solid color-mix(in oklab,var(--color-nl) 60%,transparent);background:#1a120cf0;font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--color-fg);box-shadow:none;pointer-events:none;animation:rival-in 2.4s var(--ease-machine) forwards}
-.rival-locked strong {color:var(--color-nl);font-weight:700}
-@keyframes rival-in {0%{opacity:0;transform:translateX(40px) scale(.8)}12%{opacity:1;transform:none}85%{opacity:1;transform:none}100%{opacity:0;transform:translateY(-8px)}}
-@media (prefers-reduced-motion: reduce) {.rival-locked{animation:final-count-calm 2.4s linear forwards}}
-html.reduce-motion .rival-locked {animation:final-count-calm 2.4s linear forwards}
-
-/* Reveal. The round's points fly up into the header score: x and y ease
-   differently, so the path curves. */
-.points-fly {position:fixed;z-index:60;pointer-events:none;animation:points-fly-x .85s cubic-bezier(.5,0,.75,0) .25s both}
-.points-fly-y {display:block;transform:translate(-50%,-50%);padding:4px 12px;border-radius:0;background:var(--color-accent);color:var(--color-accent-fg);font-family:var(--font-display);font-size:18px;font-weight:700;white-space:nowrap;box-shadow:0 0 0 3px color-mix(in oklab,var(--color-accent) 30%,transparent);animation:points-fly-y .85s cubic-bezier(.2,.7,.3,1) .25s both}
-@keyframes points-fly-x {from{transform:translateX(0)}to{transform:translateX(var(--dx))}}
-@keyframes points-fly-y {0%{transform:translate(-50%,-50%) scale(.6);opacity:0}15%{transform:translate(-50%,-50%) scale(1.15);opacity:1}100%{transform:translate(-50%,calc(-50% + var(--dy))) scale(.45);opacity:.3}}
-/* Good guesses in a row. */
-.streak-badge {display:inline-flex;align-items:center;gap:4px;padding:2px 9px 2px 7px;border-radius:0;background:linear-gradient(90deg,#ff7a1a,#ffb21a);color:#1d0d02;font-family:var(--font-sans,inherit);font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;box-shadow:none;animation:streak-in .18s .2s var(--ease-machine) backwards}
-.streak-badge svg {animation:none;transform-origin:50% 90%}
-@keyframes streak-in {from{opacity:0;transform:scale(.5) rotate(-8deg)}}
-@keyframes flame-flicker {0%,100%{transform:scale(1) rotate(-3deg)}35%{transform:scale(1.15,1.05) rotate(4deg)}70%{transform:scale(.95,1.1) rotate(-1deg)}}
-@media (prefers-reduced-motion: reduce) {.streak-badge,.streak-badge svg{animation:none}}
-html.reduce-motion .streak-badge,html.reduce-motion .streak-badge svg {animation:none}
-
-/* Match finale. A duel's winner gets the crown; winning, or beating your
-   record for the match length, sets off the confetti behind the results. */
-/* The grid rules the sheet, then steps back before anyone reads through it. */
-.result-fx {position:fixed;inset:0;z-index:0;pointer-events:none;opacity:.55;animation:result-fx-out .18s linear 1.8s forwards}
-@keyframes result-fx-out {to{opacity:0}}
-.result-crowned {margin-top:34px}
-.best-stamp {align-self:flex-start;display:inline-flex;align-items:center;gap:10px;margin-top:14px;padding:8px 16px 8px 12px;border-radius:0;background:linear-gradient(100deg,#ffd166,#ffb21a);color:#2a1a00;box-shadow:0 0 0 3px #ffd16633;rotate:-2deg;transform-origin:20% 50%;animation:best-stamp .18s 1.6s var(--ease-machine) backwards}
-.best-stamp strong {display:block;font-family:var(--font-display);font-size:17px;line-height:1.1;letter-spacing:.02em;text-transform:uppercase}
-.best-stamp .best-stamp-was {display:block;font-size:12px;opacity:.8}
-.best-stamp svg {flex:none;animation:none}
-@keyframes best-stamp {0%{opacity:0;transform:scale(2.2) rotate(-10deg)}60%{opacity:1;transform:scale(.95) rotate(4deg)}100%{transform:none}}
-@keyframes best-trophy {0%,100%{transform:none}30%{transform:rotate(-14deg) scale(1.2)}60%{transform:rotate(10deg) scale(1.1)}}
-@media (prefers-reduced-motion: reduce) {.best-stamp,.best-stamp svg{animation:none}}
-html.reduce-motion .best-stamp,html.reduce-motion .best-stamp svg {animation:none}
-
-/* Home and menus. The main button catches the light now and then; a picked
-   map or option pops its tick; settings tabs slide one highlight between
-   them and each section eases in. */
-
-.settings-choice.selected svg {animation:tick-pop .15s var(--ease-machine)}
-@keyframes tick-pop {0%{transform:scale(.2) rotate(-35deg)}100%{transform:none}}
+/* ── Settings tabs: one highlight slides between them ── */
 
 .settings-tabs {position:relative}
-.settings-tabs::before {content:"";position:absolute;left:0;top:0;bottom:0;width:25%;background:var(--color-accent);transform:translateX(calc(var(--tab-i,0) * 100%));transition:transform .15s var(--ease-machine)}
+.settings-tabs::before {content:"";position:absolute;left:0;top:0;bottom:0;width:25%;background:var(--color-accent);transform:translateX(calc(var(--tab-i,0) * 100%))}
 .settings-tabs button {position:relative;z-index:1}
 .settings-tabs button[aria-selected=true] {background:transparent;box-shadow:none}
-.settings-content {animation:pane-in .15s var(--ease-machine)}
-@keyframes pane-in {from{opacity:0;transform:translateY(4px)}}
-/* Narrow phones: the selected tab's label no longer touches its edge. */
-@media (max-width:380px) {.settings-tabs {gap:0;padding:0}.settings-tabs button {gap:4px;font-size:11.5px}.settings-tabs button svg {width:14px;height:14px}}
-@media (max-width:340px) {.settings-tabs button svg {display:none}}
 
-/* Duel room. The code flips in letter by letter; the opponent's row slides
-   in with a burst when they sit down, a VS stamp lands between the two, and
-   Start pulses once both are here. */
-.room-code span {display:inline-block;animation:code-flip .18s var(--ease-machine) backwards;animation-delay:calc(var(--i) * 70ms + 150ms);transform-origin:50% 60%}
-@keyframes code-flip {0%{opacity:0;transform:perspective(300px) rotateX(-90deg)}100%{opacity:1;transform:none}}
-.lobby-player {animation:lobby-seat-in .18s var(--ease-machine) backwards;background:color-mix(in oklab,var(--color-bg) 70%,transparent)}
-@keyframes lobby-seat-in {from{opacity:0;transform:translateX(36px) scale(.94)}}
+/* ── Duel room ── */
+
+.lobby-player {background:color-mix(in oklab,var(--color-bg) 70%,transparent)}
 .lobby-player-avatar {position:relative;display:inline-flex}
-.lobby-player + .lobby-player .lobby-player-avatar::after {content:"";position:absolute;inset:-4px;border-radius:999px;border:2px solid var(--color-accent);opacity:0;pointer-events:none;animation:splash-ring .18s var(--ease-out) .25s 2 both}
-.lobby-vs {position:absolute;right:18px;top:50%;z-index:1;display:grid;place-items:center;width:42px;height:42px;margin-top:-21px;border-radius:0;background:var(--color-accent);color:var(--color-accent-fg);font-family:var(--font-display);font-size:15px;font-weight:800;letter-spacing:.02em;box-shadow:0 0 0 4px var(--color-bg);animation:vs-slam .18s .2s var(--ease-machine) backwards}
-@keyframes vs-slam {0%{opacity:0;transform:scale(2.6) rotate(-20deg)}60%{opacity:1;transform:scale(.9) rotate(4deg)}100%{transform:none}}
-.start-ready {animation:none}
-.is-copied svg {animation:tick-pop .18s var(--ease-machine);color:var(--color-accent)}
-/* Landscape phones: the map covers the scene's middle, so the last five
-   seconds count in the strip of scene to its left, sized to the short screen. */
-@media (orientation: landscape) and (max-height: 520px) {
-  .final-count {left:calc((100% - var(--atlas-map-w) - .75rem) / 2);top:52%;font-size:clamp(72px,30vh,130px)}
-}
-/* Landscape phones: the two duel rows sit side by side, so the header stays
-   short enough to clear the map. */
-@media (orientation: landscape) and (max-height: 520px) {
-  .match-hud .score-tally {display:flex;align-items:center;gap:14px}
-  .match-hud .score-tally [role=listitem] {padding:0}
-}
-/* Short landscape phones (360 px tall): the map gives up a few pixels rather
-   than slide under the header buttons. */
-@media (orientation: landscape) and (max-height: 520px) {
-  :root {--atlas-map-h: min(300px, calc(100dvh - 4.5rem))}
-}
+
+/* ── Points on offer and the reveal ledger ── */
 
 /* Points on offer and the reveal ledger. Built to the "system is the
    content" brief: the structure is the ornament (1 px hairline joints, no
@@ -1402,13 +667,12 @@ html.reduce-motion .best-stamp,html.reduce-motion .best-stamp svg {animation:non
 .pot,.ledger {--hair:#333;--ink:#fff;--mute:#8c8c8c;--grot:"Helvetica Neue",Helvetica,Arial,sans-serif;--mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace}
 .pot {display:inline-flex;align-items:stretch;width:fit-content;height:22px;border:1px solid var(--hair);background:#000;color:var(--ink);font-family:var(--grot);font-weight:700;line-height:1}
 .pot-figure {display:flex;align-items:center;gap:4px;padding:0 6px;border-right:1px solid var(--hair);overflow:hidden}
-.pot-value {display:block;min-width:4.6ch;font-family:var(--mono);font-size:12px;font-variant-numeric:tabular-nums;letter-spacing:-.02em;text-align:right;animation:pot-step .15s cubic-bezier(.2,0,0,1)}
-@keyframes pot-step {from{transform:translateY(-70%);opacity:0}}
+.pot-value {display:block;min-width:4.6ch;font-family:var(--mono);font-size:12px;font-variant-numeric:tabular-nums;letter-spacing:-.02em;text-align:right}
 .pot-unit,.pot-next {font-size:8px;letter-spacing:.14em;color:var(--mute)}
 .pot-tiers {display:flex}
-.pot-tiers i {position:relative;width:8px;border-right:1px solid var(--hair);background:#000;overflow:hidden;transition:background-color .12s linear}
+.pot-tiers i {position:relative;width:8px;border-right:1px solid var(--hair);background:#000;overflow:hidden}
 .pot-tiers i.is-next {background:#3a3a3a}
-.pot-tiers i.is-live::after {content:"";position:absolute;inset:0;background:var(--color-accent);transform-origin:bottom;transform:scaleY(var(--drain,1));transition:transform .12s linear}
+.pot-tiers i.is-live::after {content:"";position:absolute;inset:0;background:var(--color-accent);transform-origin:bottom;transform:scaleY(var(--drain,1))}
 .pot-next {display:flex;align-items:center;padding:0 6px;font-family:var(--mono);white-space:nowrap}
 .pot.is-locked .pot-value {color:var(--mute)}
 .pot.is-locked .pot-tiers i.is-live::after {background:var(--mute)}
@@ -1428,155 +692,13 @@ html.reduce-motion .best-stamp,html.reduce-motion .best-stamp svg {animation:non
 @media (max-width: 380px) {.ledger-cell {padding:5px 7px}.ledger-value {font-size:13px}}
 .hud-meta {font-family:"Helvetica Neue",Helvetica,Arial,sans-serif;font-size:10px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;white-space:nowrap;color:var(--color-muted)}
 
-/* Metadata in plain sight: the build, the day, the visitor's zone. */
-.system-meta {display:flex;flex-wrap:wrap;gap:0;margin:0;font-family:var(--font-mono);font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--color-subtle)}
-.system-meta span + span::before {content:"·" / "";margin:0 8px}
+/* ── Section labels ── */
 
-/* ───────────────────────── Home: the index ─────────────────────────
-   A document on white. One black rule frames each section; grey hairlines
-   divide the cells inside it. Sections are numbered like a drawing set. */
-.expedition-home {max-width:1440px;margin:0 auto;padding:0 clamp(16px,3vw,40px)}
-.expedition-nav {display:flex;align-items:center;justify-content:space-between;height:64px;border-bottom:1px solid var(--color-rule)}
-.brand-lockup {display:flex;align-items:center;gap:10px;white-space:nowrap;color:var(--color-fg);font-size:17px;font-weight:700;letter-spacing:.02em;text-transform:uppercase;line-height:1}
-.nav-link {--quote-pull:6px;display:flex;align-items:center;gap:6px;min-height:44px;padding:0 8px;font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--color-fg);white-space:nowrap;transition:color .12s linear}
-.nav-link:hover {color:var(--color-accent)}
-.nav-bot {position:relative;display:grid;place-items:center;width:44px;height:44px}
-.nav-bot-gear {position:absolute;right:0;bottom:2px;display:grid;place-items:center;width:17px;height:17px;background:var(--color-bg);border:1px solid var(--color-rule);color:var(--color-fg)}
-.nav-bot:hover .nav-bot-gear {background:var(--color-accent);border-color:var(--color-accent)}
 .eyebrow,.packs-title .index-no,.expedition-footer {font-family:var(--font-mono)}
 .eyebrow {display:flex;align-items:center;gap:10px;font-size:11px;font-weight:500;letter-spacing:.12em;text-transform:uppercase;color:var(--color-muted)}
 .index-no {display:inline-grid;place-items:center;min-width:2.4em;height:1.9em;padding:0 .4em;border:1px solid var(--color-rule);font-family:var(--font-mono);font-size:11px;font-weight:600;letter-spacing:.04em;color:var(--color-fg)}
 
-.journey-hero {display:grid;grid-template-columns:minmax(0,5fr) minmax(0,7fr);border-bottom:1px solid var(--color-rule)}
-.journey-copy {display:flex;flex-direction:column;justify-content:center;gap:22px;padding:56px 40px 48px 0}
-.journey-copy h1 {margin:0;font-size:clamp(44px,6.2vw,96px);font-weight:700;line-height:.95;letter-spacing:-.045em;color:var(--color-fg)}
-.journey-copy > p:not(.eyebrow) {margin:0;max-width:30ch;font-size:16px;line-height:1.55;color:var(--color-muted)}
-.hero-actions {display:flex;flex-wrap:wrap;gap:8px}
-.hero-setup {display:inline-flex;align-items:center;gap:10px;width:fit-content;min-height:44px;padding:0;border-bottom:1px solid var(--color-rule);font-family:var(--font-mono);font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--color-fg)}
-.hero-setup i {width:1px;height:12px;background:var(--color-rule)}
-.hero-setup:hover {color:var(--color-accent);border-color:var(--color-accent)}
-
-.journey-frame {display:flex;flex-direction:column;margin:0;border-left:1px solid var(--color-rule)}
-.journey-photo {position:relative;flex:1;min-height:420px;overflow:hidden;background:var(--color-bg-subtle)}
-.journey-image {position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:0;transition:opacity .18s linear}
-.journey-image.is-active {opacity:1}
-.journey-destination {display:grid;grid-template-columns:1fr auto;align-items:end;gap:4px 24px;padding:16px 0 16px 24px;border-top:1px solid var(--color-rule)}
-.journey-destination > p {display:flex;align-items:center;gap:6px;margin:0;font-family:var(--font-mono);font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--color-muted)}
-.journey-destination h2 {grid-column:1;margin:0;font-size:24px;letter-spacing:-.02em;line-height:1.1}
-.journey-destination > span {grid-column:1;font-size:13px;color:var(--color-muted)}
-.journey-swap {animation:swap-in .15s var(--ease-machine)}
-@keyframes swap-in {from{opacity:0;transform:translateY(4px)}}
-.destination-switcher {grid-column:2;grid-row:1 / span 3;display:flex;gap:0;border:1px solid var(--color-rule)}
-.destination-switcher button {position:relative;width:60px;height:46px;padding:0;overflow:hidden;background:var(--color-bg)}
-.destination-switcher button + button {border-left:1px solid var(--color-rule)}
-.destination-switcher img {width:100%;height:100%;object-fit:cover;filter:grayscale(1);transition:filter .12s linear}
-.destination-switcher button[aria-pressed=true] img,.destination-switcher button:hover img {filter:none}
-.destination-switcher span {position:absolute;left:0;top:0;padding:1px 4px;background:var(--color-bg);font-family:var(--font-mono);font-size:9px;color:var(--color-fg)}
-.destination-switcher button[aria-pressed=true] span {background:var(--color-accent);color:var(--color-accent-fg)}
-.destination-progress {position:absolute;left:0;right:0;bottom:0;height:3px;background:var(--color-accent);transform-origin:left;animation:dest-progress linear forwards}
-@keyframes dest-progress {from{transform:scaleX(0)}}
-.journey-hero:not(.is-touring) .destination-progress {animation-play-state:paused}
-.journey-credit {grid-column:1 / -1;font-family:var(--font-mono);font-size:10px;letter-spacing:.06em;text-transform:uppercase;color:var(--color-subtle);text-decoration:underline;text-underline-offset:3px}
-
-.expedition-packs {padding:40px 0 48px;border-bottom:1px solid var(--color-rule)}
-.section-heading {display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:20px}
-.packs-title {display:flex;align-items:center;gap:14px;margin:0;font-size:clamp(24px,3vw,36px);letter-spacing:-.03em;line-height:1}
-.pack-grid {display:grid;grid-template-columns:repeat(3,minmax(0,1fr));border:1px solid var(--color-rule)}
-.pack-card {display:flex;flex-direction:column;text-align:left;background:var(--color-bg);transition:background-color .12s linear}
-.pack-card + .pack-card {border-left:1px solid var(--color-rule)}
-.pack-photo {display:block;aspect-ratio:16/10;overflow:hidden;border-bottom:1px solid var(--color-rule);background:var(--color-bg-subtle)}
-.pack-photo img {width:100%;height:100%;object-fit:cover}
-.pack-copy {display:flex;flex-direction:column;gap:6px;padding:14px 16px 16px}
-.pack-top {display:flex;align-items:center;justify-content:space-between;gap:8px;font-family:var(--font-mono);font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--color-muted)}
-.pack-check {display:grid;place-items:center;width:24px;height:24px;border:1px solid var(--color-rule);color:var(--color-fg)}
-.pack-copy h3 {margin:0;font-size:19px;letter-spacing:-.02em;line-height:1.15}
-.pack-state {font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--color-subtle)}
-.pack-card:hover {background:var(--color-bg-subtle)}
-.pack-card.is-selected .pack-copy {background:var(--color-accent)}
-.pack-card.is-selected .pack-top,.pack-card.is-selected .pack-state {color:var(--color-accent-fg)}
-.pack-card.is-selected .pack-check {background:var(--color-fg);border-color:var(--color-fg);color:var(--color-bg)}
-
-.expedition-footer {display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px 24px;padding:20px 0 32px;font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--color-muted)}
-.expedition-footer > span {display:flex;align-items:center;gap:8px}
-
-@media (max-width: 900px) {
-  .journey-hero {grid-template-columns:1fr}
-  .journey-copy {padding:32px 0 28px}
-  .journey-frame {border-left:0;border-top:1px solid var(--color-rule)}
-  .journey-photo {min-height:0;aspect-ratio:4/3}
-  .journey-destination {padding-left:0}
-  .pack-grid {grid-template-columns:1fr}
-  .pack-card + .pack-card {border-left:0;border-top:1px solid var(--color-rule)}
-  .pack-card {flex-direction:row}
-  .pack-photo {width:38%;aspect-ratio:auto;min-height:118px;border-bottom:0;border-right:1px solid var(--color-rule)}
-  .pack-copy {flex:1;justify-content:center}
-}
-@media (max-width: 420px) {
-  .expedition-nav {height:56px}
-  .brand-lockup {font-size:15px;gap:8px}
-  .nav-link {padding:0 4px;font-size:10px;letter-spacing:.08em}
-  .journey-copy h1 {font-size:clamp(38px,11.5vw,52px)}
-  .hero-actions {display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}
-  .hero-actions > button {min-width:0;padding:0 10px;font-size:11px;letter-spacing:.06em}
-  .destination-switcher button {width:44px;height:38px}
-  .journey-destination h2 {font-size:20px}
-}
-@media (max-width: 359px) {.hero-actions {grid-template-columns:1fr}}
-@media (max-width: 359px) {.brand-lockup svg {display:none}.brand-lockup {font-size:13px}.nav-link {font-size:9.5px;letter-spacing:.04em;padding:0 2px}}
-
-/* ───────────────────────── Round intro: the slate ─────────────────────────
-   Black, ruled, numbered. The bar under the brief fills for as long as the
-   slate holds; when it closes, the round starts. */
-.round-intro {position:absolute;inset:0;z-index:40;display:flex;align-items:center;justify-content:center;overflow:hidden;cursor:pointer;background:#000;color:#fff}
-.round-intro-inner {display:flex;flex-direction:column;width:min(560px,calc(100% - 32px));border:1px solid #fff}
-.round-intro-kicker {padding:10px 14px;border-bottom:1px solid #2a2a2a;font-family:var(--font-mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:#b3b3b3;animation:splash-fade .15s backwards}
-.round-intro-number {display:block;padding:8px 14px 0;font-family:var(--font-display);font-size:clamp(96px,30vw,180px);font-weight:700;line-height:.85;letter-spacing:-.06em;font-variant-numeric:tabular-nums;color:#fff;animation:slate-num .15s var(--ease-machine) backwards}
-@keyframes slate-num {from{opacity:0;transform:translateY(12px)}}
-.round-intro-title {margin:0;padding:6px 14px 18px;font-size:clamp(32px,8vw,52px);line-height:1;letter-spacing:-.035em;color:#fff}
-.round-intro-chips {display:grid;grid-template-columns:repeat(auto-fit,minmax(0,1fr));margin:0;padding:0;list-style:none;border-top:1px solid #fff}
-.round-intro-chips li {display:flex;align-items:center;gap:8px;min-height:44px;padding:0 14px;font-family:var(--font-mono);font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:#fff}
-.round-intro-chips li + li {border-left:1px solid #2a2a2a}
-.round-intro-chips li.is-accent {background:var(--color-accent);color:#000}
-.intro-hold {display:block;height:4px;background:#1a1a1a}
-.intro-hold i {display:block;height:100%;background:var(--color-accent);transform-origin:left;animation:hold-bar var(--hold,2200ms) linear forwards}
-@keyframes hold-bar {from{transform:scaleX(0)}to{transform:scaleX(1)}}
-.round-intro-hint {padding:10px 14px;border-top:1px solid #2a2a2a;font-family:var(--font-mono);font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:#8c8c8c}
-.reduce-motion .round-intro .intro-hold i {animation-duration:var(--hold,1200ms)!important}
-@media (prefers-reduced-motion: reduce) {.round-intro .intro-hold i {animation-duration:var(--hold,1200ms)!important}}
-@media (max-width: 420px) {.round-intro-chips {grid-template-columns:1fr}.round-intro-chips li + li {border-left:0;border-top:1px solid #2a2a2a}}
-/* Phones on their side: the slate keeps its order but the figure shrinks to fit 360px. */
-@media (max-height: 460px) {.round-intro-number {font-size:min(30vw,96px)}.round-intro-title {padding-bottom:12px;font-size:clamp(28px,9vh,40px)}.round-intro-chips li {min-height:36px}.round-intro-kicker,.round-intro-hint {padding-block:7px}}
-
-/* ───────────────────────── The winner moment ─────────────────────────
-   A shutter, not a party: one white frame, then a hairline grid draws
-   itself across the scene in the winner's colour, line by line. The name
-   lands in a hard slam; the label is a block of the same colour. */
-.win-fx {position:absolute;inset:0;z-index:0;overflow:hidden;pointer-events:none}
-.win-shutter {position:absolute;inset:0;background:#fff;opacity:0;animation:win-shutter .15s linear}
-@keyframes win-shutter {from{opacity:.85}to{opacity:0}}
-.win-grid i {position:absolute;background:var(--win);opacity:.5}
-.win-grid i.is-h {left:0;right:0;top:var(--at);height:1px;transform:scaleX(0);transform-origin:left;animation:grid-draw-h .15s var(--ease-machine) forwards;animation-delay:calc(80ms + var(--i) * 35ms)}
-.win-grid i.is-v {top:0;bottom:0;left:var(--at);width:1px;transform:scaleY(0);transform-origin:top;animation:grid-draw-v .15s var(--ease-machine) forwards;animation-delay:calc(80ms + var(--i) * 35ms)}
-@keyframes grid-draw-h {to{transform:scaleX(1)}}
-@keyframes grid-draw-v {to{transform:scaleY(1)}}
-.win-banner {display:flex;flex-direction:column;align-items:center;gap:10px}
-.win-banner .win-big {display:block;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-family:var(--font-display);font-weight:700;font-size:clamp(44px,13vw,88px);line-height:.92;letter-spacing:-.045em;text-transform:uppercase;color:var(--win);animation:win-slam .15s var(--ease-machine) backwards}
-@keyframes win-slam {from{opacity:0;transform:translateY(10px)}}
-.win-banner.is-draw .win-big {color:#fff}
-.win-banner.is-mid .win-big {font-size:clamp(38px,11vw,76px)}
-.win-banner.is-long .win-big {font-size:clamp(28px,8.2vw,58px)}
-.win-banner .win-label {display:inline-block;padding:5px 10px;background:var(--win);color:#000;font-family:var(--font-mono);font-size:11px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;animation:win-label .12s .15s linear backwards}
-@keyframes win-label {from{opacity:0}}
-.win-banner.is-draw .win-label {background:#fff}
-.round-splash .splash-duel {margin-top:28px}
-.win-banner .win-stars {display:flex;gap:8px;animation:none}
-.win-stars svg {width:30px;height:30px;fill:transparent;stroke:#fff;stroke-width:1.2;animation:win-star .12s linear backwards;animation-delay:calc(260ms + var(--i) * 120ms)}
-.win-stars svg.is-on {fill:var(--color-accent);stroke:var(--color-accent)}
-@keyframes win-star {from{opacity:0;transform:scale(1.5)}}
-.splash-crown {position:absolute;left:50%;top:-25px;width:40px;height:25px;margin-left:-20px;fill:var(--color-accent);animation:crown-drop .15s var(--ease-machine) backwards}
-@keyframes crown-drop {from{opacity:0;transform:translateY(-14px)}}
-@media (prefers-reduced-motion: reduce) {.win-fx{display:none}}
-html.reduce-motion .win-fx {display:none}
+/* ── The playing screen ── */
 
 /* ───────────────────────── The instrument ─────────────────────────
    Everything that sits over the photo is a black plate with a hairline
@@ -1586,13 +708,10 @@ html.reduce-motion .win-fx {display:none}
 .match-hud [role=timer] {width:fit-content;padding:3px 10px 3px 3px;background:#000;border:1px solid #2a2a2a}
 .match-hud [role=timer] > span:last-child {font-family:var(--font-mono);font-weight:600;font-size:26px;letter-spacing:-.02em}
 .match-hud .hud-meta {width:fit-content;padding:3px 7px;background:#000;color:#b3b3b3}
-.timer-urgent {filter:none}
 .timer-progress {stroke-linecap:butt}
 .view-mode-button {border:1px solid #2a2a2a;background:#000;color:#fff;font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase}
 .view-mode-button[aria-pressed=true] {background:var(--color-accent);color:#000;border-color:var(--color-accent)}
 .match-hud .score-tally {background:#000!important;border-color:#2a2a2a!important}
-.scene-atmos::before,.scene-tension {display:none}
-.scene-flash {background:#fff;animation-duration:.12s}
 .scene-controls {left:12px;bottom:12px;padding:0;gap:0;background:#000;border:1px solid #2a2a2a}
 .scene-controls button {width:40px;height:40px;border:0;background:transparent;color:#fff}
 .scene-controls button + button {border-left:1px solid #2a2a2a}
@@ -1608,8 +727,7 @@ html.reduce-motion .win-fx {display:none}
 .view-source button[aria-pressed=true] {background:var(--color-accent);color:#000}
 /* The last five seconds: one number a beat, on a black plate with the alert
    bar above it. */
-.final-count {padding:6px 22px 0;background:#000;border-top:6px solid var(--color-accent);font-family:var(--font-mono);font-weight:600;font-size:clamp(84px,24vw,150px);line-height:1;color:#fff;-webkit-text-stroke:0;letter-spacing:-.04em;animation:final-count 1s steps(1,end) forwards}
-@keyframes final-count {0%{opacity:1;transform:translate(-50%,-50%)}100%{opacity:1;transform:translate(-50%,-50%)}}
+.final-count {padding:6px 22px 0;background:#000;border-top:6px solid var(--color-accent);font-family:var(--font-mono);font-weight:600;font-size:clamp(84px,24vw,150px);line-height:1;color:#fff;-webkit-text-stroke:0;letter-spacing:-.04em}
 .rival-locked {padding:4px 12px 4px 4px;background:#000;border:1px solid #fff;color:#fff;font-family:var(--font-mono);font-size:11px;letter-spacing:.1em}
 .rival-locked strong {color:#fff}
 .points-fly-y {padding:4px 10px;background:var(--color-accent);color:#000;font-family:var(--font-mono);font-size:16px;font-weight:600;box-shadow:none}
@@ -1634,6 +752,8 @@ html.reduce-motion .win-fx {display:none}
 .ruler-pin-label {background:#000;border:1px solid #fff;border-radius:0;font-family:var(--font-mono)}
 .ruler-miss {background:var(--color-accent);opacity:.5}
 .ruler-ticks span {color:#b3b3b3}
+
+/* ── Results ── */
 
 /* ───────────────────────── Results: the record ─────────────────────────
    A document: the champion quoted, the score in figures, the route as a
@@ -1661,3 +781,9 @@ html.reduce-motion .win-fx {display:none}
 .result-round {background:var(--color-bg);border-color:var(--color-rule)}
 .result-round-name {font-family:var(--font-mono)}
 .rematch-note {font-family:var(--font-mono)}
+
+/* ── Classic's page washes, off on white paper ── */
+.expedition-home {background:none}
+.duel-mode.is-primary {background:var(--color-bg)}
+/* On the paper map the rival's comet is ink, not white. */
+.atlas-comet.is-opp i {background:radial-gradient(circle,#fff 0 30%,#000 55%,transparent 72%);box-shadow:none}

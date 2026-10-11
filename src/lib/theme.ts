@@ -3,10 +3,10 @@ import classicCss from "@/themes/classic.css?inline";
 import type { ThemeId } from "@/lib/game";
 
 /**
- * The look in force: Classic or Mono. Only one theme's stylesheet is on the
- * page at a time, in a <style> tag after the shared styles.css, so the two
- * never fight over a selector. Classic ships with the app; Mono loads the
- * first time someone picks it. The <html> element carries `theme-mono` for
+ * The look in force: Classic or Mono. The theme's stylesheet sits in a
+ * <style> tag after the shared styles.css: Classic's alone, or Classic's
+ * with Mono's skin on top. Classic ships with the app; the Mono skin loads
+ * the first time someone picks it. The <html> element carries `theme-mono` for
  * the rare rule that must know, and components read the theme with
  * useTheme() once its stylesheet is in place.
  */
@@ -19,7 +19,10 @@ const listeners = new Set<() => void>();
 
 async function cssFor(id: ThemeId): Promise<string> {
   if (id === "classic") return classicCss;
-  return (await import("@/themes/mono.css?inline")).default;
+  // Mono is a skin over Classic: the same layout and motion, its own
+  // colours, type and map.
+  const skin = (await import("@/themes/mono.css?inline")).default;
+  return `${classicCss}\n${skin}`;
 }
 
 function themeStyle(): HTMLStyleElement {

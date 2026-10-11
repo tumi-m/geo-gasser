@@ -1,4 +1,3 @@
-import { execSync } from "node:child_process";
 import type { IncomingMessage, ServerResponse } from "node:http";
 import tailwindcss from "@tailwindcss/vite";
 import viteReact from "@vitejs/plugin-react";
@@ -53,29 +52,8 @@ function siteUrl(): Plugin {
   };
 }
 
-/**
- * The build's own metadata, shown in plain sight (the Mono home footer):
- * the commit it was built from and the day. Vercel names the commit; a local
- * build asks git, and a checkout without history says "dev".
- */
-function buildSha(): string {
-  const fromEnv = process.env.VERCEL_GIT_COMMIT_SHA?.trim();
-  if (fromEnv) return fromEnv.slice(0, 7);
-  try {
-    return execSync("git rev-parse --short=7 HEAD", { stdio: ["ignore", "pipe", "ignore"] })
-      .toString()
-      .trim();
-  } catch {
-    return "dev";
-  }
-}
-
 // `0.0.0.0:8080` is the live-preview port.
 export default defineConfig({
-  define: {
-    __BUILD_SHA__: JSON.stringify(buildSha()),
-    __BUILD_DATE__: JSON.stringify(new Date().toISOString().slice(0, 10)),
-  },
   server: { host: "0.0.0.0", port: 8080, strictPort: true },
   preview: { host: "127.0.0.1", port: 8081, strictPort: true },
   resolve: { tsconfigPaths: true },

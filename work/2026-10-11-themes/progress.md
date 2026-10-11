@@ -15,7 +15,7 @@
 
 ## Decisions
 
-- Mono keeps the redesign exactly, build stamp in the home footer included.
+- Mono is a skin over Classic: Classic's landing page, layout and motion in Mono's colours, type and map.
 - Player two is blue in Classic and the ink colour in Mono, as each look had it.
 
 ## Open issues

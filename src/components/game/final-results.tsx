@@ -144,7 +144,7 @@ export function FinalResults({
               live
               mood={shared ? "neutral" : "happy"}
             />
-            {!reducedMotion && !shared && !mono && <Sparks count={20} spread={130} />}
+            {!reducedMotion && !shared && <Sparks count={20} spread={130} />}
             {crowned && <CrownDrop />}
           </span>
           <h1 className={cn("font-display text-5xl leading-none tracking-tight sm:text-6xl", mono && "quoted")}>

@@ -42,3 +42,16 @@ node.
 ## Edges
 
 - 1 → 3, 2 → 3, 3 → 4
+
+## Revision: Mono becomes a skin (same day)
+
+- **Why:** the user liked the original landing page and wants the motion
+  graphics throughout the journey in both looks.
+- **What changed:**
+  - Mono now loads on top of Classic's stylesheet;
+  - it changes looks only: tokens, square corners, the paper map, the black
+    HUD, settings, music, duel, the countdown, ledger and results details;
+  - the redesign's own layouts (index home, slate intro, grid winner
+    moment) are gone;
+  - its look-only rules were carried over without their motion, so
+    Classic's animations and timing stay in charge.

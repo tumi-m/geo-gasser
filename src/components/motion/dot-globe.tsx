@@ -211,11 +211,18 @@ export function DotGlobe({
           }
         }
 
-        // Places: a square marker in a hairline frame.
-        for (const pl of p.places) {
+        // Places: a square marker in a hairline frame, and a square that
+        // keeps pulsing out from it, like Classic's rings.
+        for (const [i, pl] of p.places.entries()) {
           const [x, y, z] = project(pl.lat * DEG, pl.lon * DEG);
           if (z <= 0.05) continue;
           const q = Math.max(4, R / 30);
+          const pulse = still ? 0.4 : (t * 0.7 + i * 0.37) % 1;
+          const ring = q + pulse * R * 0.2;
+          ctx.globalAlpha = z * (1 - pulse);
+          ctx.strokeStyle = accent;
+          ctx.lineWidth = 1.5;
+          ctx.strokeRect(x - ring / 2, y - ring / 2, ring, ring);
           ctx.globalAlpha = z;
           ctx.fillStyle = accent;
           ctx.fillRect(x - q / 2, y - q / 2, q, q);
