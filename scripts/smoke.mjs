@@ -121,7 +121,8 @@ const ok =
     return `results shown, ${stops} stop rows`;
   })) &&
   (await step("results offer a rematch", async () => {
-    await page.getByRole("button", { name: "Rematch" }).click();
+    // Two buttons say Rematch while the floating bar shows; either starts one.
+    await page.getByRole("button", { name: "Rematch" }).first().click();
     await page.locator(".round-intro").waitFor({ timeout: 15000 });
     return "a new match starts";
   })) &&

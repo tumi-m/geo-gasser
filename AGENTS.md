@@ -212,3 +212,7 @@ Rules this repo has already paid for:
 - **A pause hides the scene for its whole length.** The cover first
   belonged to the pause menu, so opening Settings from it showed the
   photo with the clock stopped. The cover now follows the paused state.
+- **A gate piped through a filter passes whatever happens.** `npm run
+  smoke | grep` reports grep's exit code, so a failing smoke was committed
+  and pushed. Run the gates into a log, check their exit codes, then print
+  the table.
