@@ -1,6 +1,7 @@
 import type { PlayerState } from "@/lib/game";
 import { PlayerAvatar, type AvatarMood } from "./player-avatar";
 import { cn } from "@/lib/utils";
+import { useMono } from "@/lib/theme";
 
 export function ScoreTally({
   players,
@@ -17,6 +18,7 @@ export function ScoreTally({
   /** Match over: winners beam, the rest sulk. */
   winnerIds?: string[];
 }) {
+  const mono = useMono();
   const moodFor = (p: PlayerState): AvatarMood => {
     if (winnerIds?.length) return winnerIds.includes(p.id) ? "happy" : "sad";
     if (!roundLive) return "neutral";
@@ -35,7 +37,7 @@ export function ScoreTally({
 
   return (
     <div
-      className="score-tally min-w-[10.5rem] rounded-[var(--radius-md)] border border-border bg-bg/75 px-2.5 py-2"
+      className={cn("score-tally min-w-[10.5rem] rounded-[var(--radius-md)] border border-border px-2.5 py-2", mono ? "bg-bg" : "bg-bg/75")}
       role="list"
       aria-label="Score tally"
     >

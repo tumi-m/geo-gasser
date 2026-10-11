@@ -1,5 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { ModalShell } from "./modal-shell";
+import { useMono } from "@/lib/theme";
+import { cn } from "@/lib/utils";
 
 const STEPS = [
   {
@@ -40,17 +42,32 @@ const STEPS = [
 ];
 
 export function Tutorial({ onClose }: { onClose: () => void }) {
+  const mono = useMono();
   return (
     <ModalShell titleId="how-title" onClose={onClose} wide>
-      <h2 id="how-title" className="font-display text-2xl">
+      <h2 id="how-title" className={cn("font-display text-2xl", mono && "quoted")}>
         How to play
       </h2>
-      <ol className="mt-5 list-none space-y-4">
+      <ol className={cn("mt-5 list-none", mono ? "border-b border-border" : "space-y-4")}>
         {STEPS.map((step) => (
-          <li key={step.n} className="flex gap-4">
-            <span className="font-display tabular w-8 shrink-0 text-subtle">{step.n}</span>
+          <li key={step.n} className={cn("flex gap-4", mono && "border-t border-border py-3.5")}>
+            <span
+              className={
+                mono
+                  ? "w-8 shrink-0 pt-px font-mono text-xs tabular text-subtle"
+                  : "font-display tabular w-8 shrink-0 text-subtle"
+              }
+            >
+              {step.n}
+            </span>
             <div>
-              <p className="text-sm font-medium text-fg">{step.title}</p>
+              <p
+                className={
+                  mono ? "text-xs font-bold uppercase tracking-[0.1em] text-fg" : "text-sm font-medium text-fg"
+                }
+              >
+                {step.title}
+              </p>
               <p className="mt-1 text-sm leading-relaxed text-muted">{step.body}</p>
             </div>
           </li>

@@ -1,4 +1,5 @@
 import { avatarSeed, getLocation, nationLabel, nationOf, type RoundRecord } from "@/lib/game";
+import { useMono } from "@/lib/theme";
 
 /**
  * One ink stamp per country the match visited, in the order you got there.
@@ -6,8 +7,10 @@ import { avatarSeed, getLocation, nationLabel, nationOf, type RoundRecord } from
  * time) when the card scrolls into view.
  */
 const INKS = ["#ffd166", "#4fbf8b", "#e07a43", "#8fb4ff", "#f0a6c8"];
+// Mono prints every stamp in the page's one ink (styles), with a slighter tilt.
 
 export function PassportStamps({ history }: { history: RoundRecord[] }) {
+  const mono = useMono();
   const nations: string[] = [];
   for (const r of history) {
     const loc = getLocation(r.locationId);
@@ -25,7 +28,7 @@ export function PassportStamps({ history }: { history: RoundRecord[] }) {
       data-reveal
       aria-label={`Countries visited: ${nations.map(nationLabel).join(", ")}`}
     >
-      <p className="text-[11px] uppercase tracking-[0.2em] text-subtle">Passport</p>
+      <p className={mono ? "eyebrow" : "text-[11px] uppercase tracking-[0.2em] text-subtle"}>Passport</p>
       <ul className="passport-stamps">
         {nations.map((n, i) => {
           const seed = avatarSeed(`stamp:${n}`);
@@ -36,8 +39,8 @@ export function PassportStamps({ history }: { history: RoundRecord[] }) {
               style={
                 {
                   "--i": i,
-                  "--tilt": `${((seed - 0.5) * 18).toFixed(1)}deg`,
-                  "--ink": INKS[Math.floor(seed * INKS.length) % INKS.length],
+                  "--tilt": `${((seed - 0.5) * (mono ? 5 : 18)).toFixed(1)}deg`,
+                  "--ink": mono ? undefined : INKS[Math.floor(seed * INKS.length) % INKS.length],
                 } as React.CSSProperties
               }
             >

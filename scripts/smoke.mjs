@@ -124,6 +124,20 @@ const ok =
     await page.getByRole("button", { name: "Rematch" }).click();
     await page.locator(".round-intro").waitFor({ timeout: 15000 });
     return "a new match starts";
+  })) &&
+  (await step("Mono theme loads", async () => {
+    // The second look is a separate chunk loaded on demand: pick it the way
+    // a player does, in Settings → Picture, and check it is on the page.
+    await page.goto(`${base}/`, { waitUntil: "domcontentloaded" });
+    await page.getByRole("button", { name: "Settings" }).first().click();
+    await page.getByRole("tab", { name: "Picture" }).click();
+    await page.getByRole("button", { name: /^Mono/ }).click();
+    await page.waitForFunction(() => document.documentElement.classList.contains("theme-mono"), null, {
+      timeout: 10000,
+    });
+    const bg = await page.evaluate(() => getComputedStyle(document.body).backgroundColor);
+    if (bg !== "rgb(255, 255, 255)") throw new Error(`page background is ${bg}, not white`);
+    return "picked in Settings, white page";
   }));
 
 record("no page errors", pageErrors.length === 0, pageErrors.length ? pageErrors[0].slice(0, 140) : "none");

@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { RoundVerdictCard } from "./round-verdict";
 import { useCountUp } from "./use-count-up";
 import { cn } from "@/lib/utils";
+import { useMono } from "@/lib/theme";
 
 export function RevealOverlay({
   score,
@@ -44,6 +45,7 @@ export function RevealOverlay({
   /** Good guesses in a row, this one included; a flame shows from two. */
   streak?: number;
 }) {
+  const mono = useMono();
   const hasPin = Number.isFinite(score.distanceKm);
   const headline = !hasPin
     ? "TIME’S UP"
@@ -65,7 +67,7 @@ export function RevealOverlay({
           : "bottom-[calc(var(--atlas-map-reveal-h)+1.5rem)]",
       )}
     >
-      <div className="reveal-card atlas-rise pointer-events-auto max-h-[calc(100dvh-var(--atlas-map-reveal-h)-2rem)] w-full max-w-lg overflow-y-auto overscroll-contain rounded-[var(--radius-lg)] border border-border bg-bg/92 p-3 shadow-[var(--shadow-panel)] sm:p-4">
+      <div className={cn("reveal-card atlas-rise pointer-events-auto max-h-[calc(100dvh-var(--atlas-map-reveal-h)-2rem)] w-full max-w-lg overflow-y-auto overscroll-contain rounded-[var(--radius-lg)] border border-border p-3 shadow-[var(--shadow-panel)] sm:p-4", mono ? "bg-bg" : "bg-bg/92")}>
         {/* Very short screens (iPhone SE): Continue sits beside the title, not under it. */}
         <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between [@media(max-height:700px)]:flex-row [@media(max-height:700px)]:items-start [@media(max-height:700px)]:justify-between">
           <div className="min-w-0 text-left">
@@ -112,7 +114,8 @@ export function RevealOverlay({
         {hasPin && clock < 1 ? (
           // In a duel on a phone the rows below say enough; room goes to them.
           <p className={cn("ledger-note", opponent && "max-sm:hidden")}>
-            Locked in the {tierPot.toLocaleString("en-US")} tier: the clock kept{" "}
+            Locked in the {mono ? `"${tierPot.toLocaleString("en-US")}"` : tierPot.toLocaleString("en-US")}{" "}
+            tier: the clock kept{" "}
             {Math.round(clock * 100)}% of your {score.accuracyPoints.toLocaleString("en-US")}.
           </p>
         ) : null}
@@ -126,7 +129,10 @@ export function RevealOverlay({
             {score.badges.map((b) => (
               <span
                 key={b}
-                className="rounded-full border border-border px-2 py-0.5 text-[10px] uppercase tracking-wider"
+                className={cn(
+                  "border border-border px-2 py-0.5 text-[10px] uppercase tracking-wider",
+                  !mono && "rounded-full",
+                )}
               >
                 {BADGE_COPY[b]}
               </span>

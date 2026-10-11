@@ -8,6 +8,7 @@ import {
   type StreetViewPanoramaLike,
 } from "@/lib/game";
 import { cn } from "@/lib/utils";
+import { useMono } from "@/lib/theme";
 
 /**
  * Walk around the place, GeoGuessr style: the nearest Google Street View
@@ -48,6 +49,7 @@ export function StreetViewScene({
   onUnavailable: () => void;
   className?: string;
 }) {
+  const mono = useMono();
   const hostRef = useRef<HTMLDivElement>(null);
   const panoRef = useRef<StreetViewPanoramaLike | null>(null);
   const startRef = useRef<{ pano: string; heading: number } | null>(null);
@@ -191,7 +193,7 @@ export function StreetViewScene({
 
   return (
     <div
-      className={cn("street-view absolute inset-0 bg-[#111111]", hidden && "is-hidden", className)}
+      className={cn("street-view absolute inset-0", mono ? "bg-black" : "bg-[#111111]", hidden && "is-hidden", className)}
       aria-hidden={hidden || undefined}
     >
       <div

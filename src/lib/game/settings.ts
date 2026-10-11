@@ -8,6 +8,13 @@ import {
 
 const KEY = "atlas-duel-settings-v3";
 
+/** The app's two looks: Classic (default) and Mono (src/themes/). */
+export type ThemeId = "classic" | "mono";
+
+export function isThemeId(value: unknown): value is ThemeId {
+  return value === "classic" || value === "mono";
+}
+
 export interface GameSettings {
   displayName: string;
   avatarId: string;
@@ -18,6 +25,7 @@ export interface GameSettings {
   reducedMotion: boolean;
   cameraShake: boolean;
   highContrast: boolean;
+  theme: ThemeId;
   photoFit: "cover" | "contain";
   /**
    * Set once the player picks a fit themselves. Before that the photo fills
@@ -43,6 +51,7 @@ export const DEFAULT_SETTINGS: GameSettings = {
   reducedMotion: false,
   cameraShake: true,
   highContrast: false,
+  theme: "classic",
   photoFit: "cover",
   showHints: true,
   difficulty: "medium",
@@ -68,6 +77,7 @@ export function loadSettings(): GameSettings {
       ...parsed,
       photoFit: parsed.photoFitChosen && parsed.photoFit === "contain" ? "contain" : "cover",
       showHints: typeof parsed.showHints === "boolean" ? parsed.showHints : true,
+      theme: isThemeId(parsed.theme) ? parsed.theme : DEFAULT_SETTINGS.theme,
       difficulty: isTimeDifficulty(parsed.difficulty)
         ? parsed.difficulty
         : DEFAULT_SETTINGS.difficulty,

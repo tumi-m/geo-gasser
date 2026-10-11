@@ -81,10 +81,11 @@ import { RoundSummarySplash } from "./round-summary-splash";
 import { SceneExplorer } from "./scene-explorer";
 import { StreetViewScene } from "./street-view-scene";
 import { SettingsPanel } from "./settings-panel";
-import { QuestionMark, RoundPips, TimerRing } from "./timer-ring";
+import { MatchMeta, QuestionMark, RoundPips, TimerRing } from "./timer-ring";
 import { ScoreTally } from "./score-tally";
 import { FinalResults } from "./final-results";
 import { cn, copyText } from "@/lib/utils";
+import { applyTheme, useTheme } from "@/lib/theme";
 import { DotGlobe } from "@/components/motion/dot-globe";
 import { globeForAtlas } from "@/components/motion/globe-presets";
 
@@ -101,6 +102,7 @@ const CosmicRuler = lazy(() => import("./cosmic-ruler").then((m) => ({ default: 
 function applyDocumentSettings(settings: GameSettings) {
   document.documentElement.classList.toggle("hc", settings.highContrast);
   document.documentElement.classList.toggle("reduce-motion", settings.reducedMotion);
+  void applyTheme(settings.theme);
   audio.setSettings(settings);
   saveSettings(settings);
 }
@@ -115,6 +117,10 @@ export function MatchApp({
   duelKind?: "online" | "bot" | "hotseat";
 }) {
   const navigate = useNavigate();
+  const theme = useTheme();
+  const mono = theme === "mono";
+  // The small status chips under the clock: solid squares in Mono.
+  const hudChip = mono ? "bg-bg" : "rounded-full bg-bg/75";
   const [settings, setSettings] = useState<GameSettings>(() => loadSettings());
   const [showSettings, setShowSettings] = useState(false);
   const [state, setState] = useState<MatchState>(() => createLobbyState());
@@ -1224,13 +1230,28 @@ export function MatchApp({
         />
         <div className="relative mx-auto max-w-md">
           <div className="flex items-center justify-between gap-3">
-            <p className="text-xs uppercase tracking-[0.28em] text-muted">Private room</p>
+            {mono ? (
+              <p className="eyebrow">
+                <span className="index-no" aria-hidden>
+                  01
+                </span>{" "}
+                Private room
+              </p>
+            ) : (
+              <p className="text-xs uppercase tracking-[0.28em] text-muted">Private room</p>
+            )}
             <div className="-my-2">
               <MusicHudButton />
             </div>
           </div>
           {/* The code flips in a letter at a time, like a departures board. */}
-          <h1 className="room-code font-display mt-2 text-5xl tracking-tight">
+          <h1
+            className={
+              mono
+                ? "room-code mt-4 font-mono text-5xl font-semibold tracking-[0.04em]"
+                : "room-code font-display mt-2 text-5xl tracking-tight"
+            }
+          >
             {[...(roomCode ?? "")].map((ch, i) => (
               <span key={i} style={{ "--i": i } as React.CSSProperties}>
                 {ch}
@@ -1653,18 +1674,29 @@ export function MatchApp({
               }
             />
           )}
-          <RoundPips index={state.roundIndex} total={state.totalRounds || 4} />
-          {state.matchLength !== "escape" && <QuestionMark current={qNum} />}
+          {mono ? (
+            <MatchMeta
+              round={state.roundIndex + 1}
+              rounds={state.totalRounds || 4}
+              question={qNum}
+              escape={state.matchLength === "escape"}
+            />
+          ) : (
+            <>
+              <RoundPips index={state.roundIndex} total={state.totalRounds || 4} />
+              {state.matchLength !== "escape" && <QuestionMark current={qNum} />}
+            </>
+          )}
           {reconstructionRound ? (
-            <div className="w-fit rounded-full border border-border bg-bg/75 px-2.5 py-1 text-[10px] uppercase tracking-wider text-muted">
+            <div className={cn("w-fit border border-border px-2.5 py-1 text-[10px] uppercase tracking-wider text-muted", hudChip)}>
               {ROUND4_3D_LIVE ? "3D reconstruction" : "Reconstruction plates"}
             </div>
           ) : cosmic ? (
-            <div className="w-fit rounded-full border border-accent/40 bg-bg/75 px-2.5 py-1 text-[10px] uppercase tracking-wider text-accent">
+            <div className={cn("w-fit border border-accent/40 px-2.5 py-1 text-[10px] uppercase tracking-wider text-accent", hudChip)}>
               Cosmos round
             </div>
           ) : finalRound ? (
-            <div className="w-fit rounded-full border border-accent/40 bg-bg/75 px-2.5 py-1 text-[10px] uppercase tracking-wider text-accent">
+            <div className={cn("w-fit border border-accent/40 px-2.5 py-1 text-[10px] uppercase tracking-wider text-accent", hudChip)}>
               Final round
             </div>
           ) : null}
@@ -1701,7 +1733,7 @@ export function MatchApp({
               urgent={urgent}
             />
           ) : mode === "duel" && showingReveal ? null : (
-            <div className="hud-score flex items-center gap-2 rounded-[var(--radius-md)] border border-border bg-bg/70 py-1.5 pl-1.5 pr-3">
+            <div className={cn("hud-score flex items-center gap-2 rounded-[var(--radius-md)] border border-border py-1.5 pl-1.5 pr-3", mono ? "bg-bg" : "bg-bg/70")}>
               <PlayerAvatar
                 id={you?.avatarId}
                 size={32}
@@ -1754,7 +1786,7 @@ export function MatchApp({
       )}
 
       {(you?.locked || (pendingLock && matchesQuestion(state, pendingLock))) && !showingReveal && (
-        <p className="waiting-chip relative z-20 mx-4 mt-1 flex w-fit items-center gap-2 rounded-full border border-border bg-bg/80 py-1 pl-1 pr-3 text-xs uppercase tracking-wider">
+        <p className={cn("waiting-chip relative z-20 mx-4 mt-1 flex w-fit items-center gap-2 border border-border py-1 pl-1 pr-3 text-xs uppercase tracking-wider", mono ? "bg-bg" : "rounded-full bg-bg/80")}>
           {/* Whoever we wait on types three dots with their eyes. */}
           <PlayerAvatar
             id={(you?.locked ? opponent : you)?.avatarId}
@@ -1772,7 +1804,7 @@ export function MatchApp({
       )}
 
       {duelKind === "hotseat" && state.phase === "waiting_for_opponent" && (
-        <div className="absolute inset-0 z-40 flex flex-col items-center justify-center bg-bg/92 px-6 text-center">
+        <div className={cn("absolute inset-0 z-40 flex flex-col items-center justify-center px-6 text-center", mono ? "bg-bg" : "bg-bg/92")}>
           <PlayerAvatar id={you?.avatarId} size={72} live track />
           <p className="mt-5 text-xs uppercase tracking-[0.28em] text-muted">Pass the phone</p>
           <h2 className="font-display mt-2 text-4xl">{you?.name}</h2>
@@ -1817,6 +1849,8 @@ export function MatchApp({
       {(loc || scene) && !cosmic && (
         <div hidden={exploring && !showingReveal}>
           <GuessMap
+            // The map paints its palette once; a new look draws a new map.
+            key={theme}
             guess={you?.guess}
             onGuess={onGuess}
             disabled={!canGuess}
@@ -1921,7 +1955,7 @@ export function MatchApp({
       {connectionNotice && (
         <p
           role="status"
-          className="absolute top-32 left-4 z-30 rounded-xl bg-bg/95 border border-border px-4 py-2 text-xs"
+          className={cn("absolute top-32 left-4 z-30 border border-border px-4 py-2 text-xs", mono ? "bg-bg" : "rounded-xl bg-bg/95")}
         >
           {connectionNotice}
         </p>

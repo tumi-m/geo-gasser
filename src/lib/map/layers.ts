@@ -1,4 +1,4 @@
-import type { LatLng } from "@/lib/game";
+import type { LatLng, ThemeId } from "@/lib/game";
 import type { Place } from "./places";
 import { splitAtDateLine } from "./dateline";
 import { COUNTRY_NAMES, labelPoint, type RegionCollection } from "./lookup";
@@ -6,19 +6,75 @@ import { COUNTRY_NAMES, labelPoint, type RegionCollection } from "./lookup";
 type Leaflet = typeof import("leaflet");
 type LMap = import("leaflet").Map;
 
-export const MAP_COLORS = {
-  water: "#243044",
-  land: "#8b93a3",
-  neighbour: "#9aa3b3",
-  za: "#3f9a70",
-  nl: "#d96a32",
-  border: "#10141c",
-  province: "rgba(9, 9, 11, 0.5)",
-  graticule: "rgba(244, 244, 240, 0.07)",
-  city: "#f4f4f0",
-  arc: "#f4f4f0",
-  arcOpp: "#5aa9ff",
-} as const;
+export interface MapPalette {
+  water: string;
+  land: string;
+  neighbour: string;
+  za: string;
+  nl: string;
+  /** Outline of South Africa and the Netherlands. */
+  zaLine: string;
+  nlLine: string;
+  border: string;
+  /** Line weights: the world, the two countries in play, their neighbours. */
+  worldWeight: number;
+  homeWeight: number;
+  neighbourWeight: number;
+  province: string;
+  graticule: string;
+  city: string;
+  cityLine: string;
+  arc: string;
+  arcOpp: string;
+}
+
+/**
+ * One palette per look. Classic paints South Africa green and the
+ * Netherlands orange on a blue-grey world. Mono is a technical drawing on
+ * paper: white land, an industrial-grey sea, black borders and an exposed
+ * graticule; the countries in play get a heavier line, not a colour, and
+ * your line to the answer is the one accent.
+ */
+export const MAP_PALETTES: Record<ThemeId, MapPalette> = {
+  classic: {
+    water: "#243044",
+    land: "#8b93a3",
+    neighbour: "#9aa3b3",
+    za: "#3f9a70",
+    nl: "#d96a32",
+    zaLine: "#0b1a14",
+    nlLine: "#241008",
+    border: "#10141c",
+    worldWeight: 0.6,
+    homeWeight: 1.4,
+    neighbourWeight: 0.7,
+    province: "rgba(9, 9, 11, 0.5)",
+    graticule: "rgba(244, 244, 240, 0.07)",
+    city: "#f4f4f0",
+    cityLine: "#09090b",
+    arc: "#f4f4f0",
+    arcOpp: "#5aa9ff",
+  },
+  mono: {
+    water: "#f4f4f4",
+    land: "#ffffff",
+    neighbour: "#ffffff",
+    za: "#ffffff",
+    nl: "#ffffff",
+    zaLine: "#000000",
+    nlLine: "#000000",
+    border: "#000000",
+    worldWeight: 0.5,
+    homeWeight: 1.8,
+    neighbourWeight: 0.5,
+    province: "rgba(0, 0, 0, 0.35)",
+    graticule: "rgba(0, 0, 0, 0.08)",
+    city: "#ffffff",
+    cityLine: "#000000",
+    arc: "#ff5500",
+    arcOpp: "#000000",
+  },
+};
 
 /** Leaflet order: [lat, lng]. */
 export const BOTH_BOUNDS: [[number, number], [number, number]] = [
@@ -99,14 +155,14 @@ export function textMarker(
 }
 
 /** Base world at 110m, minus the countries we redraw in detail. */
-export function worldLayer(L: Leaflet, world: RegionCollection, skip: Set<string>) {
+export function worldLayer(L: Leaflet, world: RegionCollection, skip: Set<string>, palette: MapPalette) {
   const trimmed: RegionCollection = {
     type: "FeatureCollection",
     features: world.features.filter((f) => !skip.has(f.properties.c)).map(unwrapFeature),
   };
   return L.geoJSON(trimmed, {
     interactive: false,
-    style: () => ({ color: MAP_COLORS.border, weight: 0.6, fillColor: MAP_COLORS.land, fillOpacity: 1 }),
+    style: () => ({ color: palette.border, weight: palette.worldWeight, fillColor: palette.land, fillOpacity: 1 }),
   });
 }
 
@@ -120,30 +176,31 @@ function unwrapFeature<F extends RegionCollection["features"][number]>(f: F): F 
 }
 
 /** ZA / NL and neighbours at 50m. */
-export function detailCountryLayer(L: Leaflet, countries: RegionCollection) {
+export function detailCountryLayer(L: Leaflet, countries: RegionCollection, palette: MapPalette) {
   return L.geoJSON(countries, {
     interactive: false,
     style: (feature) => {
       const c = (feature?.properties as { c?: string } | undefined)?.c;
-      if (c === "ZA") return { color: "#0b1a14", weight: 1.4, fillColor: MAP_COLORS.za, fillOpacity: 1 };
-      if (c === "NL") return { color: "#241008", weight: 1.4, fillColor: MAP_COLORS.nl, fillOpacity: 1 };
-      return { color: MAP_COLORS.border, weight: 0.7, fillColor: MAP_COLORS.neighbour, fillOpacity: 1 };
+      const home = palette.homeWeight;
+      if (c === "ZA") return { color: palette.zaLine, weight: home, fillColor: palette.za, fillOpacity: 1 };
+      if (c === "NL") return { color: palette.nlLine, weight: home, fillColor: palette.nl, fillOpacity: 1 };
+      return { color: palette.border, weight: palette.neighbourWeight, fillColor: palette.neighbour, fillOpacity: 1 };
     },
   });
 }
 
 /** Province borders. Dashed and subtle so they read as internal lines. */
-export function provinceLayer(L: Leaflet, provinces: RegionCollection) {
+export function provinceLayer(L: Leaflet, provinces: RegionCollection, palette: MapPalette) {
   return L.geoJSON(provinces, {
     interactive: false,
-    style: () => ({ color: MAP_COLORS.province, weight: 0.9, dashArray: "3 3", fill: false }),
+    style: () => ({ color: palette.province, weight: 0.9, dashArray: "3 3", fill: false }),
   });
 }
 
 /** 5° graticule for orientation. Cheap: ~70 polylines. */
-export function graticuleLayer(L: Leaflet) {
+export function graticuleLayer(L: Leaflet, palette: MapPalette) {
   const group = L.layerGroup();
-  const style = { color: MAP_COLORS.graticule, weight: 1, interactive: false, pane: "tilePane" } as const;
+  const style = { color: palette.graticule, weight: 1, interactive: false, pane: "tilePane" } as const;
   // The grid runs three worlds wide. On a panel wider than the world at its
   // zoom (a wide reveal on desktop), the sides past the date line read as
   // open ocean instead of blank panel. Land is drawn once; clicks unchanged.
@@ -165,7 +222,13 @@ export function graticuleLayer(L: Leaflet) {
 const DOT_ZOOM = [1.5, 3, 4.25, 5, 7.75, 8.75];
 const LABEL_ZOOM = [3.75, 5, 6, 7.75, 8.75, 9.75];
 
-export function cityLayers(L: Leaflet, map: LMap, gate: ZoomGate, places: readonly Place[]) {
+export function cityLayers(
+  L: Leaflet,
+  map: LMap,
+  gate: ZoomGate,
+  places: readonly Place[],
+  palette: MapPalette,
+) {
   // Dots get their own pane above the land (the canvas would otherwise sit
   // under the SVG countries and only show at sea) and below the pins.
   // Towns are for context at the reveal only: while you guess, a country with
@@ -191,9 +254,9 @@ export function cityLayers(L: Leaflet, map: LMap, gate: ZoomGate, places: readon
         pane: "atlas-dots",
         renderer,
         radius: t <= 1 ? 3.2 : t <= 3 ? 2.6 : 2.1,
-        color: "#09090b",
+        color: palette.cityLine,
         weight: 1,
-        fillColor: MAP_COLORS.city,
+        fillColor: palette.city,
         fillOpacity: 1,
         interactive: false,
       }),

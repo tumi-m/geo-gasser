@@ -11,7 +11,7 @@ import {
   cityLayers,
   detailCountryLayer,
   graticuleLayer,
-  MAP_COLORS,
+  MAP_PALETTES,
   NL_BOUNDS,
   provinceLayer,
   regionLabels,
@@ -23,6 +23,7 @@ import {
   ZoomGate,
 } from "@/lib/map/layers";
 import "leaflet/dist/leaflet.css";
+import { useTheme } from "@/lib/theme";
 
 /**
  * Leaflet + bundled Natural Earth. SVG paint, no WebGL, no tiles, no keys:
@@ -125,6 +126,12 @@ export function GuessMap({
   /** The name this player gave; labels their pin at the reveal. */
   selfName?: string;
 }) {
+  // The map is drawn once per mount in the look's palette; MatchApp remounts
+  // it when the look changes.
+  const theme = useTheme();
+  const mono = theme === "mono";
+  const paletteRef = useRef(MAP_PALETTES[theme]);
+  paletteRef.current = MAP_PALETTES[theme];
   const hostRef = useRef<HTMLDivElement>(null);
   const wrapRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<import("leaflet").Map | null>(null);
@@ -257,12 +264,13 @@ export function GuessMap({
         fitMinZoom();
         map.on("resize", fitMinZoom);
 
-        graticuleLayer(L).addTo(map);
-        worldLayer(L, WORLD, DETAIL_CODES).addTo(map);
-        detailCountryLayer(L, DETAIL.countries).addTo(map);
-        provinceLayer(L, DETAIL.provinces).addTo(map);
+        const palette = paletteRef.current;
+        graticuleLayer(L, palette).addTo(map);
+        worldLayer(L, WORLD, DETAIL_CODES, palette).addTo(map);
+        detailCountryLayer(L, DETAIL.countries, palette).addTo(map);
+        provinceLayer(L, DETAIL.provinces, palette).addTo(map);
         const gate = new ZoomGate(map);
-        cityLayers(L, map, gate, placeModule.PLACES);
+        cityLayers(L, map, gate, placeModule.PLACES, palette);
         regionLabels(L, gate, DETAIL.countries, DETAIL.provinces);
         gate.update();
         map.on("zoomend moveend", () => gate.update());
@@ -585,7 +593,7 @@ export function GuessMap({
     if (guessKey && currentGuess) {
       const pts = toLatLngs(geodesicPoints(currentGuess, currentTruth, 64));
       const mid = pts[Math.floor(pts.length / 2)];
-      animateArc(pts, { color: MAP_COLORS.arc, weight: 2.25, opacity: 0.9 }, 1100, () => {
+      animateArc(pts, { color: paletteRef.current.arc, weight: 2.25, opacity: 0.9 }, 1100, () => {
         if (!mapRef.current) return;
         // A close guess puts the line's midpoint on top of both pins and the
         // "Answer" tag; the reveal card already says the distance, so skip it.
@@ -601,7 +609,7 @@ export function GuessMap({
       const pts = toLatLngs(geodesicPoints(currentOpponent.guess, currentTruth, 64));
       animateArc(
         pts,
-        { color: MAP_COLORS.arcOpp, weight: 1.75, opacity: 0.8, dashArray: "6 6" },
+        { color: paletteRef.current.arcOpp, weight: 1.75, opacity: 0.8, dashArray: "6 6" },
         1100,
         undefined,
         "opp",
@@ -681,7 +689,9 @@ export function GuessMap({
     <div
       ref={wrapRef}
       className={cn(
-        "map-dock overflow-hidden border border-border bg-[#243044] shadow-[var(--shadow-panel)] transition-[width,height,inset,border-radius,box-shadow,opacity] duration-300",
+        mono
+          ? "map-dock overflow-hidden border border-rule bg-[#f4f4f4] transition-[width,height,inset,opacity] duration-[180ms]"
+          : "map-dock overflow-hidden border border-border bg-[#243044] shadow-[var(--shadow-panel)] transition-[width,height,inset,border-radius,box-shadow,opacity] duration-300",
         urgent && !reveal && "atlas-map-urgent",
         reveal && "is-reveal",
         expanded
@@ -708,7 +718,10 @@ export function GuessMap({
                 enterKeyHint="go"
                 aria-label="Search a city to drop a pin"
                 aria-autocomplete="list"
-                className="h-10 w-full rounded-full border border-border bg-bg pl-9 pr-3 text-sm text-fg outline-none placeholder:text-subtle focus:border-accent/60"
+                className={cn(
+                  "h-10 w-full border border-border bg-bg pl-9 pr-3 text-sm text-fg outline-none placeholder:text-subtle focus:border-accent/60",
+                  !mono && "rounded-full",
+                )}
                 onChange={(e) => {
                   setQuery(e.target.value);
                   setActiveHit(0);
@@ -761,7 +774,8 @@ export function GuessMap({
                         </span>
                         <span
                           className={cn(
-                            "shrink-0 rounded-full px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider",
+                            "shrink-0 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider",
+                            !mono && "rounded-full",
                             place.country === "ZA"
                               ? "bg-za text-fg"
                               : place.country === "NL"
@@ -894,7 +908,7 @@ export function GuessMap({
           <div className="absolute right-3 top-3 z-[800]">
             <button
               type="button"
-              className="map-tool hit-44 border border-border bg-bg/85 backdrop-blur-sm"
+              className={cn("map-tool hit-44 border border-border", mono ? "bg-bg" : "bg-bg/85 backdrop-blur-sm")}
               onClick={onToggleExpand}
               aria-label={expanded ? "Shrink map" : "Expand map"}
               title={expanded ? "Shrink map" : "Expand map"}
@@ -913,7 +927,8 @@ export function GuessMap({
               <>
                 <span
                   className={cn(
-                    "map-readout-dot size-2 shrink-0 rounded-full",
+                    "map-readout-dot size-2 shrink-0",
+                    !mono && "rounded-full",
                     readout.country === "ZA" ? "bg-za" : readout.country === "NL" ? "bg-nl" : "bg-subtle",
                   )}
                   key={guessKey}
@@ -941,8 +956,13 @@ export function GuessMap({
                 onLock();
               }}
               className={cn(
-                "inline-flex h-11 shrink-0 items-center gap-2 rounded-[var(--radius-md)] bg-accent px-4 text-sm font-semibold text-accent-fg transition-[opacity,transform] active:scale-[.97] disabled:opacity-35",
+                mono
+                  ? // The round's one action: a block in the ink colour, framed
+                    // in quotes; it turns to the accent once a pin is down.
+                    "quoted inline-flex h-11 shrink-0 items-center gap-2 border border-fg bg-fg px-4 text-xs font-bold uppercase tracking-[0.1em] text-bg [--quote-pull:0.5rem] transition-[background-color,color,border-color] duration-[120ms] disabled:opacity-35"
+                  : "inline-flex h-11 shrink-0 items-center gap-2 rounded-[var(--radius-md)] bg-accent px-4 text-sm font-semibold text-accent-fg transition-[opacity,transform] active:scale-[.97] disabled:opacity-35",
                 canLock && "atlas-lock-ready",
+                canLock && mono && "border-accent bg-accent text-accent-fg",
               )}
             >
               <Lock className="size-4" />

@@ -173,3 +173,10 @@ Rules this repo has already paid for:
 - **A reduced-motion rule that swaps animation names must also set the
   iteration count.** Turning every animation into a fade kept infinite
   loops infinite, so idle avatars blinked forever.
+- **There are two looks; style both.** Classic (default) and Mono live in
+  `src/themes/classic.css` and `src/themes/mono.css`, and only the chosen
+  one is on the page (`src/lib/theme.ts`). Shared tokens and utilities go
+  in `src/styles.css`: a new token needs a Classic value there and, if it
+  differs, a Mono value on `:root` in `mono.css`. Markup that differs
+  branches on `useMono()`. The map's colours are `MAP_PALETTES` in
+  `src/lib/map/layers.ts`. Check new screens in both looks.

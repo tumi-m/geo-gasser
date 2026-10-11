@@ -13,6 +13,7 @@ import { useSplashTimeline } from "./use-splash-timeline";
 import { useCountUp } from "./use-count-up";
 import { CrownDrop, WinBanner, WinFx } from "./winner-moment";
 import { cn } from "@/lib/utils";
+import { useMono } from "@/lib/theme";
 
 /**
  * The end of a multi-question round (Quick is one round of ten). Every
@@ -45,6 +46,7 @@ export function RoundSummarySplash({
   reducedMotion?: boolean;
   onDone: () => void;
 }) {
+  const mono = useMono();
   const reduced = Boolean(reducedMotion);
   const s = roundSummary(history, players, roundIndex, selfId);
   const duel = s.rows.length > 1;
@@ -127,7 +129,7 @@ export function RoundSummarySplash({
                       mood={isWinner ? "happy" : crowned && s.winnerId ? "sad" : "focus"}
                     />
                     {isWinner && <CrownDrop />}
-                    {isWinner && !reduced && <Sparks count={20} spread={130} />}
+                    {isWinner && !reduced && !mono && <Sparks count={20} spread={130} />}
                   </div>
                   <p className="splash-name">
                     {row.name}
@@ -144,7 +146,7 @@ export function RoundSummarySplash({
         ) : (
           <div className="splash-solo">
             <Total value={s.rows[0]?.total ?? 0} ms={countMs} className="splash-big" />
-            {crowned && !reduced && <Sparks count={24} spread={160} />}
+            {crowned && !reduced && !mono && <Sparks count={24} spread={160} />}
           </div>
         )}
 

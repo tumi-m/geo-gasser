@@ -16,6 +16,7 @@ import {
   type AtlasSpec,
 } from "@/lib/game";
 import { cn, plural } from "@/lib/utils";
+import { useMono } from "@/lib/theme";
 
 export function AtlasPicker({
   value,
@@ -26,6 +27,7 @@ export function AtlasPicker({
   onChange: (next: AtlasSpec) => void;
   compact?: boolean;
 }) {
+  const mono = useMono();
   const [cityQuery, setCityQuery] = useState("");
   const spec = sanitizeAtlas(value);
   // Only places a match can deal: the counts and cities here are a promise.
@@ -52,18 +54,40 @@ export function AtlasPicker({
                   : sanitizeAtlas({ preset: p.id }),
               )
             }
-            className={cn(
-              "min-h-11 rounded-[var(--radius-md)] border px-3 py-2 text-left transition-colors",
-              spec.preset === p.id ? "border-accent bg-accent/15 text-fg" : "border-border bg-bg/40 text-muted",
-            )}
+            className={
+              mono
+                ? cn(
+                    "min-h-11 border px-3 py-2 text-left transition-colors duration-[120ms]",
+                    spec.preset === p.id
+                      ? "border-rule bg-accent text-accent-fg"
+                      : "border-rule bg-bg text-fg hover:bg-bg-subtle",
+                  )
+                : cn(
+                    "min-h-11 rounded-[var(--radius-md)] border px-3 py-2 text-left transition-colors",
+                    spec.preset === p.id ? "border-accent bg-accent/15 text-fg" : "border-border bg-bg/40 text-muted",
+                  )
+            }
           >
-            <span className="block text-sm leading-tight font-medium text-fg">{p.label}</span>
-            <span className="mt-0.5 block text-[11px] leading-snug text-muted">{p.hint}</span>
+            <span className={cn("block text-sm leading-tight", mono ? "font-bold" : "font-medium text-fg")}>
+              {p.label}
+            </span>
+            <span
+              className={
+                mono
+                  ? cn(
+                      "mt-0.5 block font-mono text-[10px] leading-snug",
+                      spec.preset === p.id ? "text-accent-fg" : "text-muted",
+                    )
+                  : "mt-0.5 block text-[11px] leading-snug text-muted"
+              }
+            >
+              {p.hint}
+            </span>
           </button>
         ))}
       </div>
       {custom ? (
-        <div className="rounded-[var(--radius-md)] border border-border bg-bg/50 p-3">
+        <div className={mono ? "border border-rule bg-bg p-3" : "rounded-[var(--radius-md)] border border-border bg-bg/50 p-3"}>
           <p className="text-[11px] uppercase tracking-wider text-subtle">Regions</p>
           <div className="mt-2 flex flex-wrap gap-1.5">
             {Object.entries(REGION_NATIONS).map(([id, region]) => {
@@ -73,10 +97,17 @@ export function AtlasPicker({
                   key={id}
                   type="button"
                   onClick={() => onChange(applyRegion(spec, id, !on))}
-                  className={cn(
-                    "min-h-9 rounded-full border px-3 text-xs",
-                    on ? "border-accent bg-accent/15 text-fg" : "border-border text-muted",
-                  )}
+                  className={
+                    mono
+                      ? cn(
+                          "min-h-9 border px-3 text-[11px] font-bold uppercase tracking-[0.08em]",
+                          on ? "border-rule bg-accent text-accent-fg" : "border-rule text-fg",
+                        )
+                      : cn(
+                          "min-h-9 rounded-full border px-3 text-xs",
+                          on ? "border-accent bg-accent/15 text-fg" : "border-border text-muted",
+                        )
+                  }
                 >
                   {region.label}
                 </button>
@@ -97,19 +128,25 @@ export function AtlasPicker({
                     aria-pressed={on}
                     onClick={() => onChange(toggleNation(spec, code))}
                     className={cn(
-                      "flex min-h-10 items-center justify-between gap-2 rounded-[var(--radius-sm)] border px-2.5 text-left text-xs",
-                      on ? "border-accent bg-accent/15 text-fg" : "border-border text-muted",
+                      "flex min-h-10 items-center justify-between gap-2 border px-2.5 text-left text-xs",
+                      mono
+                        ? on
+                          ? "border-rule bg-accent text-accent-fg"
+                          : "border-border text-fg"
+                        : on
+                          ? "rounded-[var(--radius-sm)] border-accent bg-accent/15 text-fg"
+                          : "rounded-[var(--radius-sm)] border-border text-muted",
                     )}
                   >
                     <span className="truncate">{nationLabel(code)}</span>
-                    <span className="tabular text-[10px] text-subtle">{counts[code]}</span>
+                    <span className={cn("tabular text-[10px]", mono ? "font-mono" : "text-subtle")}>{counts[code]}</span>
                   </button>
                 );
               })}
           </div>
         </div>
       ) : null}
-      <details className="mt-3 rounded-xl border border-border p-3">
+      <details className={cn("mt-3 border p-3", mono ? "border-rule" : "rounded-xl border-border")}>
         <summary className="cursor-pointer text-sm text-muted">Choose cities {spec.cities?.length ? `(${spec.cities.length})` : "· optional"}</summary>
         <input className="atlas-search" aria-label="Find a city" placeholder="Find a city…" value={cityQuery} onChange={e=>setCityQuery(e.target.value)}/>
         <div className="mt-3 flex max-h-44 flex-wrap gap-2 overflow-y-auto">

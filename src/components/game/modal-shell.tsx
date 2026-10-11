@@ -1,6 +1,7 @@
 import { useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import { cn } from "@/lib/utils";
+import { useMono } from "@/lib/theme";
 
 export function ModalShell({
   titleId,
@@ -15,6 +16,7 @@ export function ModalShell({
   wide?: boolean;
   className?: string;
 }) {
+  const mono = useMono();
   const panelRef = useRef<HTMLDivElement>(null);
   // Callers pass inline handlers; keep the latest so the focus trap is set up
   // once per mount instead of re-running (and stealing focus) every render.
@@ -92,7 +94,10 @@ export function ModalShell({
   return createPortal(
     <div
       data-modal-root
-      className="fixed inset-0 z-50 flex items-end justify-center bg-bg/75 backdrop-blur-md p-3 sm:p-5 pt-[max(1rem,env(safe-area-inset-top))] pb-[max(1rem,env(safe-area-inset-bottom))] sm:items-center"
+      className={cn(
+        "fixed inset-0 z-50 flex items-end justify-center p-3 sm:p-5 pt-[max(1rem,env(safe-area-inset-top))] pb-[max(1rem,env(safe-area-inset-bottom))] sm:items-center",
+        mono ? "bg-black/55" : "bg-bg/75 backdrop-blur-md",
+      )}
       role="dialog"
       aria-modal="true"
       aria-labelledby={titleId}
@@ -104,7 +109,10 @@ export function ModalShell({
         ref={panelRef}
         tabIndex={-1}
         className={cn(
-          "atlas-modal max-h-[calc(100dvh-2rem)] overflow-y-auto overscroll-contain w-full rounded-[var(--radius-xl)] border border-border bg-bg-elevated p-5 shadow-[var(--shadow-panel)]",
+          "atlas-modal max-h-[calc(100dvh-2rem)] overflow-y-auto overscroll-contain w-full bg-bg-elevated p-5",
+          mono
+            ? "border border-rule"
+            : "rounded-[var(--radius-xl)] border border-border shadow-[var(--shadow-panel)]",
           wide ? "max-w-lg" : "max-w-md",
           className,
         )}

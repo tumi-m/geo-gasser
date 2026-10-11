@@ -1,4 +1,5 @@
 import { cn } from "@/lib/utils";
+import { useMono } from "@/lib/theme";
 
 /**
  * The end of a round, celebrated. Behind the splash: rays turn, a flash
@@ -6,11 +7,18 @@ import { cn } from "@/lib/utils";
  * colour (`WinFx`). In front: the winner's name slams in over "wins round 2"
  * (`WinBanner`), and solo rounds stamp in up to three stars. Reduced motion
  * keeps the words and stars and drops the rays, flash, shake and confetti.
+ *
+ * Mono marks it like a camera shutter instead: one white frame, then a
+ * hairline grid draws itself across the scene in the winner's colour.
  */
 
 const CONFETTI = 46;
+const GRID_LINES = 7;
 
+/** `confetti`: a big moment (a duel won, a good solo round) gets the full burst. */
 export function WinFx({ color, confetti }: { color: string; confetti: boolean }) {
+  const mono = useMono();
+  if (mono) return <MonoWinFx color={color} grid={confetti} />;
   return (
     <div className="win-fx" aria-hidden style={{ "--win": color } as React.CSSProperties}>
       <i className="win-rays" />
@@ -44,6 +52,25 @@ export function WinFx({ color, confetti }: { color: string; confetti: boolean })
               />
             );
           })}
+        </span>
+      )}
+    </div>
+  );
+}
+
+function MonoWinFx({ color, grid }: { color: string; grid: boolean }) {
+  const at = (i: number) => `${((i + 1) * 100) / (GRID_LINES + 1)}%`;
+  return (
+    <div className="win-fx" aria-hidden style={{ "--win": color } as React.CSSProperties}>
+      <i className="win-shutter" />
+      {grid && (
+        <span className="win-grid">
+          {Array.from({ length: GRID_LINES }, (_, i) => (
+            <i key={`h${i}`} className="is-h" style={{ "--i": i, "--at": at(i) } as React.CSSProperties} />
+          ))}
+          {Array.from({ length: GRID_LINES }, (_, i) => (
+            <i key={`v${i}`} className="is-v" style={{ "--i": i, "--at": at(i) } as React.CSSProperties} />
+          ))}
         </span>
       )}
     </div>

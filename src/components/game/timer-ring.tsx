@@ -110,3 +110,34 @@ export function QuestionMark({ current, total = 10 }: { current: number; total?:
     </p>
   );
 }
+
+/**
+ * Mono's version of the pips and the question line: where the match stands,
+ * as one line of caps metadata: "R 2/4 · Q 3/10", or "STOP 2/5" in an Escape.
+ */
+export function MatchMeta({
+  round,
+  rounds,
+  question,
+  questions = 10,
+  escape = false,
+}: {
+  round: number;
+  rounds: number;
+  question: number;
+  questions?: number;
+  escape?: boolean;
+}) {
+  const shown = escape ? `STOP ${round}/${rounds}` : `R ${round}/${rounds} · Q ${question}/${questions}`;
+  const spoken = escape
+    ? `Stop ${round} of ${rounds}`
+    : `Round ${round} of ${rounds}, question ${question} of ${questions}`;
+  return (
+    // aria-label is not read on a paragraph; the spoken form sits beside the
+    // visible shorthand instead.
+    <p className="hud-meta">
+      <span aria-hidden>{shown}</span>
+      <span className="sr-only">{spoken}</span>
+    </p>
+  );
+}

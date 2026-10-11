@@ -209,6 +209,22 @@ export function SettingsPanel({
         )}
         {tab === "picture" && (
           <>
+            <Section title="Look" hint="The whole app's style. Your choice is saved on this device.">
+              <div className="settings-choices two">
+                <Choice
+                  label="Classic"
+                  hint="Dark and colourful · full motion"
+                  active={settings.theme === "classic"}
+                  onClick={() => update({ theme: "classic" })}
+                />
+                <Choice
+                  label="Mono"
+                  hint="Black and white · drawing-style map"
+                  active={settings.theme === "mono"}
+                  onClick={() => update({ theme: "mono" })}
+                />
+              </div>
+            </Section>
             <Section title="Take in the view" hint="Choose how still photographs fit your screen.">
               <div className="settings-choices two">
                 <Choice

@@ -14,6 +14,7 @@ import { useCountUp } from "./use-count-up";
 import { useSplashTimeline } from "./use-splash-timeline";
 import { CrownDrop, WinBanner, WinFx } from "./winner-moment";
 import { cn } from "@/lib/utils";
+import { useMono } from "@/lib/theme";
 
 /**
  * The end-of-round moment, over the photo with the map still in view below:
@@ -54,6 +55,7 @@ export function RoundSplash({
   reducedMotion?: boolean;
   onDone: () => void;
 }) {
+  const mono = useMono();
   const reduced = Boolean(reducedMotion);
   const verdict = roundVerdict(players, selfId);
   const duel = verdict.rows.length > 1;
@@ -129,7 +131,7 @@ export function RoundSplash({
                   winner={isWinner}
                   loser={isLoser}
                   crown={roundEnd}
-                  reduced={reduced}
+                  sparks={!reduced && !mono}
                 />
               );
             })}
@@ -138,7 +140,7 @@ export function RoundSplash({
             </span>
           </div>
         ) : (
-          <SoloPoints points={score.roundScore} burst={crowned && youWon && !reduced} />
+          <SoloPoints points={score.roundScore} burst={crowned && youWon && !reduced && !mono} />
         )}
         {celebrate ? (
           <div className="splash-headline" aria-hidden>
@@ -196,7 +198,7 @@ function SplashPlayer({
   winner,
   loser,
   crown,
-  reduced,
+  sparks,
 }: {
   side: "left" | "right";
   name: string;
@@ -207,7 +209,8 @@ function SplashPlayer({
   loser: boolean;
   /** This question ends a round: the winner gets a crown, not a trophy. */
   crown: boolean;
-  reduced: boolean;
+  /** A burst of sparks on the winner (Classic, with motion on). */
+  sparks: boolean;
 }) {
   const shown = useCountUp(points, T_COUNT, false, 0, T_IN);
   return (
@@ -225,7 +228,7 @@ function SplashPlayer({
             <Trophy size={22} />
           </span>
         )}
-        {winner && !reduced && <Sparks />}
+        {winner && sparks && <Sparks />}
       </div>
       <p className="splash-name">
         {name}

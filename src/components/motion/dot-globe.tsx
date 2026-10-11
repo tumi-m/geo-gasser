@@ -1,6 +1,7 @@
 import { useEffect, useRef } from "react";
 import { cn } from "@/lib/utils";
 import { loadGlobeDots } from "./globe-dots-data";
+import { useMono } from "@/lib/theme";
 
 /**
  * A dotted Earth on a 2D canvas: ~2,400 land dots in orthographic projection,
@@ -66,8 +67,11 @@ export function DotGlobe({
   reducedMotion?: boolean;
 }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const propsRef = useRef({ focus, places, arcs, spin, tilt, reducedMotion });
-  propsRef.current = { focus, places, arcs, spin, tilt, reducedMotion };
+  // Classic paints a lit planet with glowing places; Mono a technical
+  // drawing in the page's own ink with square markers.
+  const mono = useMono();
+  const propsRef = useRef({ focus, places, arcs, spin, tilt, reducedMotion, mono });
+  propsRef.current = { focus, places, arcs, spin, tilt, reducedMotion, mono };
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -127,110 +131,204 @@ export function DotGlobe({
         return [cx + r * x, cy - r * y, z];
       };
 
-      // Sphere body and atmosphere.
-      const body = ctx.createRadialGradient(cx - R * 0.35, cy - R * 0.4, R * 0.1, cx, cy, R);
-      body.addColorStop(0, "rgba(40,66,78,0.55)");
-      body.addColorStop(1, "rgba(10,20,27,0.85)");
-      ctx.fillStyle = body;
-      ctx.beginPath();
-      ctx.arc(cx, cy, R, 0, Math.PI * 2);
-      ctx.fill();
-      const rim = ctx.createRadialGradient(cx, cy, R * 0.92, cx, cy, R * 1.18);
-      rim.addColorStop(0, "rgba(216,243,106,0)");
-      rim.addColorStop(0.35, "rgba(216,243,106,0.13)");
-      rim.addColorStop(1, "rgba(216,243,106,0)");
-      ctx.fillStyle = rim;
-      ctx.beginPath();
-      ctx.arc(cx, cy, R * 1.18, 0, Math.PI * 2);
-      ctx.fill();
+      if (p.mono) {
+        // A technical drawing, not a planet: the outline is a hairline, the land
+        // is dots of ink, and the places in play are the one accent. Colours
+        // come from the page's own tokens (black on the white documents).
+        const css = getComputedStyle(canvas);
+        const ink = css.getPropertyValue("--color-fg").trim() || "#000";
+        const accent = css.getPropertyValue("--color-accent").trim() || "#ff5500";
+        ctx.strokeStyle = ink;
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.arc(cx, cy, R, 0, Math.PI * 2);
+        ctx.stroke();
 
-      // Land.
-      if (dots) {
-        const halos = p.places
-          .filter((pl) => pl.halo)
-          .map((pl) => ({
-            lat: pl.lat * DEG,
-            lon: pl.lon * DEG,
-            r: Math.cos((pl.halo ?? 0) * DEG),
-            color: pl.color,
-          }));
-        const dotR = Math.max(0.9, R / 150);
-        for (let i = 0; i < dots.length; i += 2) {
-          const lat = dots[i];
-          const lon = dots[i + 1];
-          const [x, y, z] = project(lat, lon);
-          if (z <= 0.02) continue;
-          let color = "#d4d4d4";
-          for (const hl of halos) {
-            const c =
-              Math.sin(lat) * Math.sin(hl.lat) +
-              Math.cos(lat) * Math.cos(hl.lat) * Math.cos(lon - hl.lon);
-            if (c > hl.r) color = hl.color;
+        // Land.
+        if (dots) {
+          const halos = p.places
+            .filter((pl) => pl.halo)
+            .map((pl) => ({
+              lat: pl.lat * DEG,
+              lon: pl.lon * DEG,
+              r: Math.cos((pl.halo ?? 0) * DEG),
+            }));
+          const dotR = Math.max(0.9, R / 150);
+          for (let i = 0; i < dots.length; i += 2) {
+            const lat = dots[i];
+            const lon = dots[i + 1];
+            const [x, y, z] = project(lat, lon);
+            if (z <= 0.02) continue;
+            let color = ink;
+            for (const hl of halos) {
+              const c =
+                Math.sin(lat) * Math.sin(hl.lat) +
+                Math.cos(lat) * Math.cos(hl.lat) * Math.cos(lon - hl.lon);
+              if (c > hl.r) color = accent;
+            }
+            ctx.globalAlpha = 0.12 + 0.68 * z;
+            ctx.fillStyle = color;
+            const d = dotR * (0.55 + 0.45 * z) * 1.6;
+            ctx.fillRect(x - d / 2, y - d / 2, d, d);
           }
-          ctx.globalAlpha = 0.18 + 0.72 * z;
-          ctx.fillStyle = color;
-          ctx.beginPath();
-          ctx.arc(x, y, dotR * (0.55 + 0.45 * z), 0, Math.PI * 2);
-          ctx.fill();
+          ctx.globalAlpha = 1;
         }
-        ctx.globalAlpha = 1;
-      }
 
-      // rAF stamps can trail the performance.now() we started from.
-      const t = Math.max(0, (now - start) / 1000);
-      // Arcs: one at a time, rising off the surface, a comet at the tip.
-      if (p.arcs.length && !still) {
-        const per = 2.6;
-        const n = Math.floor(t / per);
-        const k = (t % per) / per;
-        const [ai, bi] = p.arcs[n % p.arcs.length];
-        const a = p.places[ai];
-        const b = p.places[bi];
-        if (a && b) {
-          const grow = Math.min(1, k / 0.6);
-          const fade = k < 0.75 ? 1 : 1 - (k - 0.75) / 0.25;
-          ctx.lineWidth = Math.max(1.2, R / 110);
-          ctx.strokeStyle = `rgba(216,243,106,${0.75 * fade})`;
-          ctx.beginPath();
-          let head: [number, number, number] | null = null;
-          const steps = 48;
-          for (let s = 0; s <= steps * grow; s++) {
-            const u = s / steps;
-            const [la, lo] = slerp(a, b, u);
-            const pt = project(la * DEG, lo * DEG, 0.16 * Math.sin(Math.PI * u));
-            if (s === 0) ctx.moveTo(pt[0], pt[1]);
-            else ctx.lineTo(pt[0], pt[1]);
-            head = pt;
-          }
-          ctx.stroke();
-          if (head && grow < 1) {
-            const glow = ctx.createRadialGradient(head[0], head[1], 0, head[0], head[1], R / 14);
-            glow.addColorStop(0, "rgba(255,255,240,0.95)");
-            glow.addColorStop(1, "rgba(216,243,106,0)");
-            ctx.fillStyle = glow;
+        // rAF stamps can trail the performance.now() we started from.
+        const t = Math.max(0, (now - start) / 1000);
+        // Arcs: one at a time, rising off the surface, a comet at the tip.
+        if (p.arcs.length && !still) {
+          const per = 2.6;
+          const n = Math.floor(t / per);
+          const k = (t % per) / per;
+          const [ai, bi] = p.arcs[n % p.arcs.length];
+          const a = p.places[ai];
+          const b = p.places[bi];
+          if (a && b) {
+            const grow = Math.min(1, k / 0.6);
+            const fade = k < 0.75 ? 1 : 1 - (k - 0.75) / 0.25;
+            ctx.lineWidth = Math.max(1.2, R / 110);
+            ctx.globalAlpha = fade;
+            ctx.strokeStyle = accent;
             ctx.beginPath();
-            ctx.arc(head[0], head[1], R / 14, 0, Math.PI * 2);
+            let head: [number, number, number] | null = null;
+            const steps = 48;
+            for (let s = 0; s <= steps * grow; s++) {
+              const u = s / steps;
+              const [la, lo] = slerp(a, b, u);
+              const pt = project(la * DEG, lo * DEG, 0.16 * Math.sin(Math.PI * u));
+              if (s === 0) ctx.moveTo(pt[0], pt[1]);
+              else ctx.lineTo(pt[0], pt[1]);
+              head = pt;
+            }
+            ctx.stroke();
+            if (head && grow < 1) {
+              const q = Math.max(4, R / 40);
+              ctx.fillStyle = accent;
+              ctx.fillRect(head[0] - q / 2, head[1] - q / 2, q, q);
+            }
+            ctx.globalAlpha = 1;
+          }
+        }
+
+        // Places: a square marker in a hairline frame.
+        for (const pl of p.places) {
+          const [x, y, z] = project(pl.lat * DEG, pl.lon * DEG);
+          if (z <= 0.05) continue;
+          const q = Math.max(4, R / 30);
+          ctx.globalAlpha = z;
+          ctx.fillStyle = accent;
+          ctx.fillRect(x - q / 2, y - q / 2, q, q);
+          ctx.strokeStyle = ink;
+          ctx.lineWidth = 1;
+          ctx.strokeRect(x - q, y - q, q * 2, q * 2);
+        }
+      } else {
+        // Sphere body and atmosphere.
+        const body = ctx.createRadialGradient(cx - R * 0.35, cy - R * 0.4, R * 0.1, cx, cy, R);
+        body.addColorStop(0, "rgba(52,52,52,0.55)");
+        body.addColorStop(1, "rgba(14,14,14,0.85)");
+        ctx.fillStyle = body;
+        ctx.beginPath();
+        ctx.arc(cx, cy, R, 0, Math.PI * 2);
+        ctx.fill();
+        const rim = ctx.createRadialGradient(cx, cy, R * 0.92, cx, cy, R * 1.18);
+        rim.addColorStop(0, "rgba(255,85,0,0)");
+        rim.addColorStop(0.35, "rgba(255,85,0,0.13)");
+        rim.addColorStop(1, "rgba(255,85,0,0)");
+        ctx.fillStyle = rim;
+        ctx.beginPath();
+        ctx.arc(cx, cy, R * 1.18, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Land.
+        if (dots) {
+          const halos = p.places
+            .filter((pl) => pl.halo)
+            .map((pl) => ({
+              lat: pl.lat * DEG,
+              lon: pl.lon * DEG,
+              r: Math.cos((pl.halo ?? 0) * DEG),
+              color: pl.color,
+            }));
+          const dotR = Math.max(0.9, R / 150);
+          for (let i = 0; i < dots.length; i += 2) {
+            const lat = dots[i];
+            const lon = dots[i + 1];
+            const [x, y, z] = project(lat, lon);
+            if (z <= 0.02) continue;
+            let color = "#d4d4d4";
+            for (const hl of halos) {
+              const c =
+                Math.sin(lat) * Math.sin(hl.lat) +
+                Math.cos(lat) * Math.cos(hl.lat) * Math.cos(lon - hl.lon);
+              if (c > hl.r) color = hl.color;
+            }
+            ctx.globalAlpha = 0.18 + 0.72 * z;
+            ctx.fillStyle = color;
+            ctx.beginPath();
+            ctx.arc(x, y, dotR * (0.55 + 0.45 * z), 0, Math.PI * 2);
             ctx.fill();
           }
+          ctx.globalAlpha = 1;
         }
-      }
 
-      // Places: a dot and a ring that keeps pulsing out.
-      for (const [i, pl] of p.places.entries()) {
-        const [x, y, z] = project(pl.lat * DEG, pl.lon * DEG);
-        if (z <= 0.05) continue;
-        const pulse = still ? 0.4 : (t * 0.7 + i * 0.37) % 1;
-        ctx.globalAlpha = z * (1 - pulse);
-        ctx.strokeStyle = pl.color;
-        ctx.lineWidth = 1.5;
-        ctx.beginPath();
-        ctx.arc(x, y, 3 + pulse * R * 0.12, 0, Math.PI * 2);
-        ctx.stroke();
-        ctx.globalAlpha = z;
-        ctx.fillStyle = pl.color;
-        ctx.beginPath();
-        ctx.arc(x, y, Math.max(2.4, R / 60), 0, Math.PI * 2);
-        ctx.fill();
+        // rAF stamps can trail the performance.now() we started from.
+        const t = Math.max(0, (now - start) / 1000);
+        // Arcs: one at a time, rising off the surface, a comet at the tip.
+        if (p.arcs.length && !still) {
+          const per = 2.6;
+          const n = Math.floor(t / per);
+          const k = (t % per) / per;
+          const [ai, bi] = p.arcs[n % p.arcs.length];
+          const a = p.places[ai];
+          const b = p.places[bi];
+          if (a && b) {
+            const grow = Math.min(1, k / 0.6);
+            const fade = k < 0.75 ? 1 : 1 - (k - 0.75) / 0.25;
+            ctx.lineWidth = Math.max(1.2, R / 110);
+            ctx.strokeStyle = `rgba(255,85,0,${0.75 * fade})`;
+            ctx.beginPath();
+            let head: [number, number, number] | null = null;
+            const steps = 48;
+            for (let s = 0; s <= steps * grow; s++) {
+              const u = s / steps;
+              const [la, lo] = slerp(a, b, u);
+              const pt = project(la * DEG, lo * DEG, 0.16 * Math.sin(Math.PI * u));
+              if (s === 0) ctx.moveTo(pt[0], pt[1]);
+              else ctx.lineTo(pt[0], pt[1]);
+              head = pt;
+            }
+            ctx.stroke();
+            if (head && grow < 1) {
+              const glow = ctx.createRadialGradient(head[0], head[1], 0, head[0], head[1], R / 14);
+              glow.addColorStop(0, "rgba(255,255,240,0.95)");
+              glow.addColorStop(1, "rgba(255,85,0,0)");
+              ctx.fillStyle = glow;
+              ctx.beginPath();
+              ctx.arc(head[0], head[1], R / 14, 0, Math.PI * 2);
+              ctx.fill();
+            }
+          }
+        }
+
+        // Places: a dot and a ring that keeps pulsing out.
+        for (const [i, pl] of p.places.entries()) {
+          const [x, y, z] = project(pl.lat * DEG, pl.lon * DEG);
+          if (z <= 0.05) continue;
+          const pulse = still ? 0.4 : (t * 0.7 + i * 0.37) % 1;
+          ctx.globalAlpha = z * (1 - pulse);
+          ctx.strokeStyle = pl.color;
+          ctx.lineWidth = 1.5;
+          ctx.beginPath();
+          ctx.arc(x, y, 3 + pulse * R * 0.12, 0, Math.PI * 2);
+          ctx.stroke();
+          ctx.globalAlpha = z;
+          ctx.fillStyle = pl.color;
+          ctx.beginPath();
+          ctx.arc(x, y, Math.max(2.4, R / 60), 0, Math.PI * 2);
+          ctx.fill();
+        }
       }
       ctx.globalAlpha = 1;
 
@@ -280,7 +378,7 @@ export function DotGlobe({
   useEffect(() => {
     if (!reducedMotion) return;
     canvasRef.current?.dispatchEvent(new Event("globe-redraw"));
-  }, [reducedMotion, focus?.lat, focus?.lon]);
+  }, [reducedMotion, focus?.lat, focus?.lon, mono]);
 
   return <canvas ref={canvasRef} className={cn("dot-globe", className)} aria-hidden />;
 }

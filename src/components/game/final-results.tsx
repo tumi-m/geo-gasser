@@ -23,6 +23,7 @@ import { PlayerAvatar } from "./player-avatar";
 import { ScoreTally } from "./score-tally";
 import { CrownDrop, WinFx } from "./winner-moment";
 import { cn, copyText } from "@/lib/utils";
+import { useMono } from "@/lib/theme";
 
 export function FinalResults({
   state,
@@ -48,6 +49,7 @@ export function FinalResults({
   /** The record this match beat for its length, when it set a new one. */
   beatBest?: number;
 }) {
+  const mono = useMono();
   const navigate = useNavigate();
   const you = state.players.find((p) => p.id === selfId);
   const other = state.players.find((p) => p.id !== selfId);
@@ -115,7 +117,16 @@ export function FinalResults({
       )}
       <div className="relative mx-auto flex min-h-[calc(100dvh-5rem)] max-w-lg flex-col justify-center">
         <div className="atlas-rise flex items-center justify-between gap-3">
-          <p className="text-xs uppercase tracking-[0.28em] text-muted">{kicker}</p>
+          {mono ? (
+            <p className="eyebrow">
+              <span className="index-no" aria-hidden>
+                FIN
+              </span>{" "}
+              {kicker}
+            </p>
+          ) : (
+            <p className="text-xs uppercase tracking-[0.28em] text-muted">{kicker}</p>
+          )}
           <div className="-my-2">
             <MusicHudButton />
           </div>
@@ -133,10 +144,10 @@ export function FinalResults({
               live
               mood={shared ? "neutral" : "happy"}
             />
-            {!reducedMotion && !shared && <Sparks count={20} spread={130} />}
+            {!reducedMotion && !shared && !mono && <Sparks count={20} spread={130} />}
             {crowned && <CrownDrop />}
           </span>
-          <h1 className="font-display text-5xl leading-none tracking-tight sm:text-6xl">
+          <h1 className={cn("font-display text-5xl leading-none tracking-tight sm:text-6xl", mono && "quoted")}>
             <WordRise text={headline ?? ""} delay={180} />
           </h1>
         </div>
@@ -229,7 +240,10 @@ export function FinalResults({
             Rematch used to sit under forty rows. Long matches fold each round
             into one line that opens on demand. */}
         <section className="mt-10" aria-labelledby="result-breakdown">
-          <h2 id="result-breakdown" className="text-[11px] uppercase tracking-[0.2em] text-subtle">
+          <h2
+            id="result-breakdown"
+            className={mono ? "eyebrow" : "text-[11px] uppercase tracking-[0.2em] text-subtle"}
+          >
             {escape ? "Your stops" : "Round by round"}
           </h2>
           {duel && other ? (
@@ -271,13 +285,16 @@ export function FinalResults({
                           <span className="mt-0.5 flex items-center gap-2 text-xs text-muted">
                             <span
                               className={cn(
-                                "inline-block size-1.5 rounded-full",
+                                "inline-block size-1.5",
+                                !mono && "rounded-full",
                                 loc?.country === "NL"
                                   ? "bg-nl"
                                   : loc?.country === "WORLD"
                                     ? "bg-accent"
                                     : loc?.country === "SPACE"
-                                      ? "bg-[#8fb4ff]"
+                                      ? mono
+                                        ? "border border-fg"
+                                        : "bg-[#8fb4ff]"
                                       : "bg-za",
                               )}
                             />
@@ -387,6 +404,7 @@ function Stat({
   format: (v: number) => string;
   reduced: boolean;
 }) {
+  const mono = useMono();
   const ref = useRef<HTMLDivElement>(null);
   const [seen, setSeen] = useState(false);
   useEffect(() => {
@@ -410,9 +428,11 @@ function Stat({
       ref={ref}
       data-reveal
       style={{ "--i": i } as React.CSSProperties}
-      className="rounded-[var(--radius-md)] border border-border p-3"
+      className={cn("border border-border p-3", !mono && "rounded-[var(--radius-md)]")}
     >
-      <dt className="text-subtle">{label}</dt>
+      <dt className={mono ? "font-mono text-[10px] uppercase tracking-[0.12em] text-subtle" : "text-subtle"}>
+        {label}
+      </dt>
       <dd className="mt-1 font-display text-xl tabular">{value === null ? "—" : format(shown)}</dd>
     </div>
   );
