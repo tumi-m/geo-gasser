@@ -787,7 +787,7 @@ button:focus-visible,a:focus-visible {outline:2px solid var(--color-accent)!impo
 .splash-solo {position:relative;display:flex;justify-content:center;margin-top:10px}
 .splash-big {font-family:var(--font-display);font-size:clamp(52px,14vw,84px);font-weight:700;letter-spacing:-2px;line-height:1;color:var(--color-accent)}
 .splash-headline {margin-top:18px;min-height:1.2em;font-family:var(--font-display);font-size:clamp(24px,6.4vw,34px);line-height:1.15;letter-spacing:-.02em}
-.splash-headline span {display:inline-block;animation:splash-word .5s var(--ease-smooth-out) backwards;animation-delay:calc(var(--i) * 70ms)}
+.splash-headline > span {display:inline-block;animation:splash-word .5s var(--ease-smooth-out) backwards;animation-delay:calc(var(--i) * 70ms)}
 .splash-sub {margin-top:6px;min-height:1.3em;font-size:13px;color:var(--color-muted);animation:splash-fade .4s .25s backwards}
 .splash-hint {margin-top:14px;font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:var(--color-subtle);opacity:0;transition:opacity .4s .6s}
 .round-splash.is-crown .splash-hint {opacity:1}
@@ -1785,3 +1785,50 @@ html.reduce-motion .best-stamp,html.reduce-motion .best-stamp svg {animation:non
 .reduce-motion .pot-drop {display:none}
 @media (prefers-reduced-motion: reduce) {.pot-drop {display:none}}
 @media (max-width:360px) {.map-hint-tail {display:none}}
+/* ── After a round: rounds won, and the round's big moments ── */
+.round-tally {display:flex;flex-direction:column;align-items:center;gap:6px;margin-top:14px;font-family:var(--font-sans);animation:splash-fade .4s .5s backwards}
+.round-tally-label {font-size:10px;font-weight:600;letter-spacing:.24em;text-transform:uppercase;color:var(--color-subtle)}
+.round-tally-row {display:flex;align-items:center;gap:6px;padding:4px;border:1px solid #ffffff26;border-radius:999px;background:#0f0f0fcc}
+.round-tally-side {position:relative;display:inline-flex;align-items:center;gap:8px;padding:4px 12px;border-radius:999px;font-size:13px;color:var(--color-muted)}
+.round-tally-side.is-right {flex-direction:row-reverse}
+.round-tally-side.is-winner {color:var(--color-fg);background:color-mix(in oklab,var(--side) 22%,transparent);box-shadow:inset 0 0 0 1px color-mix(in oklab,var(--side) 60%,transparent)}
+.round-tally-name {max-width:9ch;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.round-tally-count {position:relative;display:inline-grid;height:1.15em;overflow:hidden;font-family:var(--font-display);font-size:20px;font-weight:700;line-height:1.15;color:var(--color-fg)}
+.round-tally-side.is-winner .round-tally-count {color:var(--side)}
+.round-tally-count > span {grid-area:1/1;text-align:center}
+.round-tally-count .is-was {animation:tally-out .35s 1.25s cubic-bezier(.5,0,.7,.4) forwards}
+.round-tally-count .is-now {transform:translateY(110%);animation:tally-in .45s 1.3s cubic-bezier(.2,1.5,.4,1) forwards}
+@keyframes tally-out {to{transform:translateY(-110%);opacity:0}}
+@keyframes tally-in {to{transform:none}}
+/* The trophy leaves the banner and lands on the winner's count. */
+.round-tally-trophy {position:absolute;top:50%;left:50%;display:grid;place-items:center;width:30px;height:30px;margin:-15px 0 0 -15px;border-radius:50%;color:#2a1a00;background:radial-gradient(circle at 35% 30%,#fff3c4,#ffd166 45%,#f0a020);box-shadow:0 4px 12px #0007;opacity:0;animation:tally-trophy 1.1s .55s cubic-bezier(.3,.6,.3,1) forwards}
+.round-tally-side.is-right .round-tally-trophy {--from-x:-80px}
+@keyframes tally-trophy {0%{opacity:0;transform:translate(var(--from-x,80px),-90px) scale(1.6) rotate(-25deg)}20%{opacity:1}70%{opacity:1;transform:translate(0,0) scale(1) rotate(0)}85%{opacity:1;transform:scale(1.25)}100%{opacity:0;transform:scale(.6)}}
+.round-tally-side.is-winner::after {content:"";position:absolute;inset:-2px;border-radius:inherit;box-shadow:0 0 0 0 var(--side);animation:tally-glow .9s 1.3s ease-out backwards}
+@keyframes tally-glow {0%{box-shadow:0 0 0 0 color-mix(in oklab,var(--side) 70%,transparent)}100%{box-shadow:0 0 0 14px transparent}}
+.callouts {display:flex;flex-wrap:wrap;justify-content:center;gap:8px;margin-top:12px}
+.callout {display:inline-flex;align-items:center;gap:6px;padding:5px 12px;border-radius:8px;font-family:var(--font-sans);font-size:12px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:#2a1a00;background:linear-gradient(100deg,#ffd166,#ffb21a);box-shadow:0 0 0 2px #ffd16633,0 8px 20px #0007;transform:rotate(-3deg);animation:callout-slam .5s cubic-bezier(.2,1.6,.4,1) backwards;animation-delay:calc(1.6s + var(--i) * .35s)}
+.callout:nth-child(2) {transform:rotate(2.5deg)}
+.callout.is-run,.callout.is-hot-streak {color:#2a0e00;background:linear-gradient(100deg,#ffa04d,#ff6a1a)}
+.callout.is-run svg,.callout.is-hot-streak svg {animation:flame-flicker 1.2s ease-in-out infinite;transform-origin:50% 85%}
+.callout.is-lead-change {color:#06172b;background:linear-gradient(100deg,#8fc4ff,#5aa9ff)}
+.callout.is-shutout,.callout.is-close-call {color:var(--color-bg);background:var(--color-fg)}
+@keyframes callout-slam {0%{opacity:0;transform:scale(2.4) rotate(-12deg)}60%{opacity:1;transform:scale(.92) rotate(2deg)}100%{opacity:1}}
+.round-splash.is-reduced .round-tally-count .is-was {display:none}
+.round-splash.is-reduced .round-tally-count .is-now {transform:none}
+.round-splash.is-reduced .round-tally-trophy {display:none}
+@media (prefers-reduced-motion: reduce) {.round-tally-count .is-was,.round-tally-trophy {display:none}.round-tally-count .is-now {transform:none;animation:none}.callout,.callout svg {animation:none}}
+@media (max-height:740px) {.round-tally {margin-top:8px;gap:3px}.round-tally-label {display:none}.callouts {margin-top:8px}}
+.callout {white-space:nowrap}
+/* The round-end moment packs tighter so it all fits above the map. */
+.round-splash.has-moment .splash-hint {display:none}
+.round-splash.has-moment .splash-headline {margin-top:8px}
+.round-splash.has-moment .win-banner {gap:6px}
+.round-splash.has-moment .win-banner .win-big {font-size:clamp(40px,11vw,80px)}
+.round-splash.has-moment .splash-sub {margin-top:8px}
+.round-splash.has-moment .splash-kicker {display:none}
+.round-splash.has-moment .round-tally {margin-top:10px}
+@media (max-height:900px) {.round-splash.has-moment .round-tally-label {display:none}}
+/* The round-end moment takes the whole screen; the map returns with the reveal. */
+.round-splash.has-moment {bottom:0;padding-bottom:max(1.5rem,env(safe-area-inset-bottom))}
+.round-splash.has-moment {background:radial-gradient(ellipse at 50% 45%,#1a1a1af7 0%,#141414ee 60%,#101010e0 100%)}

@@ -1,3 +1,5 @@
+import { ArrowLeftRight, Flame, Scale, ShieldCheck, Target, Trophy } from "lucide-react";
+import { calloutLabel, type Callout } from "@/lib/game";
 import { cn } from "@/lib/utils";
 
 /**
@@ -116,5 +118,83 @@ export function CrownDrop() {
       <circle cx="32" cy="4" r="3.6" />
       <circle cx="56" cy="9" r="3.4" />
     </svg>
+  );
+}
+
+/**
+ * Rounds won so far, after a round ends: a trophy flies into the winner's
+ * count and the number flips up by one.
+ */
+export function RoundTally({
+  rows,
+  winnerId,
+}: {
+  rows: { id: string; name: string; wins: number }[];
+  winnerId?: string;
+}) {
+  return (
+    <div className="round-tally" aria-hidden>
+      <span className="round-tally-label">Rounds won</span>
+      <span className="round-tally-row">
+        {rows.map((row, i) => {
+          const won = row.id === winnerId;
+          return (
+            <span
+              key={row.id}
+              className={cn("round-tally-side", i === 1 && "is-right", won && "is-winner")}
+              style={{ "--side": i === 0 ? "var(--color-accent)" : "var(--color-rival)" } as React.CSSProperties}
+            >
+              <span className="round-tally-name">{row.name}</span>
+              <span className="round-tally-count tabular">
+                {won ? (
+                  <>
+                    <span className="is-was">{row.wins - 1}</span>
+                    <span className="is-now">{row.wins}</span>
+                  </>
+                ) : (
+                  row.wins
+                )}
+              </span>
+              {won && (
+                <span className="round-tally-trophy">
+                  <Trophy size={18} />
+                </span>
+              )}
+            </span>
+          );
+        })}
+      </span>
+    </div>
+  );
+}
+
+const CALLOUT_ICON: Record<Callout["kind"], typeof Flame> = {
+  run: Flame,
+  "hot-streak": Flame,
+  "lead-change": ArrowLeftRight,
+  "close-call": Scale,
+  perfect: Target,
+  shutout: ShieldCheck,
+};
+
+/** The round's big moments, stamped in one after the other. */
+export function CalloutStamps({ callouts }: { callouts: Callout[] }) {
+  if (!callouts.length) return null;
+  return (
+    <span className="callouts" aria-hidden>
+      {callouts.map((callout, i) => {
+        const Icon = CALLOUT_ICON[callout.kind];
+        return (
+          <span
+            key={callout.kind}
+            className={cn("callout", `is-${callout.kind}`)}
+            style={{ "--i": i } as React.CSSProperties}
+          >
+            <Icon size={14} strokeWidth={2.4} />
+            {calloutLabel(callout)}
+          </span>
+        );
+      })}
+    </span>
   );
 }

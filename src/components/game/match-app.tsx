@@ -47,6 +47,7 @@ import {
   movementOf,
   placeByPlace,
   streakCount,
+  roundMoment,
   loadStats,
   isNewBest,
   previousBest,
@@ -1590,6 +1591,23 @@ export function MatchApp({
   // What this place did under the match's rule: a health duel's damage, or a
   // streak's verdict. Read from the record of the place just revealed.
   const revealedRecord = state.revealed ? state.roundHistory.at(-1) : undefined;
+  // The celebration after a round: rounds won so far and the moments worth
+  // calling out (round-moment.ts). Place-by-place matches count each place;
+  // longer ones count rounds of ten.
+  const momentIds = state.players.map((p) => p.id);
+  const momentFor = (groupOf: (r: { index: number }) => number) =>
+    revealedRecord
+      ? roundMoment(state.roundHistory, momentIds.length === 2 ? momentIds : [you?.id ?? selfId], groupOf, {
+          leadBy: healthDuel ? "health" : "points",
+          selfId: you?.id ?? selfId,
+        })
+      : undefined;
+  const placeMoment = byPlace && !state.streak ? momentFor((r) => r.index) : undefined;
+  const tenMoment = !byPlace ? momentFor((r) => Math.floor(r.index / QUESTIONS_PER_ROUND)) : undefined;
+  // Country Streak: every fifth country in a row gets the full celebration.
+  const streakMilestone = Boolean(
+    state.streak && revealedRecord?.streak?.correct && streakCount(state) >= 5 && streakCount(state) % 5 === 0,
+  );
   const hit = healthDuel ? revealedRecord?.damage : undefined;
   const hitPlayer = hit ? state.players.find((p) => p.id === hit.playerId) : undefined;
   const ruleNote: { text: string; tone: "hit" | "keep" | "miss" | "even" } | undefined = healthDuel
@@ -2128,6 +2146,7 @@ export function MatchApp({
           selfId={you.id}
           roundIndex={state.roundIndex}
           totalRounds={state.totalRounds || 1}
+          moment={tenMoment}
           markSelf={duelKind !== "hotseat"}
           reducedMotion={settings.reducedMotion}
           onDone={() => setSummarySeen(revealKey)}
@@ -2155,12 +2174,20 @@ export function MatchApp({
               ? "the round"
               : `question ${questionInRound(state.questionIndex) + 1}`
           }
-          roundNumber={byPlace && !state.streak ? state.roundIndex + 1 : undefined}
+          roundNumber={
+            byPlace && !state.streak ? state.roundIndex + 1 : streakMilestone ? streakCount(state) : undefined
+          }
+          moment={byPlace && !state.streak ? placeMoment : undefined}
+          bannerBig={streakMilestone ? `${streakCount(state)} in a row` : undefined}
+          bannerLabel={streakMilestone ? "streak milestone" : undefined}
+          fanfare={streakMilestone}
           note={
             // The headline already says "Right country": the note keeps the count.
-            state.streak && revealedRecord?.streak?.correct
-              ? `${streakCount(state)} in a row`
-              : ruleNote?.text
+            streakMilestone
+              ? "Keep it going"
+              : state.streak && revealedRecord?.streak?.correct
+                ? `${streakCount(state)} in a row`
+                : ruleNote?.text
           }
           soloFigure={
             state.streak && revealedRecord?.streak

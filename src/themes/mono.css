@@ -839,3 +839,12 @@ button.duel-mode:hover .duel-mode-go {color:var(--color-accent)}
 .tut-ways span {border-radius:0;border-color:var(--color-rule);background:var(--color-bg)}
 .tut-count {font-family:var(--font-mono)}
 .pot-drop {font-family:var(--font-mono)}
+.round-tally-row {border-radius:0;border-color:#ffffff40;background:#000}
+.round-tally-side {border-radius:0}
+.round-tally-side.is-winner {background:#ffffff14;box-shadow:inset 0 0 0 1px #fff}
+.round-tally-side.is-winner .round-tally-count {color:#fff}
+.round-tally-count {font-family:var(--font-mono)}
+.round-tally-trophy {border-radius:0;color:#000;background:#fff;box-shadow:none}
+.callout,.callout.is-run,.callout.is-hot-streak,.callout.is-lead-change,.callout.is-shutout,.callout.is-close-call {border-radius:0;color:#000;background:#fff;box-shadow:none;font-family:var(--font-mono)}
+.callout.is-run,.callout.is-hot-streak {color:#000;background:var(--color-accent)}
+.round-splash.has-moment {background:#000000eb}

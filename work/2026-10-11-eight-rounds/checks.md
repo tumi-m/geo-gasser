@@ -13,3 +13,11 @@
 | 2 | The panorama's controls reach screen readers | pass | axe at 320×568 flagged `nested-interactive`: the viewer was `role="img"` around its buttons; it is a labelled group now |
 | 2 | The map hint fits small phones | pass | "Tap the map to…" was cut at 320; under 360 px it reads "Tap the map" |
 | 2 | Motion: points falling off the pot | pass | potdrop.mjs: each step down drops "−500" beside the pot; hidden with reduced motion |
+| 3 | Rounds won and callouts follow written rules | pass | `round-moment.test.ts`: 9 tests (wins, runs, lead change on points and on health, close call, shutout, perfect first, rounds of ten, solo hot streak, labels) |
+| 3 | A celebration after every round in a duel | pass | splashrec2.mjs (bot duel, B-Y-Y): "Rounds won" Tumz 1→2 as a trophy flies in, then "2 in a row"; Mono (Y-B-Y): 2–1, no callout, as the rules say |
+| 3 | Solo rounds celebrate too | pass | splashrec2.mjs (solo Y-Y-P): "+5,000 Perfect read", three stars, "Perfect" and "On fire · 3 great rounds" |
+| 3 | Rounds of ten (Quick and longer) | pass | quick10.mjs: ten-place round summary keeps its crown, banner and confetti; the tally shows only when a match has more than one round |
+| 3 | Country Streak milestones | pass | every fifth country in a row: confetti, "5 in a row", "streak milestone", "Keep it going" |
+| 3 | The moment fits every screen | pass | it used to run under the header and over the map on phones; now it takes the whole screen (inner 265–627 of 844 at 390; 130–486 of 568 at 320×568); the map returns with the reveal |
+| 3 | A stray rule no longer bends the splash | pass | `.splash-headline span` made every span inline-block (it had already stacked the stars); now `> span` |
+| 3 | Reduced motion, axe, screen readers | pass | with the setting on: fades only, the tally shows its final count; axe clean; the status reads "…Tumz leads by 7,835. 2 in a row." |

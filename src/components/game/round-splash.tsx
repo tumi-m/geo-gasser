@@ -5,14 +5,16 @@ import {
   audio,
   formatMiss,
   roundStars,
+  calloutLabel,
   roundVerdict,
   type PlayerState,
+  type RoundMoment,
   type RoundScore,
 } from "@/lib/game";
 import { PlayerAvatar } from "./player-avatar";
 import { useCountUp } from "./use-count-up";
 import { useSplashTimeline } from "./use-splash-timeline";
-import { CrownDrop, WinBanner, WinFx } from "./winner-moment";
+import { CalloutStamps, CrownDrop, RoundTally, WinBanner, WinFx } from "./winner-moment";
 import { cn } from "@/lib/utils";
 
 /**
@@ -26,8 +28,9 @@ const T_IN = 150;
 const T_COUNT = 900;
 const T_CROWN = T_IN + T_COUNT + 100;
 const T_LEAVE = T_CROWN + 1350;
-/** A question that is a whole round (Escape) gets the full winner moment. */
-const T_LEAVE_ROUND = T_CROWN + 2500;
+/** A question that is a whole round (Escape) gets the full winner moment,
+ *  with time to read the rounds won and the round's callouts. */
+const T_LEAVE_ROUND = T_CROWN + 3200;
 export function RoundSplash({
   players,
   selfId,
@@ -41,7 +44,18 @@ export function RoundSplash({
   onDone,
   note,
   soloFigure,
+  moment,
+  bannerBig,
+  bannerLabel,
+  fanfare,
 }: {
+  /** The round's place in the match: rounds won, and moments to call out. */
+  moment?: RoundMoment;
+  /** Solo: what the banner says instead of the headline (a streak milestone). */
+  bannerBig?: string;
+  bannerLabel?: string;
+  /** Fire the confetti whatever the stars say (a streak milestone). */
+  fanfare?: boolean;
   /** Replaces the line under the headline (a health duel's damage, a streak's country). */
   note?: string;
   /** Solo: shown instead of the round's points (a streak's count). */
@@ -83,7 +97,7 @@ export function RoundSplash({
   const youWin = duel && markSelf && verdict.winnerId === selfId;
   const stars = duel ? undefined : roundStars(score.roundScore);
   const celebrate = roundEnd && crowned;
-  const confetti = duel ? Boolean(verdict.winnerId) : (stars ?? 0) >= 2;
+  const confetti = duel ? Boolean(verdict.winnerId) : Boolean(fanfare) || (stars ?? 0) >= 2;
   const title = duel
     ? winner
       ? `${winner.name} takes ${winUnit}`
@@ -107,10 +121,12 @@ export function RoundSplash({
         `is-${stage}`,
         reduced && "is-reduced",
         celebrate && confetti && "has-win",
+        // The round-end moment carries more (rounds won, callouts): it packs tighter.
+        roundEnd && moment && "has-moment",
       )}
       role="status"
       aria-live="polite"
-      aria-label={`${roundLabel}. ${title}. ${sub}.`}
+      aria-label={[roundLabel, title, sub, ...(moment?.callouts.map(calloutLabel) ?? [])].join(". ") + "."}
       onClick={skip}
     >
       {celebrate && !reduced && (
@@ -138,6 +154,7 @@ export function RoundSplash({
                   loser={isLoser}
                   crown={roundEnd}
                   reduced={reduced}
+                  compact={Boolean(roundEnd && moment)}
                 />
               );
             })}
@@ -169,12 +186,19 @@ export function RoundSplash({
               />
             ) : (
               <WinBanner
-                big={title}
-                label={`round ${roundNumber} complete`}
+                big={bannerBig ?? title}
+                label={bannerLabel ?? `round ${roundNumber} complete`}
                 color={winColour}
-                stars={stars}
+                stars={bannerBig ? undefined : stars}
               />
             )}
+            {duel && moment && (
+              <RoundTally
+                rows={verdict.rows.map((r) => ({ id: r.id, name: r.name, wins: moment.wins[r.id] ?? 0 }))}
+                winnerId={moment.winnerId}
+              />
+            )}
+            {moment && <CalloutStamps callouts={moment.callouts} />}
           </div>
         ) : (
           <h2 className="splash-headline" aria-hidden>
@@ -209,7 +233,10 @@ function SplashPlayer({
   loser,
   crown,
   reduced,
+  compact,
 }: {
+  /** Smaller avatar, so the round-end moment fits above the map. */
+  compact?: boolean;
   side: "left" | "right";
   name: string;
   avatarId: string;
@@ -227,7 +254,7 @@ function SplashPlayer({
       <div className="splash-avatar">
         <PlayerAvatar
           id={avatarId}
-          size={76}
+          size={compact ? 58 : 76}
           live
           mood={winner ? "happy" : loser ? "sad" : "focus"}
         />

@@ -25,4 +25,5 @@ export * from "./verdict.ts";
 export * from "./round-summary.ts";
 export * from "./rules.ts";
 export * from "./career.ts";
+export * from "./round-moment.ts";
 export * from "./share-card.ts";

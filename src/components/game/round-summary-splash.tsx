@@ -1,9 +1,11 @@
 import {
   audio,
+  calloutLabel,
   getLocation,
   roundStars,
   roundSummary,
   type PlayerState,
+  type RoundMoment,
   type RoundRecord,
   ROUND_MAX,
 } from "@/lib/game";
@@ -11,7 +13,7 @@ import { PlayerAvatar } from "./player-avatar";
 import { Sparks } from "./round-splash";
 import { useSplashTimeline } from "./use-splash-timeline";
 import { useCountUp } from "./use-count-up";
-import { CrownDrop, WinBanner, WinFx } from "./winner-moment";
+import { CalloutStamps, CrownDrop, RoundTally, WinBanner, WinFx } from "./winner-moment";
 import { cn } from "@/lib/utils";
 
 /**
@@ -24,7 +26,7 @@ import { cn } from "@/lib/utils";
 
 const T_PIPS = 300;
 const PIP_STEP = 110;
-const HOLD = 2600;
+const HOLD = 3200;
 
 export function RoundSummarySplash({
   history,
@@ -35,7 +37,10 @@ export function RoundSummarySplash({
   markSelf = true,
   reducedMotion,
   onDone,
+  moment,
 }: {
+  /** Rounds won so far, and the round's moments to call out. */
+  moment?: RoundMoment;
   history: RoundRecord[];
   players: PlayerState[];
   selfId: string;
@@ -94,10 +99,11 @@ export function RoundSummarySplash({
         `is-${stage}`,
         reduced && "is-reduced",
         crowned && confetti && "has-win",
+        moment && "has-moment",
       )}
       role="status"
       aria-live="polite"
-      aria-label={`${kicker}. ${title}. ${sub}.`}
+      aria-label={[kicker, title, sub, ...(moment?.callouts.map(calloutLabel) ?? [])].filter(Boolean).join(". ") + "."}
       onClick={onDone}
     >
       {crowned && !reduced && (
@@ -191,6 +197,13 @@ export function RoundSummarySplash({
           ) : (
             <WinBanner big={STAR_WORD[stars ?? 0]} label={which} color={winColour} stars={stars} />
           )}
+          {crowned && duel && moment && totalRounds > 1 && (
+            <RoundTally
+              rows={s.rows.map((r) => ({ id: r.id, name: r.name, wins: moment.wins[r.id] ?? 0 }))}
+              winnerId={moment.winnerId}
+            />
+          )}
+          {crowned && moment && <CalloutStamps callouts={moment.callouts} />}
         </div>
         <p className="splash-sub" aria-hidden>
           {crowned ? sub : " "}
