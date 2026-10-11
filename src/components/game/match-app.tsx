@@ -7,6 +7,7 @@ import {
   Map,
   Maximize,
   Minimize,
+  Flame,
   Pause as PauseIcon,
   Settings as SettingsIcon,
   Share2,
@@ -2025,6 +2026,12 @@ export function MatchApp({
               roundLive={clockRunning || state.phase === "player_locked"}
               urgent={urgent}
               health={healthDuel}
+              lastHit={(() => {
+                const last = state.roundHistory.at(-1);
+                return healthDuel && last?.damage
+                  ? { playerId: last.damage.playerId, amount: last.damage.amount, key: last.index }
+                  : undefined;
+              })()}
             />
           ) : mode === "duel" && showingReveal ? null : (
             <div className={cn("hud-score flex items-center gap-2 rounded-[var(--radius-md)] border border-border py-1.5 pl-1.5 pr-3", mono ? "bg-bg" : "bg-bg/70")}>
@@ -2040,6 +2047,17 @@ export function MatchApp({
                 <div className="hud-score-label text-[10px] uppercase tracking-wider text-subtle">
                   {state.streak ? "Streak" : "Score"}
                 </div>
+                {state.streak && runSoFar > 0 && (
+                  // The flame grows hotter as the run goes on, and jumps on each country.
+                  <span
+                    key={runSoFar}
+                    className="hud-streak-flame"
+                    style={{ "--heat": Math.min(1, runSoFar / 10) } as React.CSSProperties}
+                    aria-hidden
+                  >
+                    <Flame size={14} />
+                  </span>
+                )}
                 <div className="font-display tabular text-lg leading-none" data-score-target>
                   {/* Country Streak counts countries in a row, not points. */}
                   <RollingScore

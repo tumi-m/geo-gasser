@@ -865,3 +865,5 @@ button.duel-mode:hover .duel-mode-go {color:var(--color-accent)}
 .faceoff-vs {border-radius:0;color:#000;background:var(--color-accent);box-shadow:0 0 0 6px #000;font-family:var(--font-sans);font-style:normal}
 .faceoff-tag,.faceoff-rule,.faceoff-hint {font-family:var(--font-mono)}
 .faceoff-rule,.faceoff-hint {left:50%;right:auto;width:max-content;max-width:calc(100% - 32px);padding:6px 12px;transform:translateX(-50%);color:#fff;background:#000;border:1px solid #fff;text-shadow:none}
+.hud-streak-flame {border-radius:0;color:#000;background:var(--color-accent);box-shadow:none}
+.tally-damage {font-family:var(--font-mono);color:var(--color-accent);text-shadow:none}

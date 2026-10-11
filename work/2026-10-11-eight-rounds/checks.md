@@ -33,3 +33,6 @@
 | 6 | The face-off never eats the round's time | pass | fotime.mjs: gone at 2.7 s, the title card then gets its full hold (round live at 5.1 s); Enter skips it in 0.4 s and leaves the title card |
 | 6 | Mono face-off text reads on both halves | pass | the rule and hint crossed the white/black split on desktop; they sit on a black chip now |
 | 6 | Lobby, pass and play, online room | pass | b6.mjs at 390 (Classic) and 1280 (Mono): axe clean, no sideways scroll; hotpin.mjs: player one's pin is gone at the handoff and on player two's turn |
+| 7 | Health duels show the last hit | pass | b7.mjs: when the tally returns for the next place, "−2,314" floats off the hit player's bar (both looks); hidden with reduced motion |
+| 7 | Country Streak's HUD flame | pass | b7.mjs: a flame on the streak counter jumps in on each country and glows hotter towards ten in a row (both looks) |
+| 7 | Pause and settings | pass | pause re-checked in round 1's sweep and the last release (clock holds, scene covered); settings tabs axe clean at 320×568 (b1.mjs) |

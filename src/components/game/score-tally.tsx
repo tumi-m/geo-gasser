@@ -10,9 +10,12 @@ export function ScoreTally({
   urgent,
   winnerIds,
   health = false,
+  lastHit,
 }: {
   /** A health duel: each row shows health left and a bar that drains. */
   health?: boolean;
+  /** Health duels: the last place's hit, floated off the bar when the tally returns. */
+  lastHit?: { playerId: string; amount: number; key: number };
   players: PlayerState[];
   selfId?: string;
   /** A question is being played: rivals think, locked players smile. */
@@ -52,7 +55,7 @@ export function ScoreTally({
           <div
             key={p.id}
             role="listitem"
-            className="flex items-center gap-2 py-1 first:pt-0 last:pb-0"
+            className="relative flex items-center gap-2 py-1 first:pt-0 last:pb-0"
           >
             <PlayerAvatar id={p.avatarId} size={28} title={p.name} mood={moodFor(p)} />
             <div className="min-w-0 flex-1">
@@ -87,6 +90,11 @@ export function ScoreTally({
                   aria-hidden
                 >
                   <i />
+                </span>
+              )}
+              {health && lastHit?.playerId === p.id && lastHit.amount > 0 && (
+                <span key={lastHit.key} className="tally-damage" aria-hidden>
+                  −{lastHit.amount.toLocaleString()}
                 </span>
               )}
             </div>
