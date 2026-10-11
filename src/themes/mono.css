@@ -838,3 +838,4 @@ button.duel-mode:hover .duel-mode-go {color:var(--color-accent)}
 .tut-score-points {font-family:var(--font-mono);color:#c24000}
 .tut-ways span {border-radius:0;border-color:var(--color-rule);background:var(--color-bg)}
 .tut-count {font-family:var(--font-mono)}
+.pot-drop {font-family:var(--font-mono)}

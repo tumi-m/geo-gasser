@@ -251,7 +251,9 @@ export function PanoViewer({
     <div
       ref={hostRef}
       className={cn("relative h-full w-full touch-none overflow-hidden outline-none", className)}
-      role="img"
+      // A group, not an image: it holds the zoom and reset buttons.
+      role="group"
+      aria-roledescription="panorama"
       aria-label={`${alt}. Drag to look around, pinch or scroll to zoom.`}
       onPointerDown={onPointerDown}
       onPointerMove={onPointerMove}

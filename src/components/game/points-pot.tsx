@@ -65,6 +65,12 @@ export function PointsPot({
               ? "Last step"
               : `−${drop} in ${Math.ceil(left)}s`}
       </span>
+      {/* Each step down drops the points it took, like coins off a pile. */}
+      {tier > 0 && running && !locked && (
+        <span key={tier} className="pot-drop" aria-hidden>
+          −{Math.round(ROUND_MAX * (CLOCK_TIERS[tier - 1] - CLOCK_TIERS[tier])).toLocaleString("en-US")}
+        </span>
+      )}
       {/* Spoken once per step, not every second. */}
       <span className="sr-only" aria-live="polite">
         {running && !locked ? `${pot.toLocaleString("en-US")} points on offer` : ""}

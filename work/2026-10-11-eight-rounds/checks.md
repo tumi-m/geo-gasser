@@ -9,3 +9,7 @@
 | 1 | No developer text in Settings | pass | "This build has no Maps key (VITE_GOOGLE_MAPS_KEY)" → "Not available right now, so every round uses photographs." |
 | 1 | Home motion | pass | the Country Streak flame flickers; the level badge glints; both off with reduced motion |
 | 1 | Home, help, maps, settings, name prompt | pass | b1.mjs at 390, 320 (first run) and 1280 (Mono): axe clean, no page errors (certificate errors are the sandbox proxy blocking outside images) |
+| 2 | Live round at 390, 320×568, 844×390 and 1280 | pass | b2.mjs: nothing covers a control in the live round, nothing off-screen; the clock counts from the start (clk.mjs: 45, 44, 43 …) |
+| 2 | The panorama's controls reach screen readers | pass | axe at 320×568 flagged `nested-interactive`: the viewer was `role="img"` around its buttons; it is a labelled group now |
+| 2 | The map hint fits small phones | pass | "Tap the map to…" was cut at 320; under 360 px it reads "Tap the map" |
+| 2 | Motion: points falling off the pot | pass | potdrop.mjs: each step down drops "−500" beside the pot; hidden with reduced motion |
